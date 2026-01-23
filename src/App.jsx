@@ -4,14 +4,14 @@ import { useGameLoop } from './hooks/useGameLoop';
 import { useAiDirector } from './hooks/useAiDirector';
 import { GameCanvas } from './components/GameCanvas';
 import { ApiKeyModal } from './components/ApiKeyModal';
-import { DecisionPopup } from './components/DecisionPopup';
+import { RetroTerminal } from './components/RetroTerminal';
 
 function App() {
   // 1. Den Loop starten
   useGameLoop();
 
-  // 2. Den AI Director starten (hört auf Signale vom Loop/Store)
-  const { lastDecision, confirmDecision } = useAiDirector();
+  // 2. Den AI Director starten
+  useAiDirector();
 
   // 3. Daten aus dem Store holen
   const {
@@ -19,8 +19,8 @@ function App() {
     day,
     tick,
     workers,
+    gamePhase,
     isPlaying,
-    isAiThinking,
     togglePause,
     hireWorker,
     fireWorker,
@@ -29,72 +29,82 @@ function App() {
   } = useGameStore();
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <h1>🤖 AI Startup Simulator (Phase 4: Polish)</h1>
+    <div style={{ padding: '20px', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#222', minHeight: '100vh', color: '#fff' }}>
+      <h1>🤖 AI Startup Simulator (Core Mechanics)</h1>
 
       <button
         onClick={toggleMute}
-        style={{ position: 'absolute', top: 20, left: 20, padding: '5px 10px', background: '#333', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
+        style={{ position: 'absolute', top: 20, left: 20, padding: '5px 10px', background: '#333', color: '#fff', border: '1px solid #555', borderRadius: '5px', cursor: 'pointer' }}
       >
         {isMuted ? '🔇 Unmute' : '🔊 Mute'}
       </button>
 
-      {/* MODALS & OVERLAYS */}
+      {/* MODALS */}
       <ApiKeyModal />
-      <DecisionPopup decision={lastDecision} onConfirm={confirmDecision} />
 
-      {/* THINKING OVERLAY */}
-      {isAiThinking && !lastDecision && (
-        <div style={{
-          position: 'fixed', top: '20px', right: '20px',
-          background: '#ffcc00', color: '#000', padding: '10px 20px',
-          borderRadius: '5px', fontWeight: 'bold', zIndex: 1000,
-          animation: 'pulse 1s infinite'
-        }}>
-          🤔 CEO denkt nach...
-        </div>
-      )}
-
-      {/* DASHBOARD & CONTROLS CONTAINER */}
-      <div style={{ display: 'flex', gap: '20px', width: '800px', marginBottom: '10px' }}>
+      {/* DASHBOARD */}
+      <div style={{ display: 'flex', gap: '20px', width: '800px', marginBottom: '20px' }}>
 
         {/* STATUS BOARD */}
-        <div style={{ flex: 1, border: '2px solid #333', padding: '10px' }}>
-          <h2>Status</h2>
-          <p><strong>Tag:</strong> {day} | <strong>Uhrzeit:</strong> {tick}:00</p>
-          <p style={{ color: cash >= 0 ? 'green' : 'red', fontSize: '1.2em' }}>
-            <strong>Cash:</strong> {cash.toFixed(2)} €
+        <div style={{ flex: 1, border: '2px solid #555', padding: '15px', background: '#333' }}>
+          <h2 style={{ marginTop: 0 }}>Status</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+             <span>Day: {day}</span>
+             <span>Time: 0:{tick.toString().padStart(2, '0')}</span>
+          </div>
+          <p style={{ color: cash >= 0 ? '#4caf50' : '#f44336', fontSize: '1.5em', margin: '10px 0' }}>
+            <strong>{cash.toFixed(0)} €</strong>
           </p>
-          <p><strong>Mitarbeiter:</strong> {workers}</p>
-          <p><strong>Status:</strong> {isPlaying ? '▶️ Läuft' : '⏸️ Pausiert'}</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9em', color: '#aaa' }}>
+             <span>Workers: {workers}</span>
+             <span>Phase: {gamePhase}</span>
+          </div>
         </div>
 
-        {/* CONTROL PANEL */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', justifyContent: 'center' }}>
+        {/* CONTROLS */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <button
             onClick={togglePause}
-            disabled={isAiThinking}
-            style={{ padding: '10px', background: isPlaying ? '#ffcccc' : '#ccffcc', cursor: isAiThinking ? 'not-allowed' : 'pointer', opacity: isAiThinking ? 0.5 : 1 }}
+            disabled={gamePhase === 'CRUNCH'}
+            style={{
+                padding: '10px',
+                background: isPlaying ? '#ff5555' : '#55ff55',
+                color: '#000',
+                fontWeight: 'bold',
+                cursor: gamePhase === 'CRUNCH' ? 'not-allowed' : 'pointer',
+                opacity: gamePhase === 'CRUNCH' ? 0.3 : 1
+            }}
           >
             {isPlaying ? 'PAUSE' : 'START'}
           </button>
 
-          <button onClick={hireWorker} disabled={isAiThinking} style={{ padding: '10px', cursor: 'pointer' }}>
-            Hire Worker (-500€ fix)
-          </button>
-
-          <button onClick={fireWorker} disabled={isAiThinking} style={{ padding: '10px', cursor: 'pointer' }}>
-            Fire Worker
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+                onClick={hireWorker}
+                disabled={gamePhase === 'CRUNCH'}
+                style={{ flex: 1, padding: '10px', background: '#444', color: '#fff', border: '1px solid #666', cursor: 'pointer' }}
+            >
+                Hire (+Profit)
+            </button>
+            <button
+                onClick={fireWorker}
+                disabled={gamePhase === 'CRUNCH'}
+                style={{ flex: 1, padding: '10px', background: '#444', color: '#fff', border: '1px solid #666', cursor: 'pointer' }}
+            >
+                Fire (-Burn)
+            </button>
+          </div>
         </div>
       </div>
 
       {/* PHASER GAME CANVAS */}
-      <GameCanvas />
-
-      <div style={{ color: '#666' }}>
-        <small>Rendering via Phaser 3 | Logic via Zustand Store | Brain via OpenAI</small>
+      <div style={{ border: '4px solid #555' }}>
+         <GameCanvas />
       </div>
+
+      {/* TERMINAL (Bottom) */}
+      <RetroTerminal />
+
     </div>
   );
 }

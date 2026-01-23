@@ -7,6 +7,7 @@ export default class MainScene extends Phaser.Scene {
   constructor() {
     super({ key: 'MainScene' });
     this.workersGroup = null;
+    this.floorGroup = null;
     this.unsubscribeStore = null;
     this.easystar = null;
     this.grid = [];
@@ -14,6 +15,7 @@ export default class MainScene extends Phaser.Scene {
     this.cols = 25;
     this.rows = 20;
     this.soundManager = null;
+    this.currentLevel = 1;
   }
 
   create() {
@@ -23,8 +25,8 @@ export default class MainScene extends Phaser.Scene {
     this.soundManager = new SoundManager(this);
 
     // --- 1. Layering Setup ---
-    // Background (Floor)
-    this.createFloor();
+    this.floorGroup = this.add.group();
+    this.createFloor(1); // Default Level 1
 
     // Entity Layer (Workers)
     this.workersGroup = this.add.group();
@@ -38,17 +40,17 @@ export default class MainScene extends Phaser.Scene {
     this.setupGrid();
 
     // --- 3. Initial Sync ---
-    const currentWorkers = useGameStore.getState().workers;
-    this.syncWorkers(currentWorkers);
+    const state = useGameStore.getState();
+    this.syncWorkers(state.workers);
+    this.updateOfficeVisuals(state.officeLevel);
 
-    // --- 4. Reactive Listener (Subscription) ---
+    // --- 4. Reactive Listeners ---
+
+    // Workers Update
     this.unsubscribeStore = useGameStore.subscribe(
       (state) => state.workers,
       (newCount, oldCount) => {
-        console.log(`Phaser received worker update: ${newCount}`);
         this.syncWorkers(newCount);
-
-        // Play Sound if count increased
         if (newCount > oldCount) {
             this.soundManager.play('pop');
             this.emitParticles();
@@ -56,22 +58,40 @@ export default class MainScene extends Phaser.Scene {
       }
     );
 
-    // Subscribe to Cash for Kaching
-    this.unsubscribeCash = useGameStore.subscribe(
-        (state) => state.cash,
-        (newCash, oldCash) => {
-            // Wenn signifikanter Gewinn (z.B. > 100 in einem Tick, simplified logic)
-            if (newCash > oldCash + 50) {
-                this.soundManager.play('kaching', { volume: 0.5 });
-                // Show emote (placeholder logic)
+    // Office Level Update
+    this.unsubscribeLevel = useGameStore.subscribe(
+        (state) => state.officeLevel,
+        (newLevel, oldLevel) => {
+            if (newLevel !== oldLevel) {
+                this.updateOfficeVisuals(newLevel);
+                this.playTransitionEffect();
             }
         }
     );
 
+    // Game Phase Update (Crunch Mode Visuals)
+    this.unsubscribePhase = useGameStore.subscribe(
+        (state) => state.gamePhase,
+        (newPhase) => {
+            if (newPhase === 'CRUNCH') {
+                this.cameras.main.flash(1000, 255, 0, 0, true); // Red tint flash
+                this.tweens.add({
+                    targets: this.cameras.main,
+                    zoom: 1.05,
+                    duration: 5000,
+                    yoyo: true
+                });
+            } else {
+                this.cameras.main.setZoom(1);
+            }
+        }
+    );
+
+    // Debug Text
     this.debugText = this.add.text(10, 10, 'Phaser Running', { font: '16px monospace', fill: '#00ff00' });
     this.debugText.setScrollFactor(0);
 
-    // Timer für zufällige Bewegungen
+    // Random Movement Timer
     this.time.addEvent({ delay: 3000, callback: this.moveWorkersRandomly, callbackScope: this, loop: true });
   }
 
@@ -79,10 +99,10 @@ export default class MainScene extends Phaser.Scene {
     const state = useGameStore.getState();
 
     this.debugText.setText(
-      `Tick: ${state.tick} | Cash: ${state.cash.toFixed(0)}€ | Workers: ${state.workers}`
+      `Tick: ${state.tick} | Cash: ${state.cash.toFixed(0)}€ | Workers: ${state.workers} | Lvl: ${this.currentLevel}`
     );
 
-    // Custom Path Following Logic (Lerp)
+    // Path Following Logic
     this.workersGroup.children.iterate((worker) => {
         if (worker.path && worker.path.length > 0) {
             const target = worker.path[0];
@@ -92,31 +112,57 @@ export default class MainScene extends Phaser.Scene {
             const distance = Phaser.Math.Distance.Between(worker.x, worker.y, targetX, targetY);
 
             if (distance < 4) {
-                // Reached step
                 worker.path.shift();
                 if (worker.path.length === 0) {
                     worker.isMoving = false;
                 }
             } else {
-                // Move towards
                 this.physics.moveTo(worker, targetX, targetY, 100);
             }
         } else {
-            worker.body.reset(worker.x, worker.y); // Stop
+            worker.body.reset(worker.x, worker.y);
         }
     });
   }
 
-  createFloor() {
+  createFloor(level) {
+    this.floorGroup.clear(true, true);
+    const textureKey = `floor_${level}`;
+
     for (let x = 0; x < this.cols; x++) {
       for (let y = 0; y < this.rows; y++) {
-        this.add.image(x * this.tileSize, y * this.tileSize, 'floor').setOrigin(0);
+        // Simple checker pattern for visual interest
+        const tile = this.add.image(x * this.tileSize, y * this.tileSize, textureKey).setOrigin(0);
+        if ((x + y) % 2 === 0) tile.setTint(0xdddddd); // Slight shading
+        this.floorGroup.add(tile);
       }
     }
+    this.currentLevel = level;
+  }
+
+  updateOfficeVisuals(level) {
+      if (level === this.currentLevel) return;
+      console.log(`Upgrading Office to Level ${level}`);
+      this.createFloor(level);
+  }
+
+  playTransitionEffect() {
+      // Flash White
+      this.cameras.main.flash(1000, 255, 255, 255);
+      // Shake
+      this.cameras.main.shake(500);
+      // Text
+      const text = this.add.text(400, 300, "OFFICE UPGRADE!", { fontSize: '40px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
+      this.tweens.add({
+          targets: text,
+          scale: 2,
+          alpha: 0,
+          duration: 2000,
+          onComplete: () => text.destroy()
+      });
   }
 
   setupGrid() {
-    // 0 = walkable, 1 = obstacle
     this.grid = [];
     for (let y = 0; y < this.rows; y++) {
         const row = [];
@@ -130,16 +176,12 @@ export default class MainScene extends Phaser.Scene {
   }
 
   syncWorkers(count) {
-    // Sync logic optimized to not kill everyone
     const currentCount = this.workersGroup.getLength();
-
     if (count > currentCount) {
-        // Add new
         for (let i = currentCount; i < count; i++) {
             this.spawnWorker(i);
         }
     } else if (count < currentCount) {
-        // Remove last
         const toRemove = currentCount - count;
         for (let i = 0; i < toRemove; i++) {
             const worker = this.workersGroup.getLast(true);
@@ -149,10 +191,8 @@ export default class MainScene extends Phaser.Scene {
   }
 
   spawnWorker(index) {
-    // Random valid pos
     let x = Phaser.Math.Between(0, this.cols - 1);
     let y = Phaser.Math.Between(0, this.rows - 1);
-
     const worker = this.add.sprite(x * this.tileSize + 16, y * this.tileSize + 16, 'worker');
     this.physics.add.existing(worker);
     worker.path = [];
@@ -179,33 +219,9 @@ export default class MainScene extends Phaser.Scene {
     this.easystar.calculate();
   }
 
-  showEmote(x, y, type) {
-    const text = this.add.text(x, y - 20, type, { fontSize: '20px' }).setOrigin(0.5);
-    this.tweens.add({
-        targets: text,
-        y: y - 50,
-        alpha: 0,
-        duration: 1500,
-        onComplete: () => text.destroy()
-    });
-  }
-
   emitParticles() {
-      // Create a particle manager (emitter)
-      // Since Phaser 3.60+ syntax varies, we use a generic add.particles approach compatible with newer versions
-      if (!this.particleManager) {
-          // Fallback or simple setup.
-          // Note: In strict Phaser 3.60+, createEmitter syntax changed.
-          // We will use a simple one-shot graphic for the effect if particles are complex to setup without assets.
-          // But here is a basic implementation assuming a 'worker' texture or similar dot.
-      }
-
-      // Simple visual flair:
-      // Flash the screen slightly or spawn a "Smoke" text
       const x = 400;
       const y = 300;
-
-      // Spawn "New Hire" text that fades out
       const text = this.add.text(x, y, "✨ New Hire!", { fontSize: '32px', color: '#ffff00', stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5);
       this.tweens.add({
           targets: text,
@@ -218,6 +234,7 @@ export default class MainScene extends Phaser.Scene {
 
   destroy() {
     if (this.unsubscribeStore) this.unsubscribeStore();
-    if (this.unsubscribeCash) this.unsubscribeCash();
+    if (this.unsubscribeLevel) this.unsubscribeLevel();
+    if (this.unsubscribePhase) this.unsubscribePhase();
   }
 }

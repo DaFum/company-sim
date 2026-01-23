@@ -2,25 +2,28 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 
 export const useGameStore = create(subscribeWithSelector((set, get) => ({
-  // --- STATE (Die Daten) ---
+  // --- STATE ---
   apiKey: sessionStorage.getItem('openai_api_key') || '',
-  aiProvider: sessionStorage.getItem('ai_provider') || 'openai', // 'openai' | 'pollinations'
-  aiModel: sessionStorage.getItem('ai_model') || 'openai', // Default Model for Pollinations
-  cash: 50000,          // Startkapital
-  day: 1,               // Aktueller Tag
-  tick: 0,              // Sekunde des aktuellen Tages (0-60)
-  isPlaying: false,     // Pause/Play Status
-  isAiThinking: false,  // Status für KI-Request
-  isMuted: false,       // Audio Mute State
+  aiProvider: sessionStorage.getItem('ai_provider') || 'openai',
+  aiModel: sessionStorage.getItem('ai_model') || 'openai',
 
-  // Ressourcen
-  workers: 1,           // Anzahl Mitarbeiter
+  cash: 50000,
+  day: 1,
+  tick: 0,
+  gamePhase: 'WORK',    // 'WORK' | 'CRUNCH'
+  isPlaying: false,
+  isAiThinking: false,
+  isMuted: false,
+
+  officeLevel: 1,
+  terminalLogs: [],
+  pendingDecision: null,
+
+  workers: 1,
   productivity: 10,
   burnRate: 5,
 
-  // --- ACTIONS (Die Methoden um Daten zu ändern) ---
-
-  // 0. API Key & Provider Management
+  // --- ACTIONS ---
   setApiKey: (key) => {
     sessionStorage.setItem('openai_api_key', key);
     set({ apiKey: key });
@@ -36,50 +39,106 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
     set({ aiModel: model });
   },
 
-  // 1. Spielsteuerung
   togglePause: () => set((state) => ({ isPlaying: !state.isPlaying })),
-
   toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
 
-  // 2. Der Herzschlag
-  advanceTick: () => {
+  addTerminalLog: (msg) => set((state) => ({
+    terminalLogs: [...state.terminalLogs.slice(-4), msg]
+  })),
+
+  clearTerminalLogs: () => set({ terminalLogs: [] }),
+
+  setPendingDecision: (decision) => set({ pendingDecision: decision }),
+
+  vetoDecision: () => {
     const state = get();
+    if (!state.pendingDecision) return;
 
-    if (state.isAiThinking) return;
-
-    const revenue = state.workers * state.productivity;
-    const costs = state.workers * state.burnRate;
-    const netChange = revenue - costs;
-
-    let newTick = state.tick + 1;
-
-    // Tageswechsel Trigger
-    if (newTick >= 60) {
-      console.log("--- TAG ZU ENDE: Freeze für KI ---");
-      set({
-        cash: state.cash + netChange,
-        tick: 60,
-        isPlaying: false,
-        isAiThinking: true
-      });
-      return;
-    }
+    state.addTerminalLog(`>> VETO! DECISION REJECTED.`);
+    state.addTerminalLog(`>> EXECUTING SAFE ACTION.`);
 
     set({
-      cash: state.cash + netChange,
-      tick: newTick
+      pendingDecision: null,
+      cash: state.cash - 100
     });
   },
 
-  // 2b. Callback nach KI-Entscheidung
-  startNewDay: () => set((state) => ({
-    day: state.day + 1,
-    tick: 0,
-    isAiThinking: false,
-    isPlaying: true
-  })),
+  applyPendingDecision: () => {
+    const state = get();
+    const decision = state.pendingDecision;
 
-  // 3. Manuelle Aktionen
+    if (decision) {
+        state.addTerminalLog(`>> EXECUTING: ${decision.action}`);
+        let updates = { pendingDecision: null };
+        if (decision.action === 'SPEND_MONEY') {
+            updates.cash = state.cash - (decision.amount || 0);
+        } else if (decision.action === 'HIRE') {
+            updates.workers = state.workers + Math.floor(decision.amount || 1);
+            updates.cash = state.cash - ((decision.amount || 1) * 500);
+        } else if (decision.action === 'FIRE') {
+            updates.workers = Math.max(0, state.workers - Math.floor(decision.amount || 1));
+        }
+        set(updates);
+    }
+  },
+
+  advanceTick: () => {
+    const state = get();
+    if (!state.isPlaying) return;
+
+    let newTick = state.tick + 1;
+    let newPhase = state.gamePhase;
+
+    // Transition to Crunch at Tick 49 (so Tick 50 is Crunch)
+    if (state.tick === 49) {
+        newPhase = 'CRUNCH';
+    }
+
+    if (state.gamePhase === 'WORK') {
+        const revenue = state.workers * state.productivity;
+        const costs = state.workers * state.burnRate;
+        const netChange = revenue - costs;
+
+        if (Math.random() < 0.05) {
+            const eventCost = Math.floor(Math.random() * 200) + 50;
+            state.addTerminalLog(`> EVENT: Printer Jam. -${eventCost}€`);
+            set({ cash: state.cash + netChange - eventCost, tick: newTick });
+        } else {
+            set({ cash: state.cash + netChange, tick: newTick, gamePhase: newPhase });
+        }
+    } else {
+        // CRUNCH PHASE
+        if (newTick > 60) {
+            if (state.isAiThinking) return;
+
+            if (state.pendingDecision) {
+               state.applyPendingDecision();
+            }
+            state.startNewDay();
+            return;
+        }
+        set({ tick: newTick, gamePhase: newPhase });
+    }
+  },
+
+  startNewDay: () => {
+      set((state) => {
+          let newLevel = 1;
+          if (state.workers >= 16) newLevel = 3;
+          else if (state.workers >= 5) newLevel = 2;
+
+          return {
+            day: state.day + 1,
+            tick: 0,
+            gamePhase: 'WORK',
+            isAiThinking: false,
+            terminalLogs: [],
+            officeLevel: newLevel,
+            isPlaying: true
+          };
+      });
+  },
+
   hireWorker: () => set((state) => ({
     workers: state.workers + 1,
     cash: state.cash - 500
@@ -87,20 +146,6 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
 
   fireWorker: () => set((state) => ({
     workers: Math.max(0, state.workers - 1)
-  })),
+  }))
 
-  // Generische Aktion für KI-Entscheidungen
-  applyDecision: (actionType, amount) => {
-      const state = get();
-      let updates = {};
-
-      if (actionType === 'SPEND_MONEY') {
-          updates.cash = state.cash - amount;
-      } else if (actionType === 'HIRE') {
-          updates.workers = state.workers + Math.floor(amount);
-          updates.cash = state.cash - (amount * 500);
-      }
-
-      set(updates);
-  }
 })));
