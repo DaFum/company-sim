@@ -1,6 +1,7 @@
 import React from 'react';
 import { useGameStore } from './store/gameStore';
 import { useGameLoop } from './hooks/useGameLoop';
+import { GameCanvas } from './components/GameCanvas';
 
 function App() {
   // 1. Den Loop starten
@@ -19,45 +20,47 @@ function App() {
   } = useGameStore();
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'monospace' }}>
-      <h1>🤖 AI Startup Simulator (Motor-Test)</h1>
+    <div style={{ padding: '20px', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <h1>🤖 AI Startup Simulator (Phase 2: Architecture)</h1>
 
-      {/* STATUS BOARD */}
-      <div style={{ border: '2px solid #333', padding: '10px', marginBottom: '20px' }}>
-        <h2>Status</h2>
-        <p><strong>Tag:</strong> {day}</p>
-        <p><strong>Uhrzeit:</strong> {tick}:00 (1 Tick = 1 Minute)</p>
+      {/* DASHBOARD & CONTROLS CONTAINER */}
+      <div style={{ display: 'flex', gap: '20px', width: '800px', marginBottom: '10px' }}>
 
-        {/* Visueller Indikator für Cashflow */}
-        <p style={{ color: cash >= 0 ? 'green' : 'red', fontSize: '1.5em' }}>
-          <strong>Cash:</strong> {cash.toFixed(2)} €
-        </p>
+        {/* STATUS BOARD */}
+        <div style={{ flex: 1, border: '2px solid #333', padding: '10px' }}>
+          <h2>Status</h2>
+          <p><strong>Tag:</strong> {day} | <strong>Uhrzeit:</strong> {tick}:00</p>
+          <p style={{ color: cash >= 0 ? 'green' : 'red', fontSize: '1.2em' }}>
+            <strong>Cash:</strong> {cash.toFixed(2)} €
+          </p>
+          <p><strong>Mitarbeiter:</strong> {workers}</p>
+          <p><strong>Status:</strong> {isPlaying ? '▶️ Läuft' : '⏸️ Pausiert'}</p>
+        </div>
 
-        <p><strong>Mitarbeiter:</strong> {workers}</p>
-        <p><strong>Status:</strong> {isPlaying ? '▶️ Läuft' : '⏸️ Pausiert'}</p>
+        {/* CONTROL PANEL */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', justifyContent: 'center' }}>
+          <button
+            onClick={togglePause}
+            style={{ padding: '10px', background: isPlaying ? '#ffcccc' : '#ccffcc', cursor: 'pointer' }}
+          >
+            {isPlaying ? 'PAUSE' : 'START'}
+          </button>
+
+          <button onClick={hireWorker} style={{ padding: '10px', cursor: 'pointer' }}>
+            Hire Worker (-500€ fix)
+          </button>
+
+          <button onClick={fireWorker} style={{ padding: '10px', cursor: 'pointer' }}>
+            Fire Worker
+          </button>
+        </div>
       </div>
 
-      {/* CONTROL PANEL (Was später die KI macht) */}
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <button
-          onClick={togglePause}
-          style={{ padding: '10px', background: isPlaying ? '#ffcccc' : '#ccffcc' }}
-        >
-          {isPlaying ? 'PAUSE' : 'START'}
-        </button>
+      {/* PHASER GAME CANVAS */}
+      <GameCanvas />
 
-        <button onClick={hireWorker}>
-          Hire Worker (-500€ fix, +Profit/Tick)
-        </button>
-
-        <button onClick={fireWorker}>
-          Fire Worker
-        </button>
-      </div>
-
-      {/* LOG VIEW (Für später) */}
-      <div style={{ marginTop: '20px', color: '#666' }}>
-        <small>System bereit für Phaser-Integration...</small>
+      <div style={{ color: '#666' }}>
+        <small>Rendering via Phaser 3 | Logic via Zustand Store</small>
       </div>
     </div>
   );
