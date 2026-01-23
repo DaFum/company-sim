@@ -35,37 +35,33 @@ export const useAiDirector = () => {
             const fullState = {
                 cash: state.cash,
                 workers: state.workers,
+                roster: state.roster,
                 day: state.day,
-                tick: state.tick
+                mood: state.mood,
+                yesterday_events: state.eventHistory || [], // Pass Event History
+                active_events: state.activeEvents || [], // Pass Current Crisis
+                inventory: state.inventory
             };
 
             // 2. Call API (or Mock)
-            // Ensure we have a key, if not, maybe mock or fail gracefully?
-            // If no key, we might need a fallback internal logic or prompt user.
             let result;
             if (apiKey) {
                  result = await callAI(apiKey, systemPrompt, fullState, true, aiProvider);
             } else {
-                 // Fallback Mock if no key provided yet (for testing without key)
                  await new Promise(r => setTimeout(r, 2000));
                  result = {
-                     action_type: 'SPEND_MONEY',
-                     amount: 100,
-                     reasoning: "No API Key found. Buying coffee."
+                     action: 'NONE',
+                     parameters: {},
+                     reasoning: "No API Key found. Playing safe."
                  };
             }
 
             console.log("🧠 KI Response:", result);
 
-            // Wait until at least Tick 55 to show decision (UX pacing)
-            // But since this is async, we just set it when ready.
-            // If it's too fast, the logs might overlap.
-            // We can force a minimum delay.
-
             // 3. Set Decision
             setPendingDecision({
-                action: result.action_type || 'WAIT',
-                amount: result.amount || 0,
+                action: result.action || 'NONE',
+                parameters: result.parameters || {},
                 reason: result.reasoning || 'Analyzing market data.'
             });
 

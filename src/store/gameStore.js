@@ -7,35 +7,40 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
   aiProvider: sessionStorage.getItem('ai_provider') || 'openai',
   aiModel: sessionStorage.getItem('ai_model') || 'openai',
 
-  // Game Loop State
+  // Game Loop
   cash: 50000,
   day: 1,
   tick: 0,
-  gamePhase: 'WORK',    // 'WORK' | 'CRUNCH'
+  gamePhase: 'WORK',
   isPlaying: false,
   isAiThinking: false,
   isMuted: false,
 
-  // Visual & Logic State
+  // Visual & Logic
   officeLevel: 1,
   terminalLogs: [],
   pendingDecision: null,
-  activeVisitors: [],   // ['pizza_guy', 'investors']
+  activeVisitors: [],
 
-  // Resources & Metrics
+  // Resources
   roster: { dev: 1, sales: 0, support: 0 },
-  workers: 1,           // Derived Sum
+  workers: 1,
   productivity: 10,
   burnRate: 50,
 
-  // New Stats (Phase 2B/C)
+  // Metrics
   mood: 100,
   productLevel: 1,
-  serverHealth: 100,    // 0-100 (Health)
-  serverStability: 1.0, // 0.1-1.0 (Multiplier)
+  serverHealth: 100,
+  serverStability: 1.0,
   marketingMultiplier: 1.0,
   marketingLeft: 0,
   inventory: [],
+
+  // CHAOS ENGINE
+  activeEvents: [], // [{ type: 'TECH_OUTAGE', timeLeft: 30, severity: 'HIGH' }]
+  eventHistory: [], // Log of yesterday's chaos for AI
+  lastEventDay: 0,  // Cooldown tracker
 
   // --- ACTIONS ---
   setApiKey: (key) => {
@@ -64,13 +69,62 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
 
   setPendingDecision: (decision) => set({ pendingDecision: decision }),
 
-  // EVENTS
   spawnVisitor: (type) => set((state) => ({
       activeVisitors: [...state.activeVisitors, type]
   })),
 
   despawnVisitor: (type) => set((state) => ({
       activeVisitors: state.activeVisitors.filter(v => v !== type)
+  })),
+
+  // CHAOS ACTIONS
+  triggerEvent: (type) => {
+      const state = get();
+      let duration = 30; // Default 30 ticks
+      let msg = `> CRITICAL ALERT: ${type}`;
+
+      // Define Event Specs
+      if (type === 'TECH_OUTAGE') {
+          duration = 20;
+          msg = "> ALERT: CLOUD SERVICES OFFLINE.";
+      } else if (type === 'RANSOMWARE') {
+          duration = 60; // Full day annoyance
+          msg = "> ALERT: RANSOMWARE DETECTED. ASSETS FROZEN.";
+          // Instant Penalty
+          set({ cash: state.cash * 0.8 }); // Lose 20%
+      } else if (type === 'HUMAN_QUIT') {
+          duration = 5;
+          msg = "> ALERT: KEY DEVELOPER RESIGNED.";
+          // Instant Penalty
+          const newRoster = { ...state.roster, dev: Math.max(0, state.roster.dev - 1) };
+          set({
+              roster: newRoster,
+              workers: newRoster.dev + newRoster.sales + newRoster.support,
+              mood: Math.max(0, state.mood - 10)
+          });
+      } else if (type === 'HUMAN_SICK') {
+          duration = 120; // 2 Days
+          msg = "> ALERT: FLU WAVE DETECTED.";
+      } else if (type === 'MARKET_SHITSTORM') {
+          duration = 60;
+          msg = "> ALERT: SOCIAL MEDIA SHITSTORM.";
+      } else if (type === 'COMPETITOR_CLONE') {
+          duration = 999; // Permanent until counter-action? Or just difficulty spike
+          msg = "> NEWS: COMPETITOR CLONED OUR TECH.";
+      }
+
+      state.addTerminalLog(msg);
+
+      const eventObj = { type, timeLeft: duration, severity: 'HIGH', description: msg };
+
+      set({
+          activeEvents: [...state.activeEvents, eventObj],
+          lastEventDay: state.day
+      });
+  },
+
+  resolveEvent: (type) => set((state) => ({
+      activeEvents: state.activeEvents.filter(e => e.type !== type)
   })),
 
   vetoDecision: () => {
@@ -80,18 +134,14 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
     state.addTerminalLog(`>> VETO! REJECTED.`);
     state.addTerminalLog(`>> SAFETY PROTOCOL: PIZZA PARTY.`);
 
-    // Fallback: Pizza Party
     set({
       pendingDecision: null,
       cash: state.cash - 200,
-      activeVisitors: [...state.activeVisitors, 'pizza_guy'], // Trigger Pizza Guy
-      mood: 100 // Instant boost
+      activeVisitors: [...state.activeVisitors, 'pizza_guy'],
+      mood: 100
     });
 
-    // Auto Despawn Pizza Guy after 10 seconds (handled by scene usually, but store can fallback)
-    setTimeout(() => {
-        get().despawnVisitor('pizza_guy');
-    }, 10000);
+    setTimeout(() => get().despawnVisitor('pizza_guy'), 10000);
   },
 
   applyPendingDecision: () => {
@@ -109,7 +159,6 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
             const role = (params.role || 'dev').toLowerCase();
             const newRoster = { ...state.roster };
 
-            // Map roles roughly if AI hallucinates
             if (role.includes('sale')) newRoster.sales += count;
             else if (role.includes('support')) newRoster.support += count;
             else newRoster.dev += count;
@@ -124,7 +173,6 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
             const newRoster = { ...state.roster };
 
             let fired = 0;
-            // Try to fire from specific role, fallback to others
             if (role.includes('sale') && newRoster.sales > 0) {
                  const actual = Math.min(newRoster.sales, count);
                  newRoster.sales -= actual; fired = actual;
@@ -153,6 +201,10 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
                     updates.serverStability = 1.0;
                     updates.serverHealth = 100;
                 }
+                // Counter Ransomware (Firewall logic could be added here)
+                if (item === 'firewall') {
+                    get().resolveEvent('RANSOMWARE');
+                }
             } else {
                 state.addTerminalLog(`> ERROR: NO FUNDS FOR ${item}`);
             }
@@ -163,6 +215,8 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
                 updates.cash = state.cash - cost;
                 updates.marketingMultiplier = 2.0;
                 updates.marketingLeft = 60;
+                // Counter Shitstorm
+                get().resolveEvent('MARKET_SHITSTORM');
             } else {
                  state.addTerminalLog(`> ERROR: NO FUNDS.`);
             }
@@ -192,14 +246,42 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
     }
 
     if (state.gamePhase === 'WORK') {
+        // 1. Process Active Events
+        const activeEvents = state.activeEvents.map(e => ({ ...e, timeLeft: e.timeLeft - 1 })).filter(e => e.timeLeft > 0);
+
+        // Check for Effects
+        const isTechOutage = activeEvents.some(e => e.type === 'TECH_OUTAGE');
+        const isSick = activeEvents.some(e => e.type === 'HUMAN_SICK');
+        const isShitstorm = activeEvents.some(e => e.type === 'MARKET_SHITSTORM');
+
+        // 2. Logic Director (Chaos Engine)
+        if (state.day > 5 && state.cash > 2000 && state.lastEventDay !== state.day && Math.random() < 0.01) {
+             // 1% Chance per tick if conditions met
+             const roll = Math.random();
+             if (roll < 0.2) get().triggerEvent('TECH_OUTAGE');
+             else if (roll < 0.4 && state.mood < 40) get().triggerEvent('HUMAN_QUIT');
+             else if (roll < 0.6) get().triggerEvent('HUMAN_SICK');
+             else if (roll < 0.8) get().triggerEvent('MARKET_SHITSTORM');
+             else get().triggerEvent('RANSOMWARE');
+        }
+
+        // 3. Economic Calc
         const moodFactor = state.mood / 100;
-        // Derived Worker Count
         const totalWorkers = state.roster.dev + state.roster.sales + state.roster.support;
 
-        const currentRevenue = totalWorkers * state.productivity * state.marketingMultiplier * state.serverStability * (0.5 + moodFactor * 0.5);
+        // Multipliers
+        let finalProd = state.productivity;
+        if (isTechOutage) finalProd = 0;
+        if (isSick) finalProd *= 0.7; // 30% sick
+
+        let finalMarket = state.marketingMultiplier;
+        if (isShitstorm) finalMarket *= 0.5;
+
+        const currentRevenue = totalWorkers * finalProd * finalMarket * state.serverStability * (0.5 + moodFactor * 0.5);
         const currentCost = (totalWorkers * state.burnRate) / 60;
         const netChange = currentRevenue - currentCost;
 
+        // Marketing Decay
         let newMarketingMult = state.marketingMultiplier;
         let newMarketingLeft = state.marketingLeft;
         if (state.marketingLeft > 0) {
@@ -207,23 +289,9 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
             if (newMarketingLeft <= 0) newMarketingMult = 1.0;
         }
 
-        // Random Events
-        if (Math.random() < 0.02) {
-            const eventType = Math.random();
-            if (eventType < 0.4) {
-                state.addTerminalLog(`> ALERT: Server Glitch.`);
-                set({ serverStability: Math.max(0.5, state.serverStability - 0.1), serverHealth: Math.max(0, state.serverHealth - 10) });
-            } else if (eventType < 0.8) {
-                 state.addTerminalLog(`> ALERT: Minor Expense.`);
-                 set({ cash: state.cash - 100 });
-            } else {
-                 // 20% of events: Investors
-                 if (!state.activeVisitors.includes('investors')) {
-                     state.addTerminalLog(`> ALERT: Investors Incoming.`);
-                     set({ activeVisitors: [...state.activeVisitors, 'investors'] });
-                     setTimeout(() => get().despawnVisitor('investors'), 15000);
-                 }
-            }
+        // Micro Events (Legacy)
+        if (Math.random() < 0.01) {
+            state.addTerminalLog(`> LOG: System Routine Check.`);
         }
 
         set({
@@ -232,7 +300,7 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
             gamePhase: newPhase,
             marketingMultiplier: newMarketingMult,
             marketingLeft: newMarketingLeft,
-            workers: totalWorkers
+            activeEvents: activeEvents
         });
 
     } else {
@@ -253,6 +321,9 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
           if (totalWorkers >= 16) newLevel = 3;
           else if (totalWorkers >= 5) newLevel = 2;
 
+          // Archive Events for History
+          const history = state.activeEvents.map(e => ({ type: e.type, description: e.description }));
+
           return {
             day: state.day + 1,
             tick: 0,
@@ -261,12 +332,12 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
             terminalLogs: [],
             officeLevel: newLevel,
             isPlaying: true,
-            mood: Math.min(100, state.mood + 5)
+            mood: Math.min(100, state.mood + 5),
+            eventHistory: history // Pass to AI context
           };
       });
   },
 
-  // Manual Debug Actions
   hireWorker: () => set((state) => {
       const newRoster = { ...state.roster, dev: state.roster.dev + 1 };
       return {
