@@ -20,19 +20,22 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
   officeLevel: 1,
   terminalLogs: [],
   pendingDecision: null,
+  activeVisitors: [],   // ['pizza_guy', 'investors']
 
   // Resources & Metrics
-  workers: 1,
+  roster: { dev: 1, sales: 0, support: 0 },
+  workers: 1,           // Derived Sum
   productivity: 10,
-  burnRate: 50,         // Base Daily Cost per Worker
+  burnRate: 50,
 
-  // New Stats (Phase 2B)
-  mood: 100,            // 0-100
-  productLevel: 1,      // Affects max revenue
-  serverStability: 1.0, // Multiplier (0.1 - 1.0)
-  marketingMultiplier: 1.0, // Temporary Revenue Boost
-  marketingLeft: 0,     // Ticks remaining for marketing
-  inventory: [],        // ['coffee_machine', 'server_rack_v2']
+  // New Stats (Phase 2B/C)
+  mood: 100,
+  productLevel: 1,
+  serverHealth: 100,    // 0-100 (Health)
+  serverStability: 1.0, // 0.1-1.0 (Multiplier)
+  marketingMultiplier: 1.0,
+  marketingLeft: 0,
+  inventory: [],
 
   // --- ACTIONS ---
   setApiKey: (key) => {
@@ -61,19 +64,34 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
 
   setPendingDecision: (decision) => set({ pendingDecision: decision }),
 
+  // EVENTS
+  spawnVisitor: (type) => set((state) => ({
+      activeVisitors: [...state.activeVisitors, type]
+  })),
+
+  despawnVisitor: (type) => set((state) => ({
+      activeVisitors: state.activeVisitors.filter(v => v !== type)
+  })),
+
   vetoDecision: () => {
     const state = get();
     if (!state.pendingDecision) return;
 
-    state.addTerminalLog(`>> VETO! DECISION REJECTED.`);
-    state.addTerminalLog(`>> EXECUTING SAFE ACTION (Pizza Party).`);
+    state.addTerminalLog(`>> VETO! REJECTED.`);
+    state.addTerminalLog(`>> SAFETY PROTOCOL: PIZZA PARTY.`);
 
-    // Fallback: Safe Action
+    // Fallback: Pizza Party
     set({
       pendingDecision: null,
       cash: state.cash - 200,
-      mood: Math.min(100, state.mood + 10)
+      activeVisitors: [...state.activeVisitors, 'pizza_guy'], // Trigger Pizza Guy
+      mood: 100 // Instant boost
     });
+
+    // Auto Despawn Pizza Guy after 10 seconds (handled by scene usually, but store can fallback)
+    setTimeout(() => {
+        get().despawnVisitor('pizza_guy');
+    }, 10000);
   },
 
   applyPendingDecision: () => {
@@ -88,49 +106,74 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
 
         if (action === 'HIRE_WORKER') {
             const count = params.count || 1;
-            updates.workers = state.workers + count;
-            updates.cash = state.cash - (count * 500); // Recruiting Fee
-            // Note: Burn rate is calculated dynamically based on workers
+            const role = (params.role || 'dev').toLowerCase();
+            const newRoster = { ...state.roster };
+
+            // Map roles roughly if AI hallucinates
+            if (role.includes('sale')) newRoster.sales += count;
+            else if (role.includes('support')) newRoster.support += count;
+            else newRoster.dev += count;
+
+            updates.roster = newRoster;
+            updates.workers = newRoster.dev + newRoster.sales + newRoster.support;
+            updates.cash = state.cash - (count * 500);
         }
         else if (action === 'FIRE_WORKER') {
             const count = params.count || 1;
-            updates.workers = Math.max(0, state.workers - count);
-            updates.cash = state.cash - (count * 200); // Severance
-            updates.mood = Math.max(0, state.mood - 20); // Morale Hit
+            const role = (params.role || 'dev').toLowerCase();
+            const newRoster = { ...state.roster };
+
+            let fired = 0;
+            // Try to fire from specific role, fallback to others
+            if (role.includes('sale') && newRoster.sales > 0) {
+                 const actual = Math.min(newRoster.sales, count);
+                 newRoster.sales -= actual; fired = actual;
+            } else if (role.includes('support') && newRoster.support > 0) {
+                 const actual = Math.min(newRoster.support, count);
+                 newRoster.support -= actual; fired = actual;
+            } else {
+                 const actual = Math.min(newRoster.dev, count);
+                 newRoster.dev -= actual; fired = actual;
+            }
+
+            updates.roster = newRoster;
+            updates.workers = newRoster.dev + newRoster.sales + newRoster.support;
+            updates.cash = state.cash - (fired * 200);
+            updates.mood = Math.max(0, state.mood - 20);
         }
         else if (action === 'BUY_UPGRADE') {
             const item = params.item_id;
-            const cost = 2000; // Simplified flat cost for now
+            const cost = 2000;
             if (state.cash >= cost) {
                 updates.cash = state.cash - cost;
                 updates.inventory = [...state.inventory, item];
-
-                // Apply Buffs
                 if (item === 'coffee_machine') updates.productivity = state.productivity + 2;
                 if (item === 'plants') updates.mood = Math.min(100, state.mood + 15);
-                if (item === 'server_rack_v2') updates.serverStability = 1.0; // Reset stability
+                if (item === 'server_rack_v2') {
+                    updates.serverStability = 1.0;
+                    updates.serverHealth = 100;
+                }
             } else {
-                state.addTerminalLog(`> ERROR: INSUFFICIENT FUNDS FOR ${item}`);
+                state.addTerminalLog(`> ERROR: NO FUNDS FOR ${item}`);
             }
         }
         else if (action === 'MARKETING_PUSH') {
             const cost = 5000;
             if (state.cash >= cost) {
                 updates.cash = state.cash - cost;
-                updates.marketingMultiplier = 2.0; // 2x Revenue
-                updates.marketingLeft = 60; // Lasts 1 Day (60 ticks)
+                updates.marketingMultiplier = 2.0;
+                updates.marketingLeft = 60;
             } else {
-                 state.addTerminalLog(`> ERROR: TOO POOR FOR MARKETING`);
+                 state.addTerminalLog(`> ERROR: NO FUNDS.`);
             }
         }
         else if (action === 'PIVOT') {
             updates.productLevel = state.productLevel + 1;
-            updates.cash = state.cash; // Keep cash
-            updates.workers = state.workers;
-            updates.mood = Math.max(0, state.mood - 30); // Stressful
-            updates.marketingMultiplier = 0.5; // Revenue dip
-            updates.marketingLeft = 120; // Lasts 2 Days
-            state.addTerminalLog(`> PIVOTING TO NEW SECTOR...`);
+            updates.cash = state.cash;
+            updates.mood = Math.max(0, state.mood - 30);
+            updates.marketingMultiplier = 0.5;
+            updates.marketingLeft = 120;
+            state.addTerminalLog(`> PIVOTING...`);
         }
 
         set(updates);
@@ -149,19 +192,14 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
     }
 
     if (state.gamePhase === 'WORK') {
-        // --- ECONOMIC LOGIC (Per Tick) ---
-        // Revenue = Workers * Productivity * Marketing * Server * MoodFactor
-        const moodFactor = state.mood / 100; // 0.5 to 1.0
-        const currentRevenue = state.workers * state.productivity * state.marketingMultiplier * state.serverStability * (0.5 + moodFactor * 0.5);
+        const moodFactor = state.mood / 100;
+        // Derived Worker Count
+        const totalWorkers = state.roster.dev + state.roster.sales + state.roster.support;
 
-        // Costs = Workers * (BurnRate / 60) (Daily burn spread over ticks? Or just subtract daily at end?)
-        // Spec says: "Burn-Rate: Erhöht die fixen Kosten pro Tag".
-        // Let's deduct 1/60th of daily burn per tick for smooth graph.
-        const currentCost = (state.workers * state.burnRate) / 60;
-
+        const currentRevenue = totalWorkers * state.productivity * state.marketingMultiplier * state.serverStability * (0.5 + moodFactor * 0.5);
+        const currentCost = (totalWorkers * state.burnRate) / 60;
         const netChange = currentRevenue - currentCost;
 
-        // Decay Marketing
         let newMarketingMult = state.marketingMultiplier;
         let newMarketingLeft = state.marketingLeft;
         if (state.marketingLeft > 0) {
@@ -170,14 +208,21 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
         }
 
         // Random Events
-        if (Math.random() < 0.02) { // 2% Chance
+        if (Math.random() < 0.02) {
             const eventType = Math.random();
-            if (eventType < 0.5) {
+            if (eventType < 0.4) {
                 state.addTerminalLog(`> ALERT: Server Glitch.`);
-                set({ serverStability: Math.max(0.5, state.serverStability - 0.1) });
-            } else {
+                set({ serverStability: Math.max(0.5, state.serverStability - 0.1), serverHealth: Math.max(0, state.serverHealth - 10) });
+            } else if (eventType < 0.8) {
                  state.addTerminalLog(`> ALERT: Minor Expense.`);
                  set({ cash: state.cash - 100 });
+            } else {
+                 // 20% of events: Investors
+                 if (!state.activeVisitors.includes('investors')) {
+                     state.addTerminalLog(`> ALERT: Investors Incoming.`);
+                     set({ activeVisitors: [...state.activeVisitors, 'investors'] });
+                     setTimeout(() => get().despawnVisitor('investors'), 15000);
+                 }
             }
         }
 
@@ -186,11 +231,11 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
             tick: newTick,
             gamePhase: newPhase,
             marketingMultiplier: newMarketingMult,
-            marketingLeft: newMarketingLeft
+            marketingLeft: newMarketingLeft,
+            workers: totalWorkers
         });
 
     } else {
-        // --- CRUNCH PHASE (50-60) ---
         if (newTick > 60) {
             if (state.isAiThinking) return;
             if (state.pendingDecision) state.applyPendingDecision();
@@ -203,9 +248,10 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
 
   startNewDay: () => {
       set((state) => {
+          const totalWorkers = state.roster.dev + state.roster.sales + state.roster.support;
           let newLevel = 1;
-          if (state.workers >= 16) newLevel = 3;
-          else if (state.workers >= 5) newLevel = 2;
+          if (totalWorkers >= 16) newLevel = 3;
+          else if (totalWorkers >= 5) newLevel = 2;
 
           return {
             day: state.day + 1,
@@ -215,21 +261,28 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
             terminalLogs: [],
             officeLevel: newLevel,
             isPlaying: true,
-            // Daily Mood Regen
             mood: Math.min(100, state.mood + 5)
           };
       });
   },
 
   // Manual Debug Actions
-  hireWorker: () => set((state) => ({
-    workers: state.workers + 1,
-    cash: state.cash - 500
-  })),
+  hireWorker: () => set((state) => {
+      const newRoster = { ...state.roster, dev: state.roster.dev + 1 };
+      return {
+        roster: newRoster,
+        workers: newRoster.dev + newRoster.sales + newRoster.support,
+        cash: state.cash - 500
+      };
+  }),
 
-  fireWorker: () => set((state) => ({
-    workers: Math.max(0, state.workers - 1),
-    mood: Math.max(0, state.mood - 10)
-  }))
+  fireWorker: () => set((state) => {
+      const newRoster = { ...state.roster, dev: Math.max(0, state.roster.dev - 1) };
+      return {
+        roster: newRoster,
+        workers: newRoster.dev + newRoster.sales + newRoster.support,
+        mood: Math.max(0, state.mood - 10)
+      };
+  })
 
 })));
