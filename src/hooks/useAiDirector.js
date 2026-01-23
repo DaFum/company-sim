@@ -6,6 +6,7 @@ import { generateSystemPrompt } from '../services/prompts';
 export const useAiDirector = () => {
   const isAiThinking = useGameStore((state) => state.isAiThinking);
   const apiKey = useGameStore((state) => state.apiKey);
+  const aiProvider = useGameStore((state) => state.aiProvider);
   const startNewDay = useGameStore((state) => state.startNewDay);
   const applyDecision = useGameStore((state) => state.applyDecision);
 
@@ -13,7 +14,7 @@ export const useAiDirector = () => {
 
   useEffect(() => {
     if (isAiThinking && apiKey) {
-      console.log("🧠 KI Director aktiviert...");
+      console.log(`🧠 KI Director aktiviert (${aiProvider})...`);
 
       const runAiLoop = async () => {
         // 1. Kontext sammeln
@@ -29,7 +30,7 @@ export const useAiDirector = () => {
         };
 
         // 3. API Call
-        const result = await callAI(apiKey, systemPrompt, fullState);
+        const result = await callAI(apiKey, systemPrompt, fullState, true, aiProvider);
 
         console.log("🧠 KI Entscheidung:", result);
         setLastDecision(result);

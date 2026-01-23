@@ -1,19 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { callAI } from '../services/aiService';
 
 export const ApiKeyModal = () => {
   const apiKey = useGameStore((state) => state.apiKey);
   const setApiKey = useGameStore((state) => state.setApiKey);
+  const setAiProvider = useGameStore((state) => state.setAiProvider);
 
   const [inputKey, setInputKey] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState('');
 
+  // Auto-Detect Key from URL Hash (Pollinations Redirect)
+  useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const urlKey = hashParams.get('api_key');
+
+    if (urlKey) {
+      console.log("Pollinations Key detected!");
+      setAiProvider('pollinations');
+      setApiKey(urlKey);
+
+      // Cleanup URL
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, [setApiKey, setAiProvider]);
+
   // Wenn Key schon da ist, Modal nicht anzeigen
   if (apiKey) return null;
 
-  const handleSave = async () => {
+  const handleSaveOpenAI = async () => {
     if (!inputKey.startsWith('sk-')) {
       setError('Key muss mit "sk-" beginnen.');
       return;
@@ -22,15 +38,15 @@ export const ApiKeyModal = () => {
     setIsValidating(true);
     setError('');
 
-    // Test-Call: Wir bitten um ein leeres JSON, nur um Auth zu testen
     const testPrompt = "Antworte nur mit einem leeren JSON-Objekt: {}";
     const testState = {};
 
     try {
-      // Wir nutzen callAI, um den Key zu testen. suppressErrors = false
-      const result = await callAI(inputKey, testPrompt, testState, false);
+      // Test OpenAI
+      const result = await callAI(inputKey, testPrompt, testState, false, 'openai');
 
       if (result) {
+        setAiProvider('openai');
         setApiKey(inputKey);
       } else {
         setError('Ungültige Antwort vom Server.');
@@ -40,6 +56,13 @@ export const ApiKeyModal = () => {
     } finally {
       setIsValidating(false);
     }
+  };
+
+  const handleConnectPollinations = () => {
+    // Redirect to Pollinations Auth
+    // Wir fordern permissions=profile und models=openai (da wir text-gen wollen)
+    const redirectUrl = encodeURIComponent(window.location.href);
+    window.location.href = `https://enter.pollinations.ai/authorize?redirect_url=${redirectUrl}&permissions=profile&models=openai`;
   };
 
   return (
@@ -55,12 +78,26 @@ export const ApiKeyModal = () => {
       }}>
         <h2>🔐 API Key benötigt</h2>
         <p style={{ color: '#aaa', marginBottom: '20px' }}>
-          Diese Simulation läuft lokal in deinem Browser. Um das "Gehirn" (die KI) zu aktivieren,
-          benötigst du einen OpenAI API Key.
+          Wähle deinen AI Provider, um das "Gehirn" der Simulation zu aktivieren.
         </p>
-        <p style={{ fontSize: '0.8em', color: '#666', marginBottom: '20px' }}>
-          Der Key wird nur im Session Storage gespeichert und niemals an uns gesendet.
-        </p>
+
+        {/* OPTION 1: POLLINATIONS (FREE) */}
+        <div style={{ marginBottom: '30px', paddingBottom: '20px', borderBottom: '1px solid #444' }}>
+          <button
+            onClick={handleConnectPollinations}
+            style={{
+              padding: '12px 24px', background: 'linear-gradient(45deg, #ff00cc, #3333ff)',
+              color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer',
+              fontSize: '1.1em', fontWeight: 'bold', width: '100%', marginBottom: '10px'
+            }}
+          >
+            🌸 Connect with Pollinations (Free)
+          </button>
+          <small style={{ color: '#888' }}>Keine Kosten. Keine Registrierung.</small>
+        </div>
+
+        {/* OPTION 2: OPENAI */}
+        <p style={{ fontSize: '0.9em', color: '#ccc', marginBottom: '10px' }}>Oder nutze deinen eigenen OpenAI Key:</p>
 
         <input
           type="password"
@@ -76,16 +113,20 @@ export const ApiKeyModal = () => {
         {error && <p style={{ color: '#ff6666', fontSize: '0.9em' }}>{error}</p>}
 
         <button
-          onClick={handleSave}
+          onClick={handleSaveOpenAI}
           disabled={isValidating}
           style={{
-            padding: '10px 20px', background: isValidating ? '#555' : '#00cc66',
+            padding: '10px 20px', background: isValidating ? '#555' : '#444',
             color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer',
-            fontSize: '1em'
+            fontSize: '1em', width: '100%'
           }}
         >
-          {isValidating ? 'Prüfe...' : 'Starten'}
+          {isValidating ? 'Prüfe...' : 'OpenAI Key speichern'}
         </button>
+
+        <p style={{ fontSize: '0.7em', color: '#666', marginTop: '15px' }}>
+          Der Key wird nur im Session Storage gespeichert.
+        </p>
       </div>
     </div>
   );
