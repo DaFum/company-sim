@@ -4,6 +4,7 @@ export const useGameStore = create((set, get) => ({
   // --- STATE (Die Daten) ---
   apiKey: sessionStorage.getItem('openai_api_key') || '',
   aiProvider: sessionStorage.getItem('ai_provider') || 'openai', // 'openai' | 'pollinations'
+  aiModel: sessionStorage.getItem('ai_model') || 'openai', // Default Model for Pollinations
   cash: 50000,          // Startkapital
   day: 1,               // Aktueller Tag
   tick: 0,              // Sekunde des aktuellen Tages (0-60)
@@ -26,6 +27,11 @@ export const useGameStore = create((set, get) => ({
   setAiProvider: (provider) => {
     sessionStorage.setItem('ai_provider', provider);
     set({ aiProvider: provider });
+  },
+
+  setAiModel: (model) => {
+    sessionStorage.setItem('ai_model', model);
+    set({ aiModel: model });
   },
 
   // 1. Spielsteuerung

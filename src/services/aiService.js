@@ -1,15 +1,40 @@
 import OpenAI from 'openai';
 
 /**
+ * Ruft die verfügbaren Modelle von Pollinations AI ab.
+ * @returns {Promise<Array>} - Liste der Modelle mit Name und Beschreibung.
+ */
+export const getAvailableModels = async () => {
+  try {
+    const response = await fetch('https://gen.pollinations.ai/models');
+    if (!response.ok) {
+        throw new Error("Failed to fetch models");
+    }
+    const models = await response.json();
+    return models; // Gibt das komplette Array zurück
+  } catch (error) {
+    console.warn("Could not fetch Pollinations models:", error);
+    // Fallback Liste, falls Endpoint down ist
+    return [
+      { name: 'openai', description: 'GPT-4o Mini (Default)' },
+      { name: 'mistral', description: 'Mistral Small' },
+      { name: 'gemini', description: 'Gemini Flash' },
+      { name: 'gemini-search', description: 'Gemini with Search' }
+    ];
+  }
+};
+
+/**
  * Ruft die OpenAI API auf, um eine Entscheidung basierend auf dem Spielstatus zu treffen.
  * @param {string} apiKey - Der API-Schlüssel des Nutzers.
  * @param {string} systemPrompt - Der System-Prompt mit Anweisungen und Kontext.
  * @param {object} gameState - Der aktuelle Spielstatus (wird als JSON im User-Prompt gesendet).
  * @param {boolean} [suppressErrors=true] - Wenn true, wird bei Fehler ein Fallback zurückgegeben. Wenn false, wird der Fehler geworfen.
  * @param {string} [provider='openai'] - Der AI Provider ('openai' oder 'pollinations').
+ * @param {string} [model='openai'] - Das spezifische Modell (nur für Pollinations relevant).
  * @returns {Promise<object>} - Die Antwort der KI als JSON-Objekt.
  */
-export const callAI = async (apiKey, systemPrompt, gameState, suppressErrors = true, provider = 'openai') => {
+export const callAI = async (apiKey, systemPrompt, gameState, suppressErrors = true, provider = 'openai', model = 'openai') => {
   if (!apiKey) {
     throw new Error("Kein API Key vorhanden.");
   }
@@ -25,7 +50,7 @@ export const callAI = async (apiKey, systemPrompt, gameState, suppressErrors = t
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'openai', // Pollinations erwartet 'openai' als Model-String für Text-Gen
+          model: model,
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: JSON.stringify(gameState) }
@@ -65,7 +90,6 @@ export const callAI = async (apiKey, systemPrompt, gameState, suppressErrors = t
     }
 
     // Versuche JSON zu parsen. Manchmal kommt Text drumherum.
-    // Einfacher Fix: Suche nach dem ersten { und letzten }
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);

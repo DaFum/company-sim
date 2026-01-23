@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
-import { callAI } from '../services/aiService';
+import { callAI, getAvailableModels } from '../services/aiService';
 
 export const ApiKeyModal = () => {
   const apiKey = useGameStore((state) => state.apiKey);
   const setApiKey = useGameStore((state) => state.setApiKey);
+  const aiProvider = useGameStore((state) => state.aiProvider); // 'openai' or 'pollinations'
   const setAiProvider = useGameStore((state) => state.setAiProvider);
+  const aiModel = useGameStore((state) => state.aiModel);
+  const setAiModel = useGameStore((state) => state.setAiModel);
 
   const [inputKey, setInputKey] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState('');
+
+  const [availableModels, setAvailableModels] = useState([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
 
   // Auto-Detect Key from URL Hash (Pollinations Redirect)
   useEffect(() => {
@@ -25,6 +31,17 @@ export const ApiKeyModal = () => {
       window.history.replaceState(null, '', window.location.pathname);
     }
   }, [setApiKey, setAiProvider]);
+
+  // Load Models on Mount
+  useEffect(() => {
+    const loadModels = async () => {
+      setIsLoadingModels(true);
+      const models = await getAvailableModels();
+      setAvailableModels(models);
+      setIsLoadingModels(false);
+    };
+    loadModels();
+  }, []);
 
   // Wenn Key schon da ist, Modal nicht anzeigen
   if (apiKey) return null;
@@ -60,7 +77,6 @@ export const ApiKeyModal = () => {
 
   const handleConnectPollinations = () => {
     // Redirect to Pollinations Auth
-    // Wir fordern permissions=profile und models=openai (da wir text-gen wollen)
     const redirectUrl = encodeURIComponent(window.location.href);
     window.location.href = `https://enter.pollinations.ai/authorize?redirect_url=${redirectUrl}&permissions=profile&models=openai`;
   };
@@ -93,7 +109,33 @@ export const ApiKeyModal = () => {
           >
             🌸 Connect with Pollinations (Free)
           </button>
-          <small style={{ color: '#888' }}>Keine Kosten. Keine Registrierung.</small>
+
+          {/* MODEL SELECTOR FOR POLLINATIONS */}
+          <div style={{ marginTop: '10px', textAlign: 'left' }}>
+            <label style={{ fontSize: '0.9em', color: '#ccc', display: 'block', marginBottom: '5px' }}>
+              Wähle ein Modell:
+            </label>
+            <select
+              value={aiModel}
+              onChange={(e) => setAiModel(e.target.value)}
+              disabled={isLoadingModels}
+              style={{
+                width: '100%', padding: '8px', background: '#333', color: '#fff', border: '1px solid #555', borderRadius: '5px'
+              }}
+            >
+              {isLoadingModels ? (
+                <option>Lade Modelle...</option>
+              ) : (
+                availableModels.map((model) => (
+                  <option key={model.name} value={model.name}>
+                    {model.name} {model.description ? `- ${model.description}` : ''}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
+          <small style={{ color: '#888', display: 'block', marginTop: '5px' }}>Keine Kosten. Keine Registrierung.</small>
         </div>
 
         {/* OPTION 2: OPENAI */}
