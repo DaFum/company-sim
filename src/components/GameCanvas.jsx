@@ -2,8 +2,18 @@ import React, { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import { gameConfig } from '../game/config';
 
+import { useGameStore } from '../store/gameStore';
+
 export const GameCanvas = () => {
   const gameRef = useRef(null);
+  const isMuted = useGameStore((state) => state.isMuted);
+
+  // Sync Mute State with Phaser
+  useEffect(() => {
+    if (gameRef.current && gameRef.current.sound) {
+        gameRef.current.sound.mute = isMuted;
+    }
+  }, [isMuted]);
 
   useEffect(() => {
     // 1. Initialisierung: Phaser starten, wenn Komponente mountet

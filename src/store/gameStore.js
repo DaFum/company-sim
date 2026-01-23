@@ -1,6 +1,7 @@
 import { create } from 'zustand';
+import { subscribeWithSelector } from 'zustand/middleware';
 
-export const useGameStore = create((set, get) => ({
+export const useGameStore = create(subscribeWithSelector((set, get) => ({
   // --- STATE (Die Daten) ---
   apiKey: sessionStorage.getItem('openai_api_key') || '',
   aiProvider: sessionStorage.getItem('ai_provider') || 'openai', // 'openai' | 'pollinations'
@@ -10,6 +11,7 @@ export const useGameStore = create((set, get) => ({
   tick: 0,              // Sekunde des aktuellen Tages (0-60)
   isPlaying: false,     // Pause/Play Status
   isAiThinking: false,  // Status für KI-Request
+  isMuted: false,       // Audio Mute State
 
   // Ressourcen
   workers: 1,           // Anzahl Mitarbeiter
@@ -36,6 +38,8 @@ export const useGameStore = create((set, get) => ({
 
   // 1. Spielsteuerung
   togglePause: () => set((state) => ({ isPlaying: !state.isPlaying })),
+
+  toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
 
   // 2. Der Herzschlag
   advanceTick: () => {
@@ -99,4 +103,4 @@ export const useGameStore = create((set, get) => ({
 
       set(updates);
   }
-}));
+})));

@@ -12,6 +12,12 @@ export default class PreloadScene extends Phaser.Scene {
 
     // Für dieses Demo nutzen wir Placeholder, die wir im create() generieren
     console.log("PreloadScene: Loading assets (placeholders)...");
+
+    // Placeholder Sounds (Base64 encoded wavs for demo purposes)
+    // Pop sound (short blip)
+    this.load.audio('pop', 'data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAACAgICAgICAgICAgICAgICA');
+    // Ka-ching (simulated high pitch)
+    this.load.audio('kaching', 'data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAACAgICAgICAgICAgICAgICA');
   }
 
   create() {

@@ -23,12 +23,21 @@ function App() {
     isAiThinking,
     togglePause,
     hireWorker,
-    fireWorker
+    fireWorker,
+    isMuted,
+    toggleMute
   } = useGameStore();
 
   return (
     <div style={{ padding: '20px', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <h1>🤖 AI Startup Simulator (Phase 3: AI Logic)</h1>
+      <h1>🤖 AI Startup Simulator (Phase 4: Polish)</h1>
+
+      <button
+        onClick={toggleMute}
+        style={{ position: 'absolute', top: 20, left: 20, padding: '5px 10px', background: '#333', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
+      >
+        {isMuted ? '🔇 Unmute' : '🔊 Mute'}
+      </button>
 
       {/* MODALS & OVERLAYS */}
       <ApiKeyModal />
