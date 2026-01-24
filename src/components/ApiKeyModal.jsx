@@ -5,7 +5,7 @@ import { callAI, getAvailableModels } from '../services/aiService';
 export const ApiKeyModal = () => {
   const apiKey = useGameStore((state) => state.apiKey);
   const setApiKey = useGameStore((state) => state.setApiKey);
-  const aiProvider = useGameStore((state) => state.aiProvider); // 'openai' or 'pollinations'
+  // const aiProvider = useGameStore((state) => state.aiProvider); // Unused
   const setAiProvider = useGameStore((state) => state.setAiProvider);
   const aiModel = useGameStore((state) => state.aiModel);
   const setAiModel = useGameStore((state) => state.setAiModel);
@@ -23,7 +23,7 @@ export const ApiKeyModal = () => {
     const urlKey = hashParams.get('api_key');
 
     if (urlKey) {
-      console.log("Pollinations Key detected!");
+      console.log('Pollinations Key detected!');
       setAiProvider('pollinations');
       setApiKey(urlKey);
 
@@ -55,7 +55,7 @@ export const ApiKeyModal = () => {
     setIsValidating(true);
     setError('');
 
-    const testPrompt = "Antworte nur mit einem leeren JSON-Objekt: {}";
+    const testPrompt = 'Antworte nur mit einem leeren JSON-Objekt: {}';
     const testState = {};
 
     try {
@@ -68,7 +68,7 @@ export const ApiKeyModal = () => {
       } else {
         setError('Ungültige Antwort vom Server.');
       }
-    } catch (e) {
+    } catch {
       setError('Verbindung fehlgeschlagen. Key ungültig?');
     } finally {
       setIsValidating(false);
@@ -91,18 +91,13 @@ export const ApiKeyModal = () => {
 
         {/* OPTION 1: POLLINATIONS (FREE) */}
         <div className="pollinations-section">
-          <button
-            onClick={handleConnectPollinations}
-            className="pollinations-button"
-          >
+          <button onClick={handleConnectPollinations} className="pollinations-button">
             🌸 Connect with Pollinations (Free)
           </button>
 
           {/* MODEL SELECTOR FOR POLLINATIONS */}
           <div className="model-selector">
-            <label className="model-label">
-              Wähle ein Modell:
-            </label>
+            <label className="model-label">Wähle ein Modell:</label>
             <select
               value={aiModel}
               onChange={(e) => setAiModel(e.target.value)}
@@ -145,9 +140,7 @@ export const ApiKeyModal = () => {
           {isValidating ? 'Prüfe...' : 'OpenAI Key speichern'}
         </button>
 
-        <p className="storage-note">
-          Der Key wird nur im Session Storage gespeichert.
-        </p>
+        <p className="storage-note">Der Key wird nur im Session Storage gespeichert.</p>
       </div>
     </div>
   );

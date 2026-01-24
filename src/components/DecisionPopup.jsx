@@ -11,18 +11,13 @@ export const DecisionPopup = ({ decision, onConfirm }) => {
 
         <h3 className="popup-subtitle">"{decision.decision_title}"</h3>
 
-        <p className="popup-reason">
-          "{decision.reasoning}"
-        </p>
+        <p className="popup-reason">"{decision.reasoning}"</p>
 
         <div className={`popup-cost ${decision.amount > 0 ? 'expensive' : 'neutral'}`}>
           Kosten: {decision.amount} €
         </div>
 
-        <button
-          onClick={onConfirm}
-          className="popup-confirm"
-        >
+        <button onClick={onConfirm} className="popup-confirm">
           Nächster Tag starten
         </button>
       </div>

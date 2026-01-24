@@ -5,125 +5,129 @@ import { subscribeWithSelector } from 'zustand/middleware';
 const PERSONAS = ['Visionary', 'Accountant', 'Benevolent'];
 const getRandomPersona = () => PERSONAS[Math.floor(Math.random() * PERSONAS.length)];
 
-export const useGameStore = create(subscribeWithSelector((set, get) => ({
-  // --- STATE ---
-  apiKey: sessionStorage.getItem('openai_api_key') || '',
-  aiProvider: sessionStorage.getItem('ai_provider') || 'openai',
-  aiModel: sessionStorage.getItem('ai_model') || 'openai',
+export const useGameStore = create(
+  subscribeWithSelector((set, get) => ({
+    // --- STATE ---
+    apiKey: sessionStorage.getItem('openai_api_key') || '',
+    aiProvider: sessionStorage.getItem('ai_provider') || 'openai',
+    aiModel: sessionStorage.getItem('ai_model') || 'openai',
 
-  // Game Loop
-  cash: 50000,
-  day: 1,
-  tick: 0,
-  gamePhase: 'WORK',
-  isPlaying: false,
-  isAiThinking: false,
-  isMuted: false,
-  gameSpeed: 1000,
+    // Game Loop
+    cash: 50000,
+    day: 1,
+    tick: 0,
+    gamePhase: 'WORK',
+    isPlaying: false,
+    isAiThinking: false,
+    isMuted: false,
+    gameSpeed: 1000,
 
-  // Visual & Logic
-  officeLevel: 1,
-  terminalLogs: [],
-  pendingDecision: null,
-  activeVisitors: [],
-  ceoPersona: getRandomPersona(),
+    // Visual & Logic
+    officeLevel: 1,
+    terminalLogs: [],
+    pendingDecision: null,
+    activeVisitors: [],
+    ceoPersona: getRandomPersona(),
 
-  // Resources
-  roster: { dev: 1, sales: 0, support: 0 },
-  workers: 1,
-  productivity: 10,
-  burnRate: 50,
+    // Resources
+    roster: { dev: 1, sales: 0, support: 0 },
+    workers: 1,
+    productivity: 10,
+    burnRate: 50,
 
-  // Metrics
-  mood: 100,
-  productLevel: 1,
-  serverHealth: 100,
-  serverStability: 1.0,
-  marketingMultiplier: 1.0,
-  marketingLeft: 0,
-  inventory: [],
+    // Metrics
+    mood: 100,
+    productLevel: 1,
+    serverHealth: 100,
+    serverStability: 1.0,
+    marketingMultiplier: 1.0,
+    marketingLeft: 0,
+    inventory: [],
 
-  // CHAOS ENGINE
-  activeEvents: [],
-  eventHistory: [],
-  lastEventDay: 0,
+    // CHAOS ENGINE
+    activeEvents: [],
+    eventHistory: [],
+    lastEventDay: 0,
 
-  // --- ACTIONS ---
-  setApiKey: (key) => {
-    sessionStorage.setItem('openai_api_key', key);
-    set({ apiKey: key });
-  },
+    // --- ACTIONS ---
+    setApiKey: (key) => {
+      sessionStorage.setItem('openai_api_key', key);
+      set({ apiKey: key });
+    },
 
-  setAiProvider: (provider) => {
-    sessionStorage.setItem('ai_provider', provider);
-    set({ aiProvider: provider });
-  },
+    setAiProvider: (provider) => {
+      sessionStorage.setItem('ai_provider', provider);
+      set({ aiProvider: provider });
+    },
 
-  setAiModel: (model) => {
-    sessionStorage.setItem('ai_model', model);
-    set({ aiModel: model });
-  },
+    setAiModel: (model) => {
+      sessionStorage.setItem('ai_model', model);
+      set({ aiModel: model });
+    },
 
-  togglePause: () => set((state) => ({ isPlaying: !state.isPlaying })),
-  toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
-  toggleSpeed: () => set((state) => ({ gameSpeed: state.gameSpeed === 1000 ? 500 : 1000 })),
+    togglePause: () => set((state) => ({ isPlaying: !state.isPlaying })),
+    toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+    toggleSpeed: () => set((state) => ({ gameSpeed: state.gameSpeed === 1000 ? 500 : 1000 })),
 
-  addTerminalLog: (msg) => set((state) => ({
-    terminalLogs: [...state.terminalLogs.slice(-50), msg]
-  })),
+    addTerminalLog: (msg) =>
+      set((state) => ({
+        terminalLogs: [...state.terminalLogs.slice(-50), msg],
+      })),
 
-  clearTerminalLogs: () => set({ terminalLogs: [] }),
+    clearTerminalLogs: () => set({ terminalLogs: [] }),
 
-  setPendingDecision: (decision) => set({ pendingDecision: decision }),
+    setPendingDecision: (decision) => set({ pendingDecision: decision }),
 
-  spawnVisitor: (type) => set((state) => ({
-      activeVisitors: [...state.activeVisitors, type]
-  })),
+    spawnVisitor: (type) =>
+      set((state) => ({
+        activeVisitors: [...state.activeVisitors, type],
+      })),
 
-  despawnVisitor: (type) => set((state) => ({
-      activeVisitors: state.activeVisitors.filter(v => v !== type)
-  })),
+    despawnVisitor: (type) =>
+      set((state) => ({
+        activeVisitors: state.activeVisitors.filter((v) => v !== type),
+      })),
 
-  // CHAOS ACTIONS
-  triggerEvent: (type) => {
+    // CHAOS ACTIONS
+    triggerEvent: (type) => {
       const state = get();
       let duration = 30;
       let msg = `> CRITICAL ALERT: ${type}`;
 
       if (type === 'TECH_OUTAGE') {
-          duration = 20;
-          msg = "> ALERT: CLOUD SERVICES OFFLINE.";
+        duration = 20;
+        msg = '> ALERT: CLOUD SERVICES OFFLINE.';
       } else if (type === 'RANSOMWARE') {
-          duration = 60;
-          msg = "> ALERT: RANSOMWARE DETECTED. ASSETS FROZEN.";
-          // Update cash and event in ONE set call
-          const penalty = state.cash * 0.2;
-          const eventObj = { type, timeLeft: duration, severity: 'HIGH', description: msg };
-          set({
-              cash: state.cash - penalty,
-              activeEvents: [...state.activeEvents, eventObj],
-              lastEventDay: state.day
-          });
-          state.addTerminalLog(msg);
-          return; // Exit early as we handled state update
+        duration = 60;
+        msg = '> ALERT: RANSOMWARE DETECTED. ASSETS FROZEN.';
+        // Update cash and event in ONE set call
+        const penalty = state.cash * 0.2;
+        const eventObj = { type, timeLeft: duration, severity: 'HIGH', description: msg };
+        set({
+          cash: state.cash - penalty,
+          activeEvents: [...state.activeEvents, eventObj],
+          lastEventDay: state.day,
+        });
+        state.addTerminalLog(msg);
+        return; // Exit early as we handled state update
       } else if (type === 'HUMAN_QUIT') {
-          duration = 5;
-          msg = "> ALERT: KEY DEVELOPER RESIGNED.";
-          const newRoster = { ...state.roster, dev: Math.max(0, state.roster.dev - 1) };
-          set({
-              roster: newRoster,
-              workers: newRoster.dev + newRoster.sales + newRoster.support,
-              mood: Math.max(0, state.mood - 10)
-          });
+        duration = 5;
+        msg = '> ALERT: KEY DEVELOPER RESIGNED.';
+        const newRoster = { ...state.roster, dev: Math.max(0, state.roster.dev - 1) };
+        set({
+          roster: newRoster,
+          workers: newRoster.dev + newRoster.sales + newRoster.support,
+          mood: Math.max(0, state.mood - 10),
+        });
       } else if (type === 'HUMAN_SICK') {
-          duration = 120;
-          msg = "> ALERT: FLU WAVE DETECTED.";
+        duration = 120;
+        msg = '> ALERT: FLU WAVE DETECTED.';
       } else if (type === 'MARKET_SHITSTORM') {
-          duration = 60;
-          msg = "> ALERT: SOCIAL MEDIA SHITSTORM.";
+        duration = 60;
+        msg = '> ALERT: SOCIAL MEDIA SHITSTORM.';
       } else if (type === 'COMPETITOR_CLONE') {
-          duration = 999;
-          msg = "> NEWS: COMPETITOR CLONED OUR TECH.";
+        duration = 999;
+        msg = '> NEWS: COMPETITOR CLONED OUR TECH.';
       }
 
       state.addTerminalLog(msg);
@@ -131,158 +135,165 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
       const eventObj = { type, timeLeft: duration, severity: 'HIGH', description: msg };
 
       set({
-          activeEvents: [...state.activeEvents, eventObj],
-          lastEventDay: state.day
+        activeEvents: [...state.activeEvents, eventObj],
+        lastEventDay: state.day,
       });
-  },
+    },
 
-  resolveEvent: (type) => set((state) => ({
-      activeEvents: state.activeEvents.filter(e => e.type !== type)
-  })),
+    resolveEvent: (type) =>
+      set((state) => ({
+        activeEvents: state.activeEvents.filter((e) => e.type !== type),
+      })),
 
-  vetoDecision: () => {
-    const state = get();
-    if (!state.pendingDecision) return;
+    vetoDecision: () => {
+      const state = get();
+      if (!state.pendingDecision) return;
 
-    state.addTerminalLog(`>> VETO! REJECTED.`);
-    state.addTerminalLog(`>> SAFETY PROTOCOL: PIZZA PARTY.`);
+      state.addTerminalLog(`>> VETO! REJECTED.`);
+      state.addTerminalLog(`>> SAFETY PROTOCOL: PIZZA PARTY.`);
 
-    set({
-      pendingDecision: null,
-      cash: state.cash - 200,
-      activeVisitors: [...state.activeVisitors, 'pizza_guy'],
-      mood: 100
-    });
+      set({
+        pendingDecision: null,
+        cash: state.cash - 200,
+        activeVisitors: [...state.activeVisitors, 'pizza_guy'],
+        mood: 100,
+      });
 
-    setTimeout(() => get().despawnVisitor('pizza_guy'), 10000);
-  },
+      setTimeout(() => get().despawnVisitor('pizza_guy'), 10000);
+    },
 
-  applyPendingDecision: () => {
-    const state = get();
-    const decision = state.pendingDecision;
+    applyPendingDecision: () => {
+      const state = get();
+      const decision = state.pendingDecision;
 
-    if (decision) {
+      if (decision) {
         state.addTerminalLog(`>> EXECUTING: ${decision.action}`);
         let updates = { pendingDecision: null };
         const action = decision.action;
         const params = decision.parameters || {};
 
         if (action === 'HIRE_WORKER') {
-            const count = params.count || 1;
-            const cost = count * 500;
+          const count = params.count || 1;
+          const cost = count * 500;
 
-            if (state.cash >= cost) {
-                const role = (params.role || 'dev').toLowerCase();
-                const newRoster = { ...state.roster };
+          if (state.cash >= cost) {
+            const role = (params.role || 'dev').toLowerCase();
+            const newRoster = { ...state.roster };
 
-                if (role.includes('sale')) newRoster.sales += count;
-                else if (role.includes('support')) newRoster.support += count;
-                else newRoster.dev += count;
+            if (role.includes('sale')) newRoster.sales += count;
+            else if (role.includes('support')) newRoster.support += count;
+            else newRoster.dev += count;
 
-                updates.roster = newRoster;
-                updates.workers = newRoster.dev + newRoster.sales + newRoster.support;
-                updates.cash = state.cash - cost;
+            updates.roster = newRoster;
+            updates.workers = newRoster.dev + newRoster.sales + newRoster.support;
+            updates.cash = state.cash - cost;
+          } else {
+            state.addTerminalLog(`> ERROR: INSUFFICIENT FUNDS TO HIRE.`);
+          }
+        } else if (action === 'FIRE_WORKER') {
+          const count = params.count || 1;
+          const cost = count * 200; // Severance
+
+          if (state.cash >= cost) {
+            const role = (params.role || 'dev').toLowerCase();
+            const newRoster = { ...state.roster };
+
+            let fired = 0;
+            if (role.includes('sale') && newRoster.sales > 0) {
+              const actual = Math.min(newRoster.sales, count);
+              newRoster.sales -= actual;
+              fired = actual;
+            } else if (role.includes('support') && newRoster.support > 0) {
+              const actual = Math.min(newRoster.support, count);
+              newRoster.support -= actual;
+              fired = actual;
             } else {
-                state.addTerminalLog(`> ERROR: INSUFFICIENT FUNDS TO HIRE.`);
+              const actual = Math.min(newRoster.dev, count);
+              newRoster.dev -= actual;
+              fired = actual;
             }
-        }
-        else if (action === 'FIRE_WORKER') {
-            const count = params.count || 1;
-            const cost = count * 200; // Severance
 
-            if (state.cash >= cost) {
-                const role = (params.role || 'dev').toLowerCase();
-                const newRoster = { ...state.roster };
-
-                let fired = 0;
-                if (role.includes('sale') && newRoster.sales > 0) {
-                     const actual = Math.min(newRoster.sales, count);
-                     newRoster.sales -= actual; fired = actual;
-                } else if (role.includes('support') && newRoster.support > 0) {
-                     const actual = Math.min(newRoster.support, count);
-                     newRoster.support -= actual; fired = actual;
-                } else {
-                     const actual = Math.min(newRoster.dev, count);
-                     newRoster.dev -= actual; fired = actual;
-                }
-
-                updates.roster = newRoster;
-                updates.workers = newRoster.dev + newRoster.sales + newRoster.support;
-                updates.cash = state.cash - (fired * 200);
-                updates.mood = Math.max(0, state.mood - 20);
-            } else {
-                state.addTerminalLog(`> ERROR: CANNOT AFFORD SEVERANCE.`);
+            updates.roster = newRoster;
+            updates.workers = newRoster.dev + newRoster.sales + newRoster.support;
+            updates.cash = state.cash - fired * 200;
+            updates.mood = Math.max(0, state.mood - 20);
+          } else {
+            state.addTerminalLog(`> ERROR: CANNOT AFFORD SEVERANCE.`);
+          }
+        } else if (action === 'BUY_UPGRADE') {
+          const item = params.item_id;
+          const cost = 2000;
+          if (state.cash >= cost) {
+            updates.cash = state.cash - cost;
+            updates.inventory = [...state.inventory, item];
+            if (item === 'coffee_machine') updates.productivity = state.productivity + 2;
+            if (item === 'plants') updates.mood = Math.min(100, state.mood + 15);
+            if (item === 'server_rack_v2') {
+              updates.serverStability = 1.0;
+              updates.serverHealth = 100;
             }
-        }
-        else if (action === 'BUY_UPGRADE') {
-            const item = params.item_id;
-            const cost = 2000;
-            if (state.cash >= cost) {
-                updates.cash = state.cash - cost;
-                updates.inventory = [...state.inventory, item];
-                if (item === 'coffee_machine') updates.productivity = state.productivity + 2;
-                if (item === 'plants') updates.mood = Math.min(100, state.mood + 15);
-                if (item === 'server_rack_v2') {
-                    updates.serverStability = 1.0;
-                    updates.serverHealth = 100;
-                }
-                if (item === 'firewall') {
-                    get().resolveEvent('RANSOMWARE');
-                }
-            } else {
-                state.addTerminalLog(`> ERROR: NO FUNDS FOR ${item}`);
+            if (item === 'firewall') {
+              get().resolveEvent('RANSOMWARE');
             }
-        }
-        else if (action === 'MARKETING_PUSH') {
-            const cost = 5000;
-            if (state.cash >= cost) {
-                updates.cash = state.cash - cost;
-                updates.marketingMultiplier = 2.0;
-                updates.marketingLeft = 60;
-                get().resolveEvent('MARKET_SHITSTORM');
-            } else {
-                 state.addTerminalLog(`> ERROR: NO FUNDS.`);
-            }
-        }
-        else if (action === 'PIVOT') {
-            updates.productLevel = state.productLevel + 1;
-            updates.cash = state.cash;
-            updates.mood = Math.max(0, state.mood - 30);
-            updates.marketingMultiplier = 0.5;
-            updates.marketingLeft = 120;
-            state.addTerminalLog(`> PIVOTING...`);
+          } else {
+            state.addTerminalLog(`> ERROR: NO FUNDS FOR ${item}`);
+          }
+        } else if (action === 'MARKETING_PUSH') {
+          const cost = 5000;
+          if (state.cash >= cost) {
+            updates.cash = state.cash - cost;
+            updates.marketingMultiplier = 2.0;
+            updates.marketingLeft = 60;
+            get().resolveEvent('MARKET_SHITSTORM');
+          } else {
+            state.addTerminalLog(`> ERROR: NO FUNDS.`);
+          }
+        } else if (action === 'PIVOT') {
+          updates.productLevel = state.productLevel + 1;
+          updates.cash = state.cash;
+          updates.mood = Math.max(0, state.mood - 30);
+          updates.marketingMultiplier = 0.5;
+          updates.marketingLeft = 120;
+          state.addTerminalLog(`> PIVOTING...`);
         }
 
         set(updates);
-    }
-  },
+      }
+    },
 
-  advanceTick: () => {
-    const state = get();
-    if (!state.isPlaying) return;
+    advanceTick: () => {
+      const state = get();
+      if (!state.isPlaying) return;
 
-    let newTick = state.tick + 1;
-    let newPhase = state.gamePhase;
+      let newTick = state.tick + 1;
+      let newPhase = state.gamePhase;
 
-    if (state.tick === 49) {
+      if (state.tick === 49) {
         newPhase = 'CRUNCH';
-    }
+      }
 
-    if (state.gamePhase === 'WORK') {
-        const activeEvents = state.activeEvents.map(e => ({ ...e, timeLeft: e.timeLeft - 1 })).filter(e => e.timeLeft > 0);
+      if (state.gamePhase === 'WORK') {
+        const activeEvents = state.activeEvents
+          .map((e) => ({ ...e, timeLeft: e.timeLeft - 1 }))
+          .filter((e) => e.timeLeft > 0);
 
-        const isTechOutage = activeEvents.some(e => e.type === 'TECH_OUTAGE');
-        const isSick = activeEvents.some(e => e.type === 'HUMAN_SICK');
-        const isShitstorm = activeEvents.some(e => e.type === 'MARKET_SHITSTORM');
+        const isTechOutage = activeEvents.some((e) => e.type === 'TECH_OUTAGE');
+        const isSick = activeEvents.some((e) => e.type === 'HUMAN_SICK');
+        const isShitstorm = activeEvents.some((e) => e.type === 'MARKET_SHITSTORM');
 
         // --- 2. Logic Director ---
-        if (state.day > 5 && state.cash > 2000 && state.lastEventDay !== state.day && Math.random() < 0.01) {
-             const roll = Math.random();
-             if (roll < 0.2) get().triggerEvent('TECH_OUTAGE');
-             else if (roll < 0.4 && state.mood < 40) get().triggerEvent('HUMAN_QUIT');
-             else if (roll < 0.6) get().triggerEvent('HUMAN_SICK');
-             else if (roll < 0.8) get().triggerEvent('MARKET_SHITSTORM');
-             else get().triggerEvent('RANSOMWARE');
+        if (
+          state.day > 5 &&
+          state.cash > 2000 &&
+          state.lastEventDay !== state.day &&
+          Math.random() < 0.01
+        ) {
+          const roll = Math.random();
+          if (roll < 0.2) get().triggerEvent('TECH_OUTAGE');
+          else if (roll < 0.4 && state.mood < 40) get().triggerEvent('HUMAN_QUIT');
+          else if (roll < 0.6) get().triggerEvent('HUMAN_SICK');
+          else if (roll < 0.8) get().triggerEvent('MARKET_SHITSTORM');
+          else get().triggerEvent('RANSOMWARE');
         }
 
         // --- 3. Economic Calc (Deep Sim Update) ---
@@ -298,8 +309,9 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
         if (isShitstorm) finalMarket *= 0.5;
 
         // NEW REVENUE FORMULA: (Dev Output * Product Level) * (1 + Sales Boost)
-        const devOutput = (state.roster.dev * finalProd * moodFactor * state.serverStability * state.productLevel);
-        const salesBoost = (state.roster.sales * 0.5 * finalMarket);
+        const devOutput =
+          state.roster.dev * finalProd * moodFactor * state.serverStability * state.productLevel;
+        const salesBoost = state.roster.sales * 0.5 * finalMarket;
         const currentRevenue = devOutput * (0.2 + salesBoost);
 
         const currentCost = (totalWorkers * state.burnRate) / 60;
@@ -309,94 +321,98 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
         let newMarketingMult = state.marketingMultiplier;
         let newMarketingLeft = state.marketingLeft;
         if (state.marketingLeft > 0) {
-            newMarketingLeft--;
-            if (newMarketingLeft <= 0) newMarketingMult = 1.0;
+          newMarketingLeft--;
+          if (newMarketingLeft <= 0) newMarketingMult = 1.0;
         }
 
         // Micro Events
         if (Math.random() < 0.01) {
-            state.addTerminalLog(`> LOG: System Routine Check.`);
+          state.addTerminalLog(`> LOG: System Routine Check.`);
         }
 
         set({
-            cash: state.cash + netChange,
-            tick: newTick,
-            gamePhase: newPhase,
-            marketingMultiplier: newMarketingMult,
-            marketingLeft: newMarketingLeft,
-            activeEvents: activeEvents
+          cash: state.cash + netChange,
+          tick: newTick,
+          gamePhase: newPhase,
+          marketingMultiplier: newMarketingMult,
+          marketingLeft: newMarketingLeft,
+          activeEvents: activeEvents,
         });
-
-    } else {
+      } else {
         if (newTick > 60) {
-            if (state.isAiThinking) return;
-            if (state.pendingDecision) state.applyPendingDecision();
-            state.startNewDay();
-            return;
+          if (state.isAiThinking) return;
+          if (state.pendingDecision) state.applyPendingDecision();
+          state.startNewDay();
+          return;
         }
         set({ tick: newTick, gamePhase: newPhase });
-    }
-  },
+      }
+    },
 
-  startNewDay: () => {
+    startNewDay: () => {
       set((state) => {
-          const totalWorkers = state.roster.dev + state.roster.sales + state.roster.support;
-          let newLevel = 1;
-          if (totalWorkers >= 16) newLevel = 3;
-          else if (totalWorkers >= 5) newLevel = 2;
+        const totalWorkers = state.roster.dev + state.roster.sales + state.roster.support;
+        let newLevel = 1;
+        if (totalWorkers >= 16) newLevel = 3;
+        else if (totalWorkers >= 5) newLevel = 2;
 
-          const history = state.activeEvents.map(e => ({ type: e.type, description: e.description }));
+        const history = state.activeEvents.map((e) => ({
+          type: e.type,
+          description: e.description,
+        }));
 
-          // Clear activeEvents except persistent ones (e.g. COMPETITOR_CLONE)
-          // Also allowing MARKET_SHITSTORM to clear daily? Usually events have timeLeft.
-          // Spec says: "activeEvents unangetastet... Events hängen ewig".
-          // New logic: Only keep events that are intended to be multi-day persistent or specifically flagged.
-          // For now, let's keep only COMPETITOR_CLONE as requested.
-          const persistentEvents = state.activeEvents.filter(e => e.type === 'COMPETITOR_CLONE');
+        // Clear activeEvents except persistent ones (e.g. COMPETITOR_CLONE)
+        // Also allowing MARKET_SHITSTORM to clear daily? Usually events have timeLeft.
+        // Spec says: "activeEvents unangetastet... Events hängen ewig".
+        // New logic: Only keep events that are intended to be multi-day persistent or specifically flagged.
+        // For now, let's keep only COMPETITOR_CLONE as requested.
+        const persistentEvents = state.activeEvents.filter((e) => e.type === 'COMPETITOR_CLONE');
 
-          return {
-            day: state.day + 1,
-            tick: 0,
-            gamePhase: 'WORK',
-            isAiThinking: false,
-            terminalLogs: [],
-            officeLevel: newLevel,
-            isPlaying: true,
-            mood: Math.max(0, state.mood - 1),
-            eventHistory: history,
-            activeEvents: persistentEvents // Clear daily events
-          };
+        return {
+          day: state.day + 1,
+          tick: 0,
+          gamePhase: 'WORK',
+          isAiThinking: false,
+          terminalLogs: [],
+          officeLevel: newLevel,
+          isPlaying: true,
+          mood: Math.max(0, state.mood - 1),
+          eventHistory: history,
+          activeEvents: persistentEvents, // Clear daily events
+        };
       });
-  },
+    },
 
-  hireWorker: () => set((state) => {
-      const cost = 500;
-      if (state.cash < cost) {
+    hireWorker: () =>
+      set((state) => {
+        const cost = 500;
+        if (state.cash < cost) {
           state.addTerminalLog('> ERROR: INSUFFICIENT FUNDS TO HIRE');
           return {};
-      }
+        }
 
-      const newRoster = { ...state.roster, dev: state.roster.dev + 1 };
-      return {
-        roster: newRoster,
-        workers: newRoster.dev + newRoster.sales + newRoster.support,
-        cash: state.cash - cost
-      };
-  }),
+        const newRoster = { ...state.roster, dev: state.roster.dev + 1 };
+        return {
+          roster: newRoster,
+          workers: newRoster.dev + newRoster.sales + newRoster.support,
+          cash: state.cash - cost,
+        };
+      }),
 
-  fireWorker: () => set((state) => {
-      const cost = 200;
-      if (state.cash < cost) {
+    fireWorker: () =>
+      set((state) => {
+        const cost = 200;
+        if (state.cash < cost) {
           state.addTerminalLog('> ERROR: INSUFFICIENT FUNDS FOR SEVERANCE');
           return {};
-      }
+        }
 
-      const newRoster = { ...state.roster, dev: Math.max(0, state.roster.dev - 1) };
-      return {
-        roster: newRoster,
-        workers: newRoster.dev + newRoster.sales + newRoster.support,
-        mood: Math.max(0, state.mood - 10)
-      };
-  })
-
-})));
+        const newRoster = { ...state.roster, dev: Math.max(0, state.roster.dev - 1) };
+        return {
+          roster: newRoster,
+          workers: newRoster.dev + newRoster.sales + newRoster.support,
+          mood: Math.max(0, state.mood - 10),
+        };
+      }),
+  }))
+);

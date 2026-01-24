@@ -52,43 +52,55 @@ export default class MainScene extends Phaser.Scene {
     // 4) Subscriptions
     const store = useGameStore;
     if (store && store.subscribe && store.getState) {
-        this.unsubscribers.push(store.subscribe(
-            state => state.roster,
-            (roster) => this.syncRoster(roster),
-            { equalityFn: (a, b) => a.dev === b.dev && a.sales === b.sales && a.support === b.support }
-        ));
+      this.unsubscribers.push(
+        store.subscribe(
+          (state) => state.roster,
+          (roster) => this.syncRoster(roster),
+          {
+            equalityFn: (a, b) => a.dev === b.dev && a.sales === b.sales && a.support === b.support,
+          }
+        )
+      );
 
-        this.unsubscribers.push(store.subscribe(
-            state => state.activeVisitors,
-            (visitors) => this.syncVisitors(visitors)
-        ));
+      this.unsubscribers.push(
+        store.subscribe(
+          (state) => state.activeVisitors,
+          (visitors) => this.syncVisitors(visitors)
+        )
+      );
 
-        this.unsubscribers.push(store.subscribe(
-            state => state.mood,
-            (mood) => this.updateMoodVisuals(mood)
-        ));
+      this.unsubscribers.push(
+        store.subscribe(
+          (state) => state.mood,
+          (mood) => this.updateMoodVisuals(mood)
+        )
+      );
 
-        this.unsubscribers.push(store.subscribe(
-            state => state.activeEvents,
-            (events) => this.syncChaosVisuals(events)
-        ));
+      this.unsubscribers.push(
+        store.subscribe(
+          (state) => state.activeEvents,
+          (events) => this.syncChaosVisuals(events)
+        )
+      );
 
-        this.unsubscribers.push(store.subscribe(
-            state => state.officeLevel,
-            (level) => {
-                this.createFloor(level);
-                this.applyObstaclesToGrid();
-            }
-        ));
+      this.unsubscribers.push(
+        store.subscribe(
+          (state) => state.officeLevel,
+          (level) => {
+            this.createFloor(level);
+            this.applyObstaclesToGrid();
+          }
+        )
+      );
 
-        // 5) Initial Sync
-        const state = store.getState();
-        this.syncRoster(state.roster);
-        this.syncVisitors(state.activeVisitors);
-        this.updateMoodVisuals(state.mood);
-        this.syncChaosVisuals(state.activeEvents);
+      // 5) Initial Sync
+      const state = store.getState();
+      this.syncRoster(state.roster);
+      this.syncVisitors(state.activeVisitors);
+      this.updateMoodVisuals(state.mood);
+      this.syncChaosVisuals(state.activeEvents);
     } else {
-        console.warn('[MainScene] Store unavailable.');
+      console.warn('[MainScene] Store unavailable.');
     }
 
     // 6) Cleanup Hook
@@ -109,7 +121,7 @@ export default class MainScene extends Phaser.Scene {
     console.log('[MainScene] Shutting down. Cleaning up...');
 
     // 1) Unsubscribe store
-    this.unsubscribers.forEach(u => u());
+    this.unsubscribers.forEach((u) => u());
     this.unsubscribers = [];
 
     // 2) Kill tweens
@@ -158,7 +170,11 @@ export default class MainScene extends Phaser.Scene {
     }
 
     // Hardcoded obstacles
-    const blocked = [{ x: 2, y: 2 }, { x: 23, y: 2 }, { x: 2, y: 17 }];
+    const blocked = [
+      { x: 2, y: 2 },
+      { x: 23, y: 2 },
+      { x: 2, y: 17 },
+    ];
     for (const b of blocked) {
       if (b.x >= 0 && b.x < this.cols && b.y >= 0 && b.y < this.rows) {
         this._grid[b.y][b.x] = 1;
@@ -220,7 +236,7 @@ export default class MainScene extends Phaser.Scene {
   }
 
   getWorkersByRole(role) {
-    return this.workersGroup.getChildren().filter(w => w.role === role);
+    return this.workersGroup.getChildren().filter((w) => w.role === role);
   }
 
   adjustRoleCount(role, current, target) {
@@ -228,14 +244,20 @@ export default class MainScene extends Phaser.Scene {
       for (let i = 0; i < target - current; i++) this.spawnWorker(role);
     } else if (current > target) {
       const toRemove = this.getWorkersByRole(role).slice(0, current - target);
-      toRemove.forEach(w => w.destroy());
+      toRemove.forEach((w) => w.destroy());
     }
   }
 
   spawnWorker(role) {
     const x = Phaser.Math.Between(1, this.cols - 2);
     const y = Phaser.Math.Between(1, this.rows - 2);
-    const worker = new WorkerSprite(this, x * this.tileSize + 16, y * this.tileSize + 16, role, Date.now());
+    const worker = new WorkerSprite(
+      this,
+      x * this.tileSize + 16,
+      y * this.tileSize + 16,
+      role,
+      Date.now()
+    );
     this.add.existing(worker);
     this.workersGroup.add(worker);
   }
@@ -243,24 +265,32 @@ export default class MainScene extends Phaser.Scene {
   // --- VISITORS ---
   syncVisitors(activeVisitors) {
     this.manageVisitor('visitor_pizza', activeVisitors.includes('pizza_guy'), 0, 300, 400, 300);
-    this.manageVisitor('visitor_investor', activeVisitors.includes('investors'), 800, 300, 600, 300, 3);
+    this.manageVisitor(
+      'visitor_investor',
+      activeVisitors.includes('investors'),
+      800,
+      300,
+      600,
+      300,
+      3
+    );
   }
 
   manageVisitor(key, isActive, startX, startY, endX, endY, count = 1) {
-    const sprites = this.visitorGroup.getChildren().filter(v => v.texture?.key === key);
+    const sprites = this.visitorGroup.getChildren().filter((v) => v.texture?.key === key);
 
     if (isActive && sprites.length === 0) {
       for (let i = 0; i < count; i++) {
-        const v = this.add.sprite(startX, startY + (i * 40), key);
+        const v = this.add.sprite(startX, startY + i * 40, key);
         this.physics.add.existing(v);
 
-        const tween = this.tweens.add({ targets: v, x: endX, duration: 2000 });
+        this.tweens.add({ targets: v, x: endX, duration: 2000 });
         v.once(Phaser.GameObjects.Events.DESTROY, () => this.tweens.killTweensOf(v));
 
         this.visitorGroup.add(v);
       }
     } else if (!isActive && sprites.length > 0) {
-      sprites.forEach(s => {
+      sprites.forEach((s) => {
         this.tweens.killTweensOf(s);
         s.destroy();
       });
@@ -269,8 +299,8 @@ export default class MainScene extends Phaser.Scene {
 
   // --- VISUALS ---
   updateMoodVisuals(mood) {
-    const tint = (mood > 80) ? 0xffffff : (mood > 40 ? 0xccccff : 0x8888ff);
-    this.workersGroup.children.iterate(w => w?.setTint?.(tint));
+    const tint = mood > 80 ? 0xffffff : mood > 40 ? 0xccccff : 0x8888ff;
+    this.workersGroup.children.iterate((w) => w?.setTint?.(tint));
   }
 
   syncChaosVisuals(events) {
@@ -282,7 +312,7 @@ export default class MainScene extends Phaser.Scene {
       if (e.type === 'TECH_OUTAGE') {
         this.cameras.main.setTint(0x0000aa);
         this.addOverlayText('SYSTEM FAILURE', '#0000ff');
-        this.workersGroup.children.iterate(w => w?.showFeedback?.('???'));
+        this.workersGroup.children.iterate((w) => w?.showFeedback?.('???'));
       } else if (e.type === 'RANSOMWARE') {
         const skull = this.add.text(400, 300, '💀', { fontSize: '200px' }).setOrigin(0.5);
         this.overlayGroup.add(skull);
@@ -299,7 +329,14 @@ export default class MainScene extends Phaser.Scene {
   }
 
   addOverlayText(msg, color) {
-    const t = this.add.text(400, 100, msg, { fontSize: '32px', color: '#fff', backgroundColor: color, padding: { x: 10, y: 10 } }).setOrigin(0.5);
+    const t = this.add
+      .text(400, 100, msg, {
+        fontSize: '32px',
+        color: '#fff',
+        backgroundColor: color,
+        padding: { x: 10, y: 10 },
+      })
+      .setOrigin(0.5);
     this.overlayGroup.add(t);
   }
 }

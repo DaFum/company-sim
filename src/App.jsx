@@ -29,17 +29,14 @@ function App() {
     hireWorker,
     fireWorker,
     isMuted,
-    toggleMute
+    toggleMute,
   } = useGameStore();
 
   return (
     <div className="app-container">
       <h1>🤖 AI Startup Simulator (Deep Sim)</h1>
 
-      <button
-        onClick={toggleMute}
-        className="mute-button"
-      >
+      <button onClick={toggleMute} className="mute-button">
         {isMuted ? '🔇 Unmute' : '🔊 Mute'}
       </button>
 
@@ -48,20 +45,21 @@ function App() {
 
       {/* DASHBOARD */}
       <div className="dashboard">
-
         {/* STATUS BOARD */}
         <div className="status-board">
           <h2 className="status-header">Status</h2>
           <div className="status-row">
-             <span>Day: {day}</span>
-             <span>Time: 0:{tick.toString().padStart(2, '0')}</span>
+            <span>Day: {day}</span>
+            <span>Time: 0:{tick.toString().padStart(2, '0')}</span>
           </div>
           <p className={`cash-display ${cash >= 0 ? 'cash-positive' : 'cash-negative'}`}>
             <strong>{cash.toFixed(0)} €</strong>
           </p>
           <div className="status-footer">
-             <span>CEO: <strong className="ceo-name">{ceoPersona}</strong></span>
-             <span>Workers: {workers}</span>
+            <span>
+              CEO: <strong className="ceo-name">{ceoPersona}</strong>
+            </span>
+            <span>Workers: {workers}</span>
           </div>
         </div>
 
@@ -69,34 +67,31 @@ function App() {
         <div className="controls">
           <div className="control-group">
             <button
-                onClick={togglePause}
-                disabled={gamePhase === 'CRUNCH'}
-                className={`pause-button ${isPlaying ? 'playing' : 'paused'}`}
+              onClick={togglePause}
+              disabled={gamePhase === 'CRUNCH'}
+              className={`pause-button ${isPlaying ? 'playing' : 'paused'}`}
             >
-                {isPlaying ? 'PAUSE' : 'START'}
+              {isPlaying ? 'PAUSE' : 'START'}
             </button>
-            <button
-                onClick={toggleSpeed}
-                className="speed-button"
-            >
-                {gameSpeed === 1000 ? '1x' : '2x'}
+            <button onClick={toggleSpeed} className="speed-button">
+              {gameSpeed === 1000 ? '1x' : '2x'}
             </button>
           </div>
 
           <div className="control-group">
             <button
-                onClick={hireWorker}
-                disabled={gamePhase === 'CRUNCH'}
-                className="action-button"
+              onClick={hireWorker}
+              disabled={gamePhase === 'CRUNCH'}
+              className="action-button"
             >
-                Hire (+Profit)
+              Hire (+Profit)
             </button>
             <button
-                onClick={fireWorker}
-                disabled={gamePhase === 'CRUNCH'}
-                className="action-button"
+              onClick={fireWorker}
+              disabled={gamePhase === 'CRUNCH'}
+              className="action-button"
             >
-                Fire (-Burn)
+              Fire (-Burn)
             </button>
           </div>
         </div>
@@ -104,12 +99,11 @@ function App() {
 
       {/* PHASER GAME CANVAS */}
       <div className="game-canvas-container">
-         <GameCanvas />
+        <GameCanvas />
       </div>
 
       {/* TERMINAL (Bottom) */}
       <RetroTerminal />
-
     </div>
   );
 }

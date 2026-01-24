@@ -1,4 +1,3 @@
-
 export const generateSystemPrompt = () => {
   return `
 Du bist die KI-CEO eines Tech-Startups.

@@ -19,66 +19,68 @@ export const useAiDirector = () => {
       processingRef.current = true;
       useGameStore.setState({ isAiThinking: true });
 
-      addTerminalLog("> INIT CRUNCH MODE...");
-      addTerminalLog("> FREEZING ASSETS...");
+      addTerminalLog('> INIT CRUNCH MODE...');
+      addTerminalLog('> FREEZING ASSETS...');
 
       const runAiLoop = async () => {
         // Mock Logs Sequence
-        setTimeout(() => addTerminalLog("> ANALYZING CASHFLOW..."), 1000);
-        setTimeout(() => addTerminalLog("> CHECKING MORALE..."), 2500);
-        setTimeout(() => addTerminalLog("> CALCULATING SCENARIOS..."), 4000);
+        setTimeout(() => addTerminalLog('> ANALYZING CASHFLOW...'), 1000);
+        setTimeout(() => addTerminalLog('> CHECKING MORALE...'), 2500);
+        setTimeout(() => addTerminalLog('> CALCULATING SCENARIOS...'), 4000);
 
         try {
-            // 1. Collect Context
-            const state = useGameStore.getState();
-            // INJECT PERSONA
-            const systemPrompt = generateSystemPrompt().replace('{{PERSONA}}', state.ceoPersona || 'Visionary');
+          // 1. Collect Context
+          const state = useGameStore.getState();
+          // INJECT PERSONA
+          const systemPrompt = generateSystemPrompt().replace(
+            '{{PERSONA}}',
+            state.ceoPersona || 'Visionary'
+          );
 
-            const fullState = {
-                cash: state.cash,
-                workers: state.workers,
-                roster: state.roster,
-                day: state.day,
-                mood: state.mood,
-                yesterday_events: state.eventHistory || [],
-                active_events: state.activeEvents || [],
-                inventory: state.inventory
+          const fullState = {
+            cash: state.cash,
+            workers: state.workers,
+            roster: state.roster,
+            day: state.day,
+            mood: state.mood,
+            yesterday_events: state.eventHistory || [],
+            active_events: state.activeEvents || [],
+            inventory: state.inventory,
+          };
+
+          // 2. Call API (or Mock)
+          let result;
+          if (apiKey) {
+            result = await callAI(apiKey, systemPrompt, fullState, true, aiProvider);
+          } else {
+            await new Promise((r) => setTimeout(r, 2000));
+            result = {
+              action: 'NONE',
+              parameters: {},
+              reasoning: 'No API Key found. Playing safe.',
             };
+          }
 
-            // 2. Call API (or Mock)
-            let result;
-            if (apiKey) {
-                 result = await callAI(apiKey, systemPrompt, fullState, true, aiProvider);
-            } else {
-                 await new Promise(r => setTimeout(r, 2000));
-                 result = {
-                     action: 'NONE',
-                     parameters: {},
-                     reasoning: "No API Key found. Playing safe."
-                 };
-            }
+          console.log('🧠 KI Response:', result);
 
-            console.log("🧠 KI Response:", result);
+          // 3. Set Decision
+          setPendingDecision({
+            action: result.action || 'NONE',
+            parameters: result.parameters || {},
+            reason: result.reasoning || 'Analyzing market data.',
+          });
 
-            // 3. Set Decision
-            setPendingDecision({
-                action: result.action || 'NONE',
-                parameters: result.parameters || {},
-                reason: result.reasoning || 'Analyzing market data.'
-            });
-
-            useGameStore.setState({ isAiThinking: false });
-
+          useGameStore.setState({ isAiThinking: false });
         } catch (e) {
-            console.error(e);
-            addTerminalLog("> ERROR: AI CONNECTION FAILED.");
-            useGameStore.setState({ isAiThinking: false });
+          console.error(e);
+          addTerminalLog('> ERROR: AI CONNECTION FAILED.');
+          useGameStore.setState({ isAiThinking: false });
         } finally {
-            processingRef.current = false;
+          processingRef.current = false;
         }
       };
 
       runAiLoop();
     }
-  }, [tick, apiKey]);
+  }, [tick, apiKey, addTerminalLog, aiProvider, setPendingDecision]);
 };

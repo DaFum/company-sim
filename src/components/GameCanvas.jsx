@@ -11,21 +11,21 @@ export const GameCanvas = () => {
   // Sync Mute State with Phaser
   useEffect(() => {
     if (gameRef.current && gameRef.current.sound) {
-        gameRef.current.sound.mute = isMuted;
+      gameRef.current.sound.mute = isMuted;
     }
   }, [isMuted]);
 
   useEffect(() => {
     // 1. Initialisierung: Phaser starten, wenn Komponente mountet
     if (!gameRef.current) {
-      console.log("Initializing Phaser Game...");
+      console.log('Initializing Phaser Game...');
       gameRef.current = new Phaser.Game(gameConfig);
     }
 
     // 2. Aufräumen: Phaser zerstören, wenn Komponente unmountet
     return () => {
       if (gameRef.current) {
-        console.log("Destroying Phaser Game...");
+        console.log('Destroying Phaser Game...');
         gameRef.current.destroy(true);
         gameRef.current = null;
       }
@@ -40,7 +40,7 @@ export const GameCanvas = () => {
         width: '800px',
         height: '600px',
         border: '4px solid #333',
-        margin: '20px auto'
+        margin: '20px auto',
       }}
     />
   );

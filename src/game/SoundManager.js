@@ -9,7 +9,7 @@ export default class SoundManager {
 
     // Check if sound exists
     if (this.scene.cache.audio.exists(key)) {
-        this.scene.sound.play(key, config);
+      this.scene.sound.play(key, config);
     }
   }
 
