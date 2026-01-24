@@ -1,134 +1,142 @@
 import Phaser from 'phaser';
 
 export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
-    constructor(scene, x, y, role, id) {
-        // Texture based on role
-        const texture = `worker_${role}`;
-        super(scene, x, y, texture);
+  constructor(scene, x, y, role, id) {
+    const texture = `worker_${role}`;
+    super(scene, x, y, texture);
 
-        this.scene = scene;
-        this.role = role;
-        this.id = id;
+    this.role = role;
+    this.id = id;
 
-        // Physics
-        this.scene.physics.add.existing(this);
-        this.setCollideWorldBounds(true);
-        this.body.setSize(24, 24);
+    // Physics
+    scene.physics.add.existing(this);
+    this.setCollideWorldBounds(true);
+    this.body.setSize(24, 24);
 
-        // State Machine
-        this.state = 'IDLE'; // IDLE, WORKING, MOVING, EVENT
-        this.stateTimer = 0;
+    // State Machine
+    this.state = 'IDLE';
+    this.stateTimer = 0;
 
-        // Pathfinding
-        this.path = [];
-        this.targetX = x;
-        this.targetY = y;
+    // Pathfinding
+    this.path = [];
 
-        // Visuals
+    // Visuals
+    this.statusIcon = null;
+    this._jiggleTimer = 0;
+
+    // Cleanup
+    this.once(Phaser.GameObjects.Events.DESTROY, () => {
+      if (this.statusIcon) {
+        this.statusIcon.destroy();
         this.statusIcon = null;
+      }
+    });
+  }
+
+  update(time, delta) {
+    this.stateTimer -= delta;
+
+    if (this.state === 'MOVING') {
+      this.followPath();
+    } else if (this.state === 'IDLE' || this.state === 'WORKING') {
+      if (this.stateTimer <= 0) this.decideNextAction();
     }
 
-    update(time, delta) {
-        this.stateTimer -= delta;
-
-        // --- STATE LOGIC ---
-        if (this.state === 'MOVING') {
-            this.followPath();
-        }
-        else if (this.state === 'IDLE' || this.state === 'WORKING') {
-            if (this.stateTimer <= 0) {
-                this.decideNextAction();
-            }
-        }
-
-        // --- ROLE ANIMATIONS ---
-        if (this.state === 'WORKING' && this.role === 'dev') {
-            // Jiggle effect for typing
-            this.x += (Math.random() - 0.5) * 1;
-        }
-
-        // --- ICON UPDATE ---
-        if (this.statusIcon) {
-            this.statusIcon.x = this.x;
-            this.statusIcon.y = this.y - 20;
-            this.statusIcon.alpha -= 0.01;
-            if (this.statusIcon.alpha <= 0) {
-                this.statusIcon.destroy();
-                this.statusIcon = null;
-            }
-        }
+    // Role Animations (Physics Safe)
+    if (this.state === 'WORKING' && this.role === 'dev') {
+      this._jiggleTimer -= delta;
+      if (this._jiggleTimer <= 0) {
+        this._jiggleTimer = 80;
+        const nx = this.x + (Math.random() - 0.5) * 1;
+        const ny = this.y + (Math.random() - 0.5) * 1;
+        this.setPosition(nx, ny);
+        this.body.reset(nx, ny);
+      }
     }
 
-    decideNextAction() {
-        // 1. Check for Events (Pizza, Fire) -> Handled by Scene pushing state
+    // Icon Update (Delta Safe)
+    if (this.statusIcon) {
+      this.statusIcon.setPosition(this.x, this.y - 20);
+      const fadePerMs = 1 / 800;
+      this.statusIcon.alpha -= (delta * fadePerMs);
 
-        // 2. Role Behavior
-        if (this.role === 'dev') {
-            // Devs mostly work
-            if (Math.random() > 0.3) {
-                this.state = 'WORKING';
-                this.stateTimer = 3000 + Math.random() * 2000;
-                this.showFeedback('101');
-            } else {
-                this.state = 'IDLE'; // Coffee break?
-                this.moveToRandomPoint();
-            }
-        }
-        else if (this.role === 'sales') {
-            // Sales always roam
-            this.state = 'IDLE'; // Actually Moving
-            this.moveToRandomPoint();
-            if (Math.random() > 0.8) this.showFeedback('$');
-        }
-        else if (this.role === 'support') {
-            // Support patrols
-            this.moveToRandomPoint();
-        }
+      if (this.statusIcon.alpha <= 0) {
+        this.statusIcon.destroy();
+        this.statusIcon = null;
+      }
+    }
+  }
+
+  decideNextAction() {
+    if (this.role === 'dev') {
+      if (Math.random() > 0.3) {
+        this.state = 'WORKING';
+        this.stateTimer = 3000 + Math.random() * 2000;
+        this.showFeedback('101');
+      } else {
+        this.state = 'IDLE';
+        this.moveToRandomPoint();
+      }
+    } else if (this.role === 'sales') {
+      this.state = 'IDLE';
+      this.moveToRandomPoint();
+      if (Math.random() > 0.8) this.showFeedback('$');
+    } else if (this.role === 'support') {
+      this.state = 'IDLE';
+      this.moveToRandomPoint();
+    }
+  }
+
+  moveToRandomPoint() {
+    const gridX = Phaser.Math.Between(1, 23);
+    const gridY = Phaser.Math.Between(1, 18);
+    this.scene.requestMove(this, gridX, gridY);
+  }
+
+  startPath(path) {
+    if (path && path.length > 0) {
+      this.path = path;
+      this.state = 'MOVING';
+    }
+  }
+
+  followPath() {
+    if (!this.path || this.path.length === 0) {
+      this.state = 'IDLE';
+      this.body.reset(this.x, this.y);
+      this.setVelocity(0, 0);
+      this.stateTimer = 1000;
+      return;
     }
 
-    moveToRandomPoint() {
-        const gridX = Phaser.Math.Between(1, 23); // Keep within bounds
-        const gridY = Phaser.Math.Between(1, 18);
-        this.scene.requestMove(this, gridX, gridY);
+    const nextTile = this.path[0];
+    const targetX = nextTile.x * 32 + 16;
+    const targetY = nextTile.y * 32 + 16;
+
+    const dist = Phaser.Math.Distance.Between(this.x, this.y, targetX, targetY);
+
+    if (dist < 4) {
+      this.path.shift();
+    } else {
+      const speed = (this.role === 'support') ? 150 : 100;
+      this.scene.physics.moveTo(this, targetX, targetY, speed);
     }
+  }
 
-    startPath(path) {
-        if (path && path.length > 0) {
-            this.path = path;
-            this.state = 'MOVING';
-        }
-    }
+  showFeedback(text) {
+    if (this.statusIcon) this.statusIcon.destroy();
 
-    followPath() {
-        if (this.path.length === 0) {
-            this.state = 'IDLE';
-            this.body.reset(this.x, this.y);
-            this.stateTimer = 1000;
-            return;
-        }
+    let color = '#00ff00';
+    if (text === '$') color = '#ffff00';
+    if (text === '???') color = '#ff4444';
 
-        const nextTile = this.path[0];
-        const targetX = nextTile.x * 32 + 16;
-        const targetY = nextTile.y * 32 + 16;
+    this.statusIcon = this.scene.add.text(
+      this.x,
+      this.y - 20,
+      text,
+      { fontSize: '14px', color, stroke: '#000', strokeThickness: 2 }
+    ).setOrigin(0.5);
 
-        const dist = Phaser.Math.Distance.Between(this.x, this.y, targetX, targetY);
-
-        if (dist < 4) {
-            this.path.shift();
-        } else {
-            this.scene.physics.moveTo(this, targetX, targetY, (this.role === 'support' ? 150 : 100));
-        }
-    }
-
-    showFeedback(text) {
-        if (this.statusIcon) this.statusIcon.destroy();
-
-        let color = '#00ff00';
-        if (text === '101') color = '#00ff00';
-        if (text === '$') color = '#ffff00';
-
-        this.statusIcon = this.scene.add.text(this.x, this.y - 20, text, {
-            fontSize: '14px', color: color, stroke: '#000', strokeThickness: 2
-        }).setOrigin(0.5);
-    }
+    this.statusIcon.alpha = 1;
+  }
 }

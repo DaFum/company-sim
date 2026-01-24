@@ -4,7 +4,7 @@ import MainScene from './scenes/MainScene';
 
 export const gameConfig = {
   type: Phaser.AUTO,
-  parent: 'game-container', // ID des DOM-Elements, in das Phaser rendert
+  parent: 'game-container',
   width: 800,
   height: 600,
   backgroundColor: '#000000',
@@ -12,7 +12,7 @@ export const gameConfig = {
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { y: 0 }, // Top-down view, keine Schwerkraft
+      gravity: { y: 0 },
       debug: false
     }
   }
