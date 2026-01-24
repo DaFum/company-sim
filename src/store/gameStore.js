@@ -19,14 +19,14 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
   isPlaying: false,
   isAiThinking: false,
   isMuted: false,
-  gameSpeed: 1000,      // ms per tick (1000 = normal, 500 = fast)
+  gameSpeed: 1000,
 
   // Visual & Logic
   officeLevel: 1,
   terminalLogs: [],
   pendingDecision: null,
   activeVisitors: [],
-  ceoPersona: getRandomPersona(), // NEW: AI Personality
+  ceoPersona: getRandomPersona(),
 
   // Resources
   roster: { dev: 1, sales: 0, support: 0 },
@@ -69,7 +69,7 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
   toggleSpeed: () => set((state) => ({ gameSpeed: state.gameSpeed === 1000 ? 500 : 1000 })),
 
   addTerminalLog: (msg) => set((state) => ({
-    terminalLogs: [...state.terminalLogs.slice(-4), msg]
+    terminalLogs: [...state.terminalLogs.slice(-50), msg] // Keep last 50
   })),
 
   clearTerminalLogs: () => set({ terminalLogs: [] }),
@@ -160,38 +160,51 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
 
         if (action === 'HIRE_WORKER') {
             const count = params.count || 1;
-            const role = (params.role || 'dev').toLowerCase();
-            const newRoster = { ...state.roster };
+            const cost = count * 500;
 
-            if (role.includes('sale')) newRoster.sales += count;
-            else if (role.includes('support')) newRoster.support += count;
-            else newRoster.dev += count;
+            if (state.cash >= cost) {
+                const role = (params.role || 'dev').toLowerCase();
+                const newRoster = { ...state.roster };
 
-            updates.roster = newRoster;
-            updates.workers = newRoster.dev + newRoster.sales + newRoster.support;
-            updates.cash = state.cash - (count * 500);
+                if (role.includes('sale')) newRoster.sales += count;
+                else if (role.includes('support')) newRoster.support += count;
+                else newRoster.dev += count;
+
+                updates.roster = newRoster;
+                updates.workers = newRoster.dev + newRoster.sales + newRoster.support;
+                updates.cash = state.cash - cost;
+            } else {
+                state.addTerminalLog(`> ERROR: INSUFFICIENT FUNDS TO HIRE.`);
+            }
         }
         else if (action === 'FIRE_WORKER') {
             const count = params.count || 1;
-            const role = (params.role || 'dev').toLowerCase();
-            const newRoster = { ...state.roster };
+            const cost = count * 200; // Severance
 
-            let fired = 0;
-            if (role.includes('sale') && newRoster.sales > 0) {
-                 const actual = Math.min(newRoster.sales, count);
-                 newRoster.sales -= actual; fired = actual;
-            } else if (role.includes('support') && newRoster.support > 0) {
-                 const actual = Math.min(newRoster.support, count);
-                 newRoster.support -= actual; fired = actual;
+            // Allow firing even if cash low? No, severance is mandatory.
+            if (state.cash >= cost) {
+                const role = (params.role || 'dev').toLowerCase();
+                const newRoster = { ...state.roster };
+
+                let fired = 0;
+                if (role.includes('sale') && newRoster.sales > 0) {
+                     const actual = Math.min(newRoster.sales, count);
+                     newRoster.sales -= actual; fired = actual;
+                } else if (role.includes('support') && newRoster.support > 0) {
+                     const actual = Math.min(newRoster.support, count);
+                     newRoster.support -= actual; fired = actual;
+                } else {
+                     const actual = Math.min(newRoster.dev, count);
+                     newRoster.dev -= actual; fired = actual;
+                }
+
+                updates.roster = newRoster;
+                updates.workers = newRoster.dev + newRoster.sales + newRoster.support;
+                updates.cash = state.cash - (fired * 200);
+                updates.mood = Math.max(0, state.mood - 20);
             } else {
-                 const actual = Math.min(newRoster.dev, count);
-                 newRoster.dev -= actual; fired = actual;
+                state.addTerminalLog(`> ERROR: CANNOT AFFORD SEVERANCE.`);
             }
-
-            updates.roster = newRoster;
-            updates.workers = newRoster.dev + newRoster.sales + newRoster.support;
-            updates.cash = state.cash - (fired * 200);
-            updates.mood = Math.max(0, state.mood - 20);
         }
         else if (action === 'BUY_UPGRADE') {
             const item = params.item_id;
@@ -277,14 +290,8 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
         if (isShitstorm) finalMarket *= 0.5;
 
         // NEW REVENUE FORMULA: (Dev Output * Product Level) * (1 + Sales Boost)
-        // Dev Output = Devs * Productivity * Mood * Server
         const devOutput = (state.roster.dev * finalProd * moodFactor * state.serverStability * state.productLevel);
-
-        // Sales Boost = Sales Staff * Marketing Multiplier * 0.5 (Base impact)
         const salesBoost = (state.roster.sales * 0.5 * finalMarket);
-
-        // Total Income per tick
-        // Note: Even without sales, organic growth happens (min 10% of dev output)
         const currentRevenue = devOutput * (0.2 + salesBoost);
 
         const currentCost = (totalWorkers * state.burnRate) / 60;
@@ -340,7 +347,6 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
             terminalLogs: [],
             officeLevel: newLevel,
             isPlaying: true,
-            // UPDATED: Natural Decay (-1) instead of Regen (+5)
             mood: Math.max(0, state.mood - 1),
             eventHistory: history
           };
@@ -348,15 +354,21 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
   },
 
   hireWorker: () => set((state) => {
+      const cost = 500;
+      if (state.cash < cost) return {}; // Fail silently or could return error state
+
       const newRoster = { ...state.roster, dev: state.roster.dev + 1 };
       return {
         roster: newRoster,
         workers: newRoster.dev + newRoster.sales + newRoster.support,
-        cash: state.cash - 500
+        cash: state.cash - cost
       };
   }),
 
   fireWorker: () => set((state) => {
+      const cost = 200; // Severance
+      if (state.cash < cost) return {};
+
       const newRoster = { ...state.roster, dev: Math.max(0, state.roster.dev - 1) };
       return {
         roster: newRoster,

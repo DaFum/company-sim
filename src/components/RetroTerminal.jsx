@@ -12,7 +12,7 @@ export const RetroTerminal = () => {
 
   useEffect(() => {
     if (pendingDecision && tick >= 50) {
-        setTimeLeft(60 - tick);
+        setTimeLeft(Math.max(0, 60 - tick));
     }
   }, [tick, pendingDecision]);
 
