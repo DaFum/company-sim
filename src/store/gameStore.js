@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 
+// Helpers
+const PERSONAS = ['Visionary', 'Accountant', 'Benevolent'];
+const getRandomPersona = () => PERSONAS[Math.floor(Math.random() * PERSONAS.length)];
+
 export const useGameStore = create(subscribeWithSelector((set, get) => ({
   // --- STATE ---
   apiKey: sessionStorage.getItem('openai_api_key') || '',
@@ -15,12 +19,14 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
   isPlaying: false,
   isAiThinking: false,
   isMuted: false,
+  gameSpeed: 1000,      // ms per tick (1000 = normal, 500 = fast)
 
   // Visual & Logic
   officeLevel: 1,
   terminalLogs: [],
   pendingDecision: null,
   activeVisitors: [],
+  ceoPersona: getRandomPersona(), // NEW: AI Personality
 
   // Resources
   roster: { dev: 1, sales: 0, support: 0 },
@@ -38,9 +44,9 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
   inventory: [],
 
   // CHAOS ENGINE
-  activeEvents: [], // [{ type: 'TECH_OUTAGE', timeLeft: 30, severity: 'HIGH' }]
-  eventHistory: [], // Log of yesterday's chaos for AI
-  lastEventDay: 0,  // Cooldown tracker
+  activeEvents: [],
+  eventHistory: [],
+  lastEventDay: 0,
 
   // --- ACTIONS ---
   setApiKey: (key) => {
@@ -60,6 +66,7 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
 
   togglePause: () => set((state) => ({ isPlaying: !state.isPlaying })),
   toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+  toggleSpeed: () => set((state) => ({ gameSpeed: state.gameSpeed === 1000 ? 500 : 1000 })),
 
   addTerminalLog: (msg) => set((state) => ({
     terminalLogs: [...state.terminalLogs.slice(-4), msg]
@@ -80,22 +87,19 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
   // CHAOS ACTIONS
   triggerEvent: (type) => {
       const state = get();
-      let duration = 30; // Default 30 ticks
+      let duration = 30;
       let msg = `> CRITICAL ALERT: ${type}`;
 
-      // Define Event Specs
       if (type === 'TECH_OUTAGE') {
           duration = 20;
           msg = "> ALERT: CLOUD SERVICES OFFLINE.";
       } else if (type === 'RANSOMWARE') {
-          duration = 60; // Full day annoyance
+          duration = 60;
           msg = "> ALERT: RANSOMWARE DETECTED. ASSETS FROZEN.";
-          // Instant Penalty
-          set({ cash: state.cash * 0.8 }); // Lose 20%
+          set({ cash: state.cash * 0.8 });
       } else if (type === 'HUMAN_QUIT') {
           duration = 5;
           msg = "> ALERT: KEY DEVELOPER RESIGNED.";
-          // Instant Penalty
           const newRoster = { ...state.roster, dev: Math.max(0, state.roster.dev - 1) };
           set({
               roster: newRoster,
@@ -103,13 +107,13 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
               mood: Math.max(0, state.mood - 10)
           });
       } else if (type === 'HUMAN_SICK') {
-          duration = 120; // 2 Days
+          duration = 120;
           msg = "> ALERT: FLU WAVE DETECTED.";
       } else if (type === 'MARKET_SHITSTORM') {
           duration = 60;
           msg = "> ALERT: SOCIAL MEDIA SHITSTORM.";
       } else if (type === 'COMPETITOR_CLONE') {
-          duration = 999; // Permanent until counter-action? Or just difficulty spike
+          duration = 999;
           msg = "> NEWS: COMPETITOR CLONED OUR TECH.";
       }
 
@@ -201,7 +205,6 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
                     updates.serverStability = 1.0;
                     updates.serverHealth = 100;
                 }
-                // Counter Ransomware (Firewall logic could be added here)
                 if (item === 'firewall') {
                     get().resolveEvent('RANSOMWARE');
                 }
@@ -215,7 +218,6 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
                 updates.cash = state.cash - cost;
                 updates.marketingMultiplier = 2.0;
                 updates.marketingLeft = 60;
-                // Counter Shitstorm
                 get().resolveEvent('MARKET_SHITSTORM');
             } else {
                  state.addTerminalLog(`> ERROR: NO FUNDS.`);
@@ -246,17 +248,14 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
     }
 
     if (state.gamePhase === 'WORK') {
-        // 1. Process Active Events
         const activeEvents = state.activeEvents.map(e => ({ ...e, timeLeft: e.timeLeft - 1 })).filter(e => e.timeLeft > 0);
 
-        // Check for Effects
         const isTechOutage = activeEvents.some(e => e.type === 'TECH_OUTAGE');
         const isSick = activeEvents.some(e => e.type === 'HUMAN_SICK');
         const isShitstorm = activeEvents.some(e => e.type === 'MARKET_SHITSTORM');
 
-        // 2. Logic Director (Chaos Engine)
+        // --- 2. Logic Director ---
         if (state.day > 5 && state.cash > 2000 && state.lastEventDay !== state.day && Math.random() < 0.01) {
-             // 1% Chance per tick if conditions met
              const roll = Math.random();
              if (roll < 0.2) get().triggerEvent('TECH_OUTAGE');
              else if (roll < 0.4 && state.mood < 40) get().triggerEvent('HUMAN_QUIT');
@@ -265,19 +264,29 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
              else get().triggerEvent('RANSOMWARE');
         }
 
-        // 3. Economic Calc
+        // --- 3. Economic Calc (Deep Sim Update) ---
         const moodFactor = state.mood / 100;
         const totalWorkers = state.roster.dev + state.roster.sales + state.roster.support;
 
         // Multipliers
         let finalProd = state.productivity;
         if (isTechOutage) finalProd = 0;
-        if (isSick) finalProd *= 0.7; // 30% sick
+        if (isSick) finalProd *= 0.7;
 
         let finalMarket = state.marketingMultiplier;
         if (isShitstorm) finalMarket *= 0.5;
 
-        const currentRevenue = totalWorkers * finalProd * finalMarket * state.serverStability * (0.5 + moodFactor * 0.5);
+        // NEW REVENUE FORMULA: (Dev Output * Product Level) * (1 + Sales Boost)
+        // Dev Output = Devs * Productivity * Mood * Server
+        const devOutput = (state.roster.dev * finalProd * moodFactor * state.serverStability * state.productLevel);
+
+        // Sales Boost = Sales Staff * Marketing Multiplier * 0.5 (Base impact)
+        const salesBoost = (state.roster.sales * 0.5 * finalMarket);
+
+        // Total Income per tick
+        // Note: Even without sales, organic growth happens (min 10% of dev output)
+        const currentRevenue = devOutput * (0.2 + salesBoost);
+
         const currentCost = (totalWorkers * state.burnRate) / 60;
         const netChange = currentRevenue - currentCost;
 
@@ -289,7 +298,7 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
             if (newMarketingLeft <= 0) newMarketingMult = 1.0;
         }
 
-        // Micro Events (Legacy)
+        // Micro Events
         if (Math.random() < 0.01) {
             state.addTerminalLog(`> LOG: System Routine Check.`);
         }
@@ -321,7 +330,6 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
           if (totalWorkers >= 16) newLevel = 3;
           else if (totalWorkers >= 5) newLevel = 2;
 
-          // Archive Events for History
           const history = state.activeEvents.map(e => ({ type: e.type, description: e.description }));
 
           return {
@@ -332,8 +340,9 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
             terminalLogs: [],
             officeLevel: newLevel,
             isPlaying: true,
-            mood: Math.min(100, state.mood + 5),
-            eventHistory: history // Pass to AI context
+            // UPDATED: Natural Decay (-1) instead of Regen (+5)
+            mood: Math.max(0, state.mood - 1),
+            eventHistory: history
           };
       });
   },

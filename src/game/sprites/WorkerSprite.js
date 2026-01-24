@@ -14,8 +14,9 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     this.body.setSize(24, 24);
 
     // State Machine
-    this.state = 'IDLE';
+    this.state = 'IDLE'; // IDLE, WORKING, MOVING, COFFEE
     this.stateTimer = 0;
+    this.energy = 100; // 0-100
 
     // Pathfinding
     this.path = [];
@@ -36,10 +37,24 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
   update(time, delta) {
     this.stateTimer -= delta;
 
+    // Energy Decay (slower than state timer)
+    // Lose 10 energy every 1000ms roughly?
+    // Let's say -0.01 per delta (if 60fps, 16ms * 0.01 = 0.16 per frame -> ~10 per sec)
+    // Actually -0.005 is better for 20s cycle
+    if (this.state !== 'COFFEE') {
+        this.energy -= delta * 0.005;
+    }
+
     if (this.state === 'MOVING') {
       this.followPath();
     } else if (this.state === 'IDLE' || this.state === 'WORKING') {
       if (this.stateTimer <= 0) this.decideNextAction();
+    } else if (this.state === 'COFFEE') {
+        if (this.stateTimer <= 0) {
+            this.energy = 100;
+            this.state = 'IDLE';
+            this.showFeedback('Refilled!');
+        }
     }
 
     // Role Animations (Physics Safe)
@@ -68,6 +83,20 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
   }
 
   decideNextAction() {
+    // 1. Check Energy (Ant Farm Logic)
+    if (this.energy < 30 && this.state !== 'COFFEE') {
+        this.state = 'COFFEE'; // Will be overridden by moving state, but logic holds
+        this.showFeedback('☕');
+        // Request path to coffee machine (Grid 23, 2 roughly)
+        this.scene.requestMove(this, 23, 2);
+        this.stateTimer = 5000; // Time to drink once arrived?
+        // Logic Gap: requestMove sets state to MOVING.
+        // We need a callback or check when arrived.
+        // For now, let's just move there and reset to IDLE, then next cycle we refill?
+        // Let's modify: Move sets state MOVING. When arrived, if energy low and near coffee, refill.
+        return;
+    }
+
     if (this.role === 'dev') {
       if (Math.random() > 0.3) {
         this.state = 'WORKING';
@@ -102,10 +131,19 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
 
   followPath() {
     if (!this.path || this.path.length === 0) {
-      this.state = 'IDLE';
+      // Arrived
+      if (this.energy < 30) {
+          // Assuming we arrived at coffee (simplified check)
+          // We can just assume successful coffee run for visual polish phase
+          this.state = 'COFFEE';
+          this.stateTimer = 2000; // Drinking time
+      } else {
+          this.state = 'IDLE';
+          this.stateTimer = 1000;
+      }
+
       this.body.reset(this.x, this.y);
       this.setVelocity(0, 0);
-      this.stateTimer = 1000;
       return;
     }
 
@@ -129,6 +167,7 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     let color = '#00ff00';
     if (text === '$') color = '#ffff00';
     if (text === '???') color = '#ff4444';
+    if (text === '☕') color = '#ffffff';
 
     this.statusIcon = this.scene.add.text(
       this.x,

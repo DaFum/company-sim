@@ -30,16 +30,18 @@ export const useAiDirector = () => {
 
         try {
             // 1. Collect Context
-            const systemPrompt = generateSystemPrompt();
             const state = useGameStore.getState();
+            // INJECT PERSONA
+            const systemPrompt = generateSystemPrompt().replace('{{PERSONA}}', state.ceoPersona || 'Visionary');
+
             const fullState = {
                 cash: state.cash,
                 workers: state.workers,
                 roster: state.roster,
                 day: state.day,
                 mood: state.mood,
-                yesterday_events: state.eventHistory || [], // Pass Event History
-                active_events: state.activeEvents || [], // Pass Current Crisis
+                yesterday_events: state.eventHistory || [],
+                active_events: state.activeEvents || [],
                 inventory: state.inventory
             };
 

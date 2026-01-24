@@ -21,7 +21,10 @@ function App() {
     workers,
     gamePhase,
     isPlaying,
+    gameSpeed,
+    ceoPersona,
     togglePause,
+    toggleSpeed,
     hireWorker,
     fireWorker,
     isMuted,
@@ -30,7 +33,7 @@ function App() {
 
   return (
     <div style={{ padding: '20px', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#222', minHeight: '100vh', color: '#fff' }}>
-      <h1>🤖 AI Startup Simulator (Core Mechanics)</h1>
+      <h1>🤖 AI Startup Simulator (Deep Sim)</h1>
 
       <button
         onClick={toggleMute}
@@ -55,28 +58,37 @@ function App() {
           <p style={{ color: cash >= 0 ? '#4caf50' : '#f44336', fontSize: '1.5em', margin: '10px 0' }}>
             <strong>{cash.toFixed(0)} €</strong>
           </p>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9em', color: '#aaa' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9em', color: '#aaa', marginTop: '10px', borderTop: '1px solid #444', paddingTop: '5px' }}>
+             <span>CEO: <strong style={{ color: '#aaaaff' }}>{ceoPersona}</strong></span>
              <span>Workers: {workers}</span>
-             <span>Phase: {gamePhase}</span>
           </div>
         </div>
 
         {/* CONTROLS */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <button
-            onClick={togglePause}
-            disabled={gamePhase === 'CRUNCH'}
-            style={{
-                padding: '10px',
-                background: isPlaying ? '#ff5555' : '#55ff55',
-                color: '#000',
-                fontWeight: 'bold',
-                cursor: gamePhase === 'CRUNCH' ? 'not-allowed' : 'pointer',
-                opacity: gamePhase === 'CRUNCH' ? 0.3 : 1
-            }}
-          >
-            {isPlaying ? 'PAUSE' : 'START'}
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+                onClick={togglePause}
+                disabled={gamePhase === 'CRUNCH'}
+                style={{
+                    flex: 2,
+                    padding: '10px',
+                    background: isPlaying ? '#ff5555' : '#55ff55',
+                    color: '#000',
+                    fontWeight: 'bold',
+                    cursor: gamePhase === 'CRUNCH' ? 'not-allowed' : 'pointer',
+                    opacity: gamePhase === 'CRUNCH' ? 0.3 : 1
+                }}
+            >
+                {isPlaying ? 'PAUSE' : 'START'}
+            </button>
+            <button
+                onClick={toggleSpeed}
+                style={{ flex: 1, background: '#444', color: '#fff', cursor: 'pointer' }}
+            >
+                {gameSpeed === 1000 ? '1x' : '2x'}
+            </button>
+          </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <button
