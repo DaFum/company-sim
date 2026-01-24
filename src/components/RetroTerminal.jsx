@@ -17,76 +17,42 @@ export const RetroTerminal = () => {
   }, [tick, pendingDecision]);
 
   return (
-    <div style={{
-      width: '800px',
-      backgroundColor: '#000',
-      border: '4px solid #333',
-      borderRadius: '5px',
-      padding: '15px',
-      fontFamily: '"Courier New", Courier, monospace',
-      color: '#0f0',
-      marginTop: '20px',
-      position: 'relative',
-      minHeight: '200px',
-      boxShadow: '0 0 20px rgba(0, 255, 0, 0.2)'
-    }}>
+    <div className="terminal-container">
       {/* HEADER */}
-      <div style={{ borderBottom: '1px solid #333', paddingBottom: '5px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
+      <div className="terminal-header">
         <span>root@startup-ai:~#</span>
         <span>STATUS: {pendingDecision ? 'CRITICAL_INPUT_REQ' : 'MONITORING'}</span>
       </div>
 
       {/* LOGS */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', opacity: pendingDecision ? 0.5 : 1 }}>
+      <div className={`terminal-logs ${pendingDecision ? 'dimmed' : ''}`}>
         {logs.map((log, i) => (
-          <div key={i} style={{ animation: 'fadeIn 0.2s' }}>{log}</div>
+          <div key={i} className="log-entry">{log}</div>
         ))}
       </div>
 
       {/* DECISION OVERLAY */}
       {pendingDecision && (
-        <div style={{
-          marginTop: '20px',
-          border: '2px dashed #ffaa00',
-          padding: '15px',
-          color: '#ffaa00',
-          animation: 'pulseBorder 2s infinite'
-        }}>
-          <h3 style={{ margin: 0, textTransform: 'uppercase' }}>
+        <div className="decision-overlay">
+          <h3 className="decision-title">
             &gt;&gt; PROPOSAL: {pendingDecision.action}
           </h3>
-          <p style={{ margin: '5px 0 15px 0' }}>"{pendingDecision.reason}"</p>
+          <p className="decision-reason">"{pendingDecision.reason}"</p>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div className="veto-container">
             <button
                 onClick={vetoDecision}
-                style={{
-                    background: '#ff0000',
-                    color: '#fff',
-                    border: 'none',
-                    padding: '10px 20px',
-                    fontSize: '1.2em',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    boxShadow: '0 0 10px #ff0000',
-                    animation: 'shake 0.5s infinite'
-                }}
+                className="veto-button"
             >
                 VETO ({timeLeft}s)
             </button>
 
-            <small style={{ color: '#666' }}>
+            <small className="veto-note">
                 System will auto-execute at Tick 60.
             </small>
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulseBorder { 0% { border-color: #ffaa00; } 50% { border-color: #ff5500; } 100% { border-color: #ffaa00; } }
-        @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
-      `}</style>
     </div>
   );
 };

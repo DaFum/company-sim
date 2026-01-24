@@ -82,46 +82,32 @@ export const ApiKeyModal = () => {
   };
 
   return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.85)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-    }}>
-      <div style={{
-        background: '#222', padding: '30px', borderRadius: '10px',
-        maxWidth: '500px', width: '90%', color: '#fff', textAlign: 'center',
-        border: '1px solid #444'
-      }}>
+    <div className="modal-overlay">
+      <div className="modal-content">
         <h2>🔐 API Key benötigt</h2>
-        <p style={{ color: '#aaa', marginBottom: '20px' }}>
+        <p className="modal-description">
           Wähle deinen AI Provider, um das "Gehirn" der Simulation zu aktivieren.
         </p>
 
         {/* OPTION 1: POLLINATIONS (FREE) */}
-        <div style={{ marginBottom: '30px', paddingBottom: '20px', borderBottom: '1px solid #444' }}>
+        <div className="pollinations-section">
           <button
             onClick={handleConnectPollinations}
-            style={{
-              padding: '12px 24px', background: 'linear-gradient(45deg, #ff00cc, #3333ff)',
-              color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer',
-              fontSize: '1.1em', fontWeight: 'bold', width: '100%', marginBottom: '10px'
-            }}
+            className="pollinations-button"
           >
             🌸 Connect with Pollinations (Free)
           </button>
 
           {/* MODEL SELECTOR FOR POLLINATIONS */}
-          <div style={{ marginTop: '10px', textAlign: 'left' }}>
-            <label style={{ fontSize: '0.9em', color: '#ccc', display: 'block', marginBottom: '5px' }}>
+          <div className="model-selector">
+            <label className="model-label">
               Wähle ein Modell:
             </label>
             <select
               value={aiModel}
               onChange={(e) => setAiModel(e.target.value)}
               disabled={isLoadingModels}
-              style={{
-                width: '100%', padding: '8px', background: '#333', color: '#fff', border: '1px solid #555', borderRadius: '5px'
-              }}
+              className="model-select"
             >
               {isLoadingModels ? (
                 <option>Lade Modelle...</option>
@@ -135,38 +121,31 @@ export const ApiKeyModal = () => {
             </select>
           </div>
 
-          <small style={{ color: '#888', display: 'block', marginTop: '5px' }}>Keine Kosten. Keine Registrierung.</small>
+          <small className="small-text">Keine Kosten. Keine Registrierung.</small>
         </div>
 
         {/* OPTION 2: OPENAI */}
-        <p style={{ fontSize: '0.9em', color: '#ccc', marginBottom: '10px' }}>Oder nutze deinen eigenen OpenAI Key:</p>
+        <p className="openai-label">Oder nutze deinen eigenen OpenAI Key:</p>
 
         <input
           type="password"
           placeholder="sk-..."
           value={inputKey}
           onChange={(e) => setInputKey(e.target.value)}
-          style={{
-            width: '100%', padding: '10px', marginBottom: '10px',
-            background: '#333', border: '1px solid #555', color: '#fff'
-          }}
+          className="openai-input"
         />
 
-        {error && <p style={{ color: '#ff6666', fontSize: '0.9em' }}>{error}</p>}
+        {error && <p className="error-text">{error}</p>}
 
         <button
           onClick={handleSaveOpenAI}
           disabled={isValidating}
-          style={{
-            padding: '10px 20px', background: isValidating ? '#555' : '#444',
-            color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer',
-            fontSize: '1em', width: '100%'
-          }}
+          className={`save-button ${isValidating ? 'validating' : 'ready'}`}
         >
           {isValidating ? 'Prüfe...' : 'OpenAI Key speichern'}
         </button>
 
-        <p style={{ fontSize: '0.7em', color: '#666', marginTop: '15px' }}>
+        <p className="storage-note">
           Der Key wird nur im Session Storage gespeichert.
         </p>
       </div>

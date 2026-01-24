@@ -5,6 +5,7 @@ import { useAiDirector } from './hooks/useAiDirector';
 import { GameCanvas } from './components/GameCanvas';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { RetroTerminal } from './components/RetroTerminal';
+import './App.css';
 
 function App() {
   // 1. Den Loop starten
@@ -32,12 +33,12 @@ function App() {
   } = useGameStore();
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#222', minHeight: '100vh', color: '#fff' }}>
+    <div className="app-container">
       <h1>🤖 AI Startup Simulator (Deep Sim)</h1>
 
       <button
         onClick={toggleMute}
-        style={{ position: 'absolute', top: 20, left: 20, padding: '5px 10px', background: '#333', color: '#fff', border: '1px solid #555', borderRadius: '5px', cursor: 'pointer' }}
+        className="mute-button"
       >
         {isMuted ? '🔇 Unmute' : '🔊 Mute'}
       </button>
@@ -46,62 +47,54 @@ function App() {
       <ApiKeyModal />
 
       {/* DASHBOARD */}
-      <div style={{ display: 'flex', gap: '20px', width: '800px', marginBottom: '20px' }}>
+      <div className="dashboard">
 
         {/* STATUS BOARD */}
-        <div style={{ flex: 1, border: '2px solid #555', padding: '15px', background: '#333' }}>
-          <h2 style={{ marginTop: 0 }}>Status</h2>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div className="status-board">
+          <h2 className="status-header">Status</h2>
+          <div className="status-row">
              <span>Day: {day}</span>
              <span>Time: 0:{tick.toString().padStart(2, '0')}</span>
           </div>
-          <p style={{ color: cash >= 0 ? '#4caf50' : '#f44336', fontSize: '1.5em', margin: '10px 0' }}>
+          <p className={`cash-display ${cash >= 0 ? 'cash-positive' : 'cash-negative'}`}>
             <strong>{cash.toFixed(0)} €</strong>
           </p>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9em', color: '#aaa', marginTop: '10px', borderTop: '1px solid #444', paddingTop: '5px' }}>
-             <span>CEO: <strong style={{ color: '#aaaaff' }}>{ceoPersona}</strong></span>
+          <div className="status-footer">
+             <span>CEO: <strong className="ceo-name">{ceoPersona}</strong></span>
              <span>Workers: {workers}</span>
           </div>
         </div>
 
         {/* CONTROLS */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ display: 'flex', gap: '10px' }}>
+        <div className="controls">
+          <div className="control-group">
             <button
                 onClick={togglePause}
                 disabled={gamePhase === 'CRUNCH'}
-                style={{
-                    flex: 2,
-                    padding: '10px',
-                    background: isPlaying ? '#ff5555' : '#55ff55',
-                    color: '#000',
-                    fontWeight: 'bold',
-                    cursor: gamePhase === 'CRUNCH' ? 'not-allowed' : 'pointer',
-                    opacity: gamePhase === 'CRUNCH' ? 0.3 : 1
-                }}
+                className={`pause-button ${isPlaying ? 'playing' : 'paused'}`}
             >
                 {isPlaying ? 'PAUSE' : 'START'}
             </button>
             <button
                 onClick={toggleSpeed}
-                style={{ flex: 1, background: '#444', color: '#fff', cursor: 'pointer' }}
+                className="speed-button"
             >
                 {gameSpeed === 1000 ? '1x' : '2x'}
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div className="control-group">
             <button
                 onClick={hireWorker}
                 disabled={gamePhase === 'CRUNCH'}
-                style={{ flex: 1, padding: '10px', background: '#444', color: '#fff', border: '1px solid #666', cursor: 'pointer' }}
+                className="action-button"
             >
                 Hire (+Profit)
             </button>
             <button
                 onClick={fireWorker}
                 disabled={gamePhase === 'CRUNCH'}
-                style={{ flex: 1, padding: '10px', background: '#444', color: '#fff', border: '1px solid #666', cursor: 'pointer' }}
+                className="action-button"
             >
                 Fire (-Burn)
             </button>
@@ -110,7 +103,7 @@ function App() {
       </div>
 
       {/* PHASER GAME CANVAS */}
-      <div style={{ border: '4px solid #555' }}>
+      <div className="game-canvas-container">
          <GameCanvas />
       </div>
 
