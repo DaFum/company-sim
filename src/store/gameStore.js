@@ -69,7 +69,7 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
   toggleSpeed: () => set((state) => ({ gameSpeed: state.gameSpeed === 1000 ? 500 : 1000 })),
 
   addTerminalLog: (msg) => set((state) => ({
-    terminalLogs: [...state.terminalLogs.slice(-50), msg] // Keep last 50
+    terminalLogs: [...state.terminalLogs.slice(-50), msg]
   })),
 
   clearTerminalLogs: () => set({ terminalLogs: [] }),
@@ -96,7 +96,16 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
       } else if (type === 'RANSOMWARE') {
           duration = 60;
           msg = "> ALERT: RANSOMWARE DETECTED. ASSETS FROZEN.";
-          set({ cash: state.cash * 0.8 });
+          // Update cash and event in ONE set call
+          const penalty = state.cash * 0.2;
+          const eventObj = { type, timeLeft: duration, severity: 'HIGH', description: msg };
+          set({
+              cash: state.cash - penalty,
+              activeEvents: [...state.activeEvents, eventObj],
+              lastEventDay: state.day
+          });
+          state.addTerminalLog(msg);
+          return; // Exit early as we handled state update
       } else if (type === 'HUMAN_QUIT') {
           duration = 5;
           msg = "> ALERT: KEY DEVELOPER RESIGNED.";
@@ -181,7 +190,6 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
             const count = params.count || 1;
             const cost = count * 200; // Severance
 
-            // Allow firing even if cash low? No, severance is mandatory.
             if (state.cash >= cost) {
                 const role = (params.role || 'dev').toLowerCase();
                 const newRoster = { ...state.roster };
@@ -339,6 +347,13 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
 
           const history = state.activeEvents.map(e => ({ type: e.type, description: e.description }));
 
+          // Clear activeEvents except persistent ones (e.g. COMPETITOR_CLONE)
+          // Also allowing MARKET_SHITSTORM to clear daily? Usually events have timeLeft.
+          // Spec says: "activeEvents unangetastet... Events hängen ewig".
+          // New logic: Only keep events that are intended to be multi-day persistent or specifically flagged.
+          // For now, let's keep only COMPETITOR_CLONE as requested.
+          const persistentEvents = state.activeEvents.filter(e => e.type === 'COMPETITOR_CLONE');
+
           return {
             day: state.day + 1,
             tick: 0,
@@ -348,14 +363,18 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
             officeLevel: newLevel,
             isPlaying: true,
             mood: Math.max(0, state.mood - 1),
-            eventHistory: history
+            eventHistory: history,
+            activeEvents: persistentEvents // Clear daily events
           };
       });
   },
 
   hireWorker: () => set((state) => {
       const cost = 500;
-      if (state.cash < cost) return {}; // Fail silently or could return error state
+      if (state.cash < cost) {
+          state.addTerminalLog('> ERROR: INSUFFICIENT FUNDS TO HIRE');
+          return {};
+      }
 
       const newRoster = { ...state.roster, dev: state.roster.dev + 1 };
       return {
@@ -366,8 +385,11 @@ export const useGameStore = create(subscribeWithSelector((set, get) => ({
   }),
 
   fireWorker: () => set((state) => {
-      const cost = 200; // Severance
-      if (state.cash < cost) return {};
+      const cost = 200;
+      if (state.cash < cost) {
+          state.addTerminalLog('> ERROR: INSUFFICIENT FUNDS FOR SEVERANCE');
+          return {};
+      }
 
       const newRoster = { ...state.roster, dev: Math.max(0, state.roster.dev - 1) };
       return {
