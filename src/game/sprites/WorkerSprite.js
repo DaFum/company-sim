@@ -26,12 +26,25 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     // Visuals
     this.statusIcon = null;
     this._jiggleTimer = 0;
+    this.traitIcon = null;
 
     // Trait Visual Marker
-    this.traitIcon = null;
     if (this.trait === '10x_ENGINEER') this.showTraitIcon('🔥', '#ff9900');
     if (this.trait === 'TOXIC') this.showTraitIcon('🤢', '#00ff00');
     if (this.trait === 'JUNIOR') this.showTraitIcon('👶', '#ffffff');
+
+    // Interactivity
+    this.setInteractive();
+    this.on('pointerover', () => {
+      this.scene.showTooltip(
+        this.x,
+        this.y - 40,
+        `${this.role.toUpperCase()}\nEnergy: ${this.energy.toFixed(0)}%\nTrait: ${this.trait}`
+      );
+    });
+    this.on('pointerout', () => {
+      this.scene.hideTooltip();
+    });
 
     // Cleanup
     this.once(Phaser.GameObjects.Events.DESTROY, () => {
@@ -68,6 +81,12 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
         const ny = this.y + (Math.random() - 0.5) * 1;
         this.setPosition(nx, ny);
         this.body.reset(nx, ny);
+
+        // Code Particles
+        if (Math.random() < 0.1) {
+          // Occasional code burst
+          this.scene.createCodeBits(this.x, this.y - 10);
+        }
       }
     }
 

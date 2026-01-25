@@ -13,11 +13,14 @@ export default class MainScene extends Phaser.Scene {
     this.objectGroup = null;
     this.visitorGroup = null;
     this.overlayGroup = null;
+    this.particles = null;
 
     this.easystar = null;
     this._grid = null;
 
     this.soundManager = null;
+    this.tooltip = null;
+    this.dayNightOverlay = null;
 
     // Store subscriptions
     this.unsubscribers = [];
@@ -46,8 +49,15 @@ export default class MainScene extends Phaser.Scene {
     this.spawnObjects();
     this.applyObstaclesToGrid();
 
+    // Camera
     this.cameras.main.centerOn(400, 300);
     this.cameras.main.setBackgroundColor('#2d2d2d');
+    this.setupCameraControls();
+
+    // Visuals
+    this.setupParticles();
+    this.setupTooltip();
+    this.setupDayNightCycle();
 
     // 4) Subscriptions
     const store = useGameStore;
@@ -90,6 +100,13 @@ export default class MainScene extends Phaser.Scene {
             this.createFloor(level);
             this.applyObstaclesToGrid();
           }
+        )
+      );
+
+      this.unsubscribers.push(
+        store.subscribe(
+          (state) => state.tick,
+          (tick) => this.updateDayNight(tick)
         )
       );
 
@@ -146,6 +163,101 @@ export default class MainScene extends Phaser.Scene {
     this.easystar = null;
     this._grid = null;
     this._pendingPathRequests = 0;
+  }
+
+  // --- CAMERA ---
+  setupCameraControls() {
+    this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
+      const newZoom = this.cameras.main.zoom - deltaY * 0.001;
+      this.cameras.main.setZoom(Phaser.Math.Clamp(newZoom, 0.5, 2));
+    });
+
+    this.input.on('pointermove', (pointer) => {
+      if (!pointer.isDown) return;
+      this.cameras.main.scrollX -= (pointer.x - pointer.prevPosition.x) / this.cameras.main.zoom;
+      this.cameras.main.scrollY -= (pointer.y - pointer.prevPosition.y) / this.cameras.main.zoom;
+    });
+  }
+
+  // --- VISUALS: PARTICLES ---
+  setupParticles() {
+    this.particles = this.add.particles('particle_pixel');
+    this.particles.setDepth(50);
+  }
+
+  createSmoke(x, y) {
+    const emitter = this.particles.createEmitter({
+      x,
+      y,
+      speed: { min: 10, max: 30 },
+      angle: { min: 240, max: 300 },
+      scale: { start: 1, end: 3 },
+      alpha: { start: 0.5, end: 0 },
+      lifespan: 1000,
+      frequency: 100,
+      tint: 0x555555,
+    });
+    this.time.delayedCall(2000, () => emitter.remove());
+  }
+
+  createCodeBits(x, y) {
+    const emitter = this.particles.createEmitter({
+      x,
+      y,
+      speed: { min: 5, max: 15 },
+      angle: { min: 260, max: 280 },
+      scale: { start: 0.5, end: 0 },
+      lifespan: 500,
+      frequency: 200,
+      tint: 0x00ff00,
+    });
+    this.time.delayedCall(1000, () => emitter.remove());
+  }
+
+  // --- VISUALS: TOOLTIPS ---
+  setupTooltip() {
+    this.tooltip = this.add
+      .text(0, 0, '', {
+        font: '12px monospace',
+        fill: '#ffffff',
+        backgroundColor: '#00000088',
+        padding: { x: 5, y: 5 },
+      })
+      .setDepth(100)
+      .setVisible(false)
+      .setScrollFactor(0); // Optional: Sticky UI, or allow it to move with world if removed
+  }
+
+  showTooltip(x, y, text) {
+    // World coordinates to Screen coordinates if scroll factor is 0,
+    // BUT since we want tooltip next to sprite in WORLD, we should remove ScrollFactor(0) or project.
+    // Simpler: Tooltip lives in world space above sprites.
+    this.tooltip.setScrollFactor(1);
+    this.tooltip.setPosition(x, y);
+    this.tooltip.setText(text);
+    this.tooltip.setVisible(true);
+  }
+
+  hideTooltip() {
+    this.tooltip.setVisible(false);
+  }
+
+  // --- VISUALS: DAY/NIGHT ---
+  setupDayNightCycle() {
+    this.dayNightOverlay = this.add
+      .rectangle(0, 0, 8000, 6000, 0x000033)
+      .setDepth(90)
+      .setAlpha(0)
+      .setOrigin(0.5, 0.5); // Center large overlay
+  }
+
+  updateDayNight(tick) {
+    if (tick > 40) {
+      const darkness = (tick - 40) / 20; // 0.0 to 1.0
+      this.dayNightOverlay.setAlpha(darkness * 0.6);
+    } else {
+      this.dayNightOverlay.setAlpha(0);
+    }
   }
 
   // --- GRID / PATHFINDING ---
@@ -284,8 +396,10 @@ export default class MainScene extends Phaser.Scene {
         const v = this.add.sprite(startX, startY + i * 40, key);
         this.physics.add.existing(v);
 
-        this.tweens.add({ targets: v, x: endX, duration: 2000 });
-        v.once(Phaser.GameObjects.Events.DESTROY, () => this.tweens.killTweensOf(v));
+        const tween = this.tweens.add({ targets: v, x: endX, duration: 2000 });
+        v.once(Phaser.GameObjects.Events.DESTROY, () => {
+          if (tween) tween.stop();
+        });
 
         this.visitorGroup.add(v);
       }
@@ -312,6 +426,7 @@ export default class MainScene extends Phaser.Scene {
       if (e.type === 'TECH_OUTAGE') {
         this.cameras.main.setTint(0x0000aa);
         this.addOverlayText('SYSTEM FAILURE', '#0000ff');
+        this.createSmoke(2 * 32, 2 * 32); // Server Smoke
         this.workersGroup.children.iterate((w) => w?.showFeedback?.('???'));
       } else if (e.type === 'RANSOMWARE') {
         const skull = this.add.text(400, 300, '💀', { fontSize: '200px' }).setOrigin(0.5);
