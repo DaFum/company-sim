@@ -1,0 +1,561 @@
+/* Global Styles */
+body {
+  margin: 0;
+  background: #222;
+  color: #fff;
+  font-family: monospace;
+}
+
+/* App Component */
+.app-container {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  position: relative; /* For CRT overlay positioning context */
+}
+
+/* CRT Overlay */
+.crt-overlay {
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.25) 50%
+  ), linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.06),
+    rgba(0, 255, 0, 0.02),
+    rgba(0, 0, 255, 0.06)
+  );
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none; /* Klicks gehen durch */
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 999;
+}
+
+.mute-button {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  padding: 5px 10px;
+  background: #333;
+  color: #fff;
+  border: 1px solid #555;
+  border-radius: 5px;
+  cursor: pointer;
+  z-index: 1001; /* Above CRT */
+}
+
+.dashboard {
+  display: flex;
+  gap: 20px;
+  width: 800px;
+  margin-bottom: 20px;
+}
+
+.status-board {
+  flex: 1;
+  border: 2px solid #555;
+  padding: 15px;
+  background: #333;
+}
+
+.status-header {
+  margin-top: 0;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.cash-display {
+  font-size: 1.5em;
+  margin: 10px 0;
+  font-weight: bold;
+}
+
+.cash-positive {
+  color: #4caf50;
+}
+
+.cash-negative {
+  color: #f44336;
+}
+
+.status-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9em;
+  color: #aaa;
+  margin-top: 10px;
+  border-top: 1px solid #444;
+  padding-top: 5px;
+}
+
+.ceo-name {
+  color: #aaaaff;
+}
+
+.controls {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.control-group {
+  display: flex;
+  gap: 10px;
+}
+
+.pause-button {
+  flex: 2;
+  padding: 10px;
+  color: #000;
+  font-weight: bold;
+}
+
+.pause-button.playing {
+  background: #ff5555;
+}
+
+.pause-button.paused {
+  background: #55ff55;
+}
+
+.pause-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+.speed-button {
+  flex: 1;
+  background: #444;
+  color: #fff;
+  cursor: pointer;
+}
+
+.action-button {
+  flex: 1;
+  padding: 10px;
+  background: #444;
+  color: #fff;
+  border: 1px solid #666;
+  cursor: pointer;
+}
+
+.action-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+.game-canvas-container {
+  border: 4px solid #555;
+  touch-action: none;
+}
+
+.zoom-controls {
+  display: flex;
+  gap: 10px;
+  margin-top: 5px;
+  width: 100%;
+  justify-content: center;
+}
+
+.zoom-button {
+  padding: 8px 16px;
+  background: #444;
+  color: #fff;
+  border: 1px solid #666;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+/* ApiKeyModal Component */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #222;
+  padding: 30px;
+  border-radius: 10px;
+  max-width: 500px;
+  width: 90%;
+  color: #fff;
+  text-align: center;
+  border: 1px solid #444;
+}
+
+.modal-description {
+  color: #aaa;
+  margin-bottom: 20px;
+}
+
+.pollinations-section {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #444;
+}
+
+.pollinations-button {
+  padding: 12px 24px;
+  background: linear-gradient(45deg, #ff00cc, #3333ff);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1.1em;
+  font-weight: bold;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.model-selector {
+  margin-top: 10px;
+  text-align: left;
+}
+
+.model-label {
+  font-size: 0.9em;
+  color: #ccc;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.model-select {
+  width: 100%;
+  padding: 8px;
+  background: #333;
+  color: #fff;
+  border: 1px solid #555;
+  border-radius: 5px;
+}
+
+.small-text {
+  color: #888;
+  display: block;
+  margin-top: 5px;
+}
+
+.openai-label {
+  font-size: 0.9em;
+  color: #ccc;
+  margin-bottom: 10px;
+}
+
+.openai-input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #333;
+  border: 1px solid #555;
+  color: #fff;
+}
+
+.error-text {
+  color: #ff6666;
+  font-size: 0.9em;
+}
+
+.save-button {
+  padding: 10px 20px;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1em;
+  width: 100%;
+}
+
+.save-button.validating {
+  background: #555;
+}
+
+.save-button.ready {
+  background: #444;
+}
+
+.storage-note {
+  font-size: 0.7em;
+  color: #666;
+  margin-top: 15px;
+}
+
+/* RetroTerminal Component */
+.terminal-container {
+  width: 800px;
+  background-color: #000;
+  border: 4px solid #333;
+  border-radius: 5px;
+  padding: 15px;
+  font-family: "Courier New", Courier, monospace;
+  color: #0f0;
+  margin-top: 20px;
+  position: relative;
+  min-height: 200px;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+  text-shadow: 0 0 5px #00ff00; /* Glowing Text */
+}
+
+.terminal-header {
+  border-bottom: 1px solid #333;
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.terminal-logs {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.terminal-logs.dimmed {
+  opacity: 0.5;
+}
+
+.log-entry {
+  animation: fadeIn 0.2s;
+}
+
+.decision-overlay {
+  margin-top: 20px;
+  border: 2px dashed #ffaa00;
+  padding: 15px;
+  color: #ffaa00;
+  animation: pulseBorder 2s infinite;
+}
+
+.decision-title {
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.decision-reason {
+  margin: 5px 0 15px 0;
+}
+
+.veto-container {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.veto-button {
+  background: #ff0000;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  font-size: 1.2em;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 0 10px #ff0000;
+  animation: shake 0.5s infinite;
+}
+
+.veto-note {
+  color: #666;
+}
+
+/* DecisionPopup Component */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 900;
+}
+
+.popup-content {
+  background: #fff;
+  color: #000;
+  padding: 30px;
+  border-radius: 15px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.popup-icon {
+  font-size: 3em;
+  margin-bottom: 10px;
+}
+
+.popup-title {
+  margin-top: 0;
+}
+
+.popup-subtitle {
+  color: #333;
+}
+
+.popup-reason {
+  font-style: italic;
+  color: #555;
+  margin: 20px 0;
+}
+
+.popup-cost {
+  background: #f0f0f0;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  font-weight: bold;
+}
+
+.popup-cost.expensive {
+  color: #cc0000;
+}
+
+.popup-cost.neutral {
+  color: #666;
+}
+
+.popup-confirm {
+  padding: 12px 24px;
+  background: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 1.1em;
+  cursor: pointer;
+}
+
+/* AiStatus Component */
+.ai-status-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 10px; /* spacing if put in controls */
+}
+
+.ai-status-eye {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+.ai-status-text {
+  font-weight: bold;
+}
+
+/* Floating Number Component */
+.floating-number {
+  position: absolute;
+  font-weight: bold;
+  font-size: 1.5em;
+  pointer-events: none;
+  animation: floatUp 1.5s forwards;
+  z-index: 1002;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseBorder {
+  0% { border-color: #ffaa00; }
+  50% { border-color: #ff5500; }
+  100% { border-color: #ffaa00; }
+}
+
+@keyframes shake {
+  0% { transform: translate(1px, 1px) rotate(0deg); }
+  10% { transform: translate(-1px, -2px) rotate(-1deg); }
+  20% { transform: translate(-3px, 0px) rotate(1deg); }
+  30% { transform: translate(3px, 2px) rotate(0deg); }
+  40% { transform: translate(1px, -1px) rotate(1deg); }
+  50% { transform: translate(-1px, 2px) rotate(-1deg); }
+  60% { transform: translate(-3px, 1px) rotate(0deg); }
+  70% { transform: translate(3px, 1px) rotate(-1deg); }
+  80% { transform: translate(-1px, -1px) rotate(1deg); }
+  90% { transform: translate(1px, 2px) rotate(0deg); }
+  100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.7; }
+}
+
+@keyframes floatUp {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-50px); opacity: 0; }
+}
+
+/* Mobile Optimierungen */
+@media (max-width: 850px) {
+  .app-container {
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .dashboard {
+    flex-direction: column; /* Untereinander statt nebeneinander */
+    width: 100%; /* Volle Breite nutzen */
+  }
+
+  /* Status Board kompakter */
+  .status-board {
+    font-size: 0.9em;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+
+  /* Canvas Container flexibel machen */
+  .game-canvas-container {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4/3; /* Verhältnis beibehalten */
+    border: 2px solid #555;
+  }
+
+  /* Damit Phaser im Container bleibt */
+  #game-container {
+    width: 100% !important;
+    height: 100% !important;
+  }
+  #game-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Terminal kleiner oder scrollbar */
+  .terminal-container {
+    width: 100%;
+    font-size: 0.8em;
+    min-height: 150px;
+  }
+
+  /* Buttons größer für Touch */
+  button {
+    min-height: 44px; /* Touch-Target Standard */
+    font-size: 1.1em;
+  }
+}
