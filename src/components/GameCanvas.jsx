@@ -10,8 +10,8 @@ export const GameCanvas = () => {
 
   // Sync Mute State with Phaser
   useEffect(() => {
-    if (gameRef.current && gameRef.current.sound) {
-      gameRef.current.sound.mute = isMuted;
+    if (gameRef.current?.sound) {
+        gameRef.current.sound.mute = isMuted;
     }
   }, [isMuted]);
 

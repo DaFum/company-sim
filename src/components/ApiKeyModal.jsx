@@ -30,7 +30,7 @@ export const ApiKeyModal = () => {
       // Cleanup URL
       window.history.replaceState(null, '', window.location.pathname);
     }
-  }, [setApiKey, setAiProvider]);
+  }, []);
 
   // Load Models on Mount
   useEffect(() => {
