@@ -37,8 +37,12 @@ export const useAiDirector = () => {
             state.ceoPersona || 'Visionary'
           );
 
+          // Calculate Financial Trend
+          const financialTrend = state.cash - (state.startOfDayCash || state.cash);
+
           const fullState = {
             cash: state.cash,
+            financial_trend: financialTrend,
             workers: state.workers,
             roster: state.roster,
             day: state.day,

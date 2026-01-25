@@ -14,6 +14,7 @@ export const useGameStore = create(
 
     // Game Loop
     cash: 50000,
+    startOfDayCash: 50000, // For financial trend
     day: 1,
     tick: 0,
     gamePhase: 'WORK',
@@ -361,11 +362,6 @@ export const useGameStore = create(
           description: e.description,
         }));
 
-        // Clear activeEvents except persistent ones (e.g. COMPETITOR_CLONE)
-        // Also allowing MARKET_SHITSTORM to clear daily? Usually events have timeLeft.
-        // Spec says: "activeEvents unangetastet... Events hängen ewig".
-        // New logic: Only keep events that are intended to be multi-day persistent or specifically flagged.
-        // For now, let's keep only COMPETITOR_CLONE as requested.
         const persistentEvents = state.activeEvents.filter((e) => e.type === 'COMPETITOR_CLONE');
 
         return {
@@ -378,7 +374,8 @@ export const useGameStore = create(
           isPlaying: true,
           mood: Math.max(0, state.mood - 1),
           eventHistory: history,
-          activeEvents: persistentEvents, // Clear daily events
+          activeEvents: persistentEvents,
+          startOfDayCash: state.cash, // Snap financial memory
         };
       });
     },

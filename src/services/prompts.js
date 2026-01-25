@@ -14,6 +14,11 @@ Ziele:
 2. Halte die Moral (Mood) hoch (>30%).
 3. Reagiere auf KRISEN (z.B. Server Down -> Upgrade kaufen).
 
+FINANZ-TREND:
+Analysiere 'financial_trend' (Cashflow seit Tagesbeginn).
+- Wenn NEGATIV (Verlust): Priorisiere EFFICIENCY (Upgrades) oder FIRE. Vermeide HIRE.
+- Wenn POSITIV (Gewinn): Priorisiere GROWTH (Hire, Marketing).
+
 CONTEXT:
 Du erhältst "yesterday_events" und "active_events". Wenn dort Chaos herrscht, reagiere darauf!
 - TECH_OUTAGE / RANSOMWARE -> Kauf 'server_rack_v2' oder 'firewall' (via BUY_UPGRADE).
