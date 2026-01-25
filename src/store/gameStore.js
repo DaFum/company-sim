@@ -14,7 +14,7 @@ export const useGameStore = create(
 
     // Game Loop
     cash: 50000,
-    startOfDayCash: 50000, // For financial trend
+    startOfDayCash: 50000,
     day: 1,
     tick: 0,
     gamePhase: 'WORK',
@@ -44,6 +44,9 @@ export const useGameStore = create(
     marketingMultiplier: 1.0,
     marketingLeft: 0,
     inventory: [],
+
+    // NEW: Technical Debt
+    technicalDebt: 0,
 
     // CHAOS ENGINE
     activeEvents: [],
@@ -89,7 +92,6 @@ export const useGameStore = create(
         activeVisitors: state.activeVisitors.filter((v) => v !== type),
       })),
 
-    // CHAOS ACTIONS
     triggerEvent: (type) => {
       const state = get();
       let duration = 30;
@@ -101,7 +103,6 @@ export const useGameStore = create(
       } else if (type === 'RANSOMWARE') {
         duration = 60;
         msg = '> ALERT: RANSOMWARE DETECTED. ASSETS FROZEN.';
-        // Update cash and event in ONE set call
         const penalty = state.cash * 0.2;
         const eventObj = { type, timeLeft: duration, severity: 'HIGH', description: msg };
         set({
@@ -110,7 +111,7 @@ export const useGameStore = create(
           lastEventDay: state.day,
         });
         state.addTerminalLog(msg);
-        return; // Exit early as we handled state update
+        return;
       } else if (type === 'HUMAN_QUIT') {
         duration = 5;
         msg = '> ALERT: KEY DEVELOPER RESIGNED.';
@@ -193,7 +194,7 @@ export const useGameStore = create(
           }
         } else if (action === 'FIRE_WORKER') {
           const count = params.count || 1;
-          const cost = count * 200; // Severance
+          const cost = count * 200;
 
           if (state.cash >= cost) {
             const role = (params.role || 'dev').toLowerCase();
@@ -256,6 +257,12 @@ export const useGameStore = create(
           updates.marketingMultiplier = 0.5;
           updates.marketingLeft = 120;
           state.addTerminalLog(`> PIVOTING...`);
+        } else if (action === 'REFACTOR') {
+          // New Action: Refactor
+          // Reduce debt by 30, set productivity to 0
+          updates.technicalDebt = Math.max(0, state.technicalDebt - 30);
+          updates.productivity = 0;
+          state.addTerminalLog(`> REFACTORING: Debt reduced. Productivity halted.`);
         }
 
         set(updates);
@@ -283,15 +290,21 @@ export const useGameStore = create(
         const isShitstorm = activeEvents.some((e) => e.type === 'MARKET_SHITSTORM');
 
         // --- 2. Logic Director ---
+        // Dynamic outage chance based on debt
+        const outageChance = 0.001 + state.technicalDebt / 1000;
+
         if (
           state.day > 5 &&
           state.cash > 2000 &&
           state.lastEventDay !== state.day &&
-          Math.random() < 0.01
+          Math.random() < 0.01 // Global event trigger chance
         ) {
           const roll = Math.random();
-          if (roll < 0.2) get().triggerEvent('TECH_OUTAGE');
-          else if (roll < 0.4 && state.mood < 40) get().triggerEvent('HUMAN_QUIT');
+          // Use dynamic chance for Tech Outage if rolled
+          if (roll < 0.2 && Math.random() < outageChance * 10) get().triggerEvent('TECH_OUTAGE');
+          else if (roll < 0.2) {
+            /* Tech Outage dodged */
+          } else if (roll < 0.4 && state.mood < 40) get().triggerEvent('HUMAN_QUIT');
           else if (roll < 0.6) get().triggerEvent('HUMAN_SICK');
           else if (roll < 0.8) get().triggerEvent('MARKET_SHITSTORM');
           else get().triggerEvent('RANSOMWARE');
@@ -301,7 +314,6 @@ export const useGameStore = create(
         const moodFactor = state.mood / 100;
         const totalWorkers = state.roster.dev + state.roster.sales + state.roster.support;
 
-        // Multipliers
         let finalProd = state.productivity;
         if (isTechOutage) finalProd = 0;
         if (isSick) finalProd *= 0.7;
@@ -309,7 +321,6 @@ export const useGameStore = create(
         let finalMarket = state.marketingMultiplier;
         if (isShitstorm) finalMarket *= 0.5;
 
-        // NEW REVENUE FORMULA: (Dev Output * Product Level) * (1 + Sales Boost)
         const devOutput =
           state.roster.dev * finalProd * moodFactor * state.serverStability * state.productLevel;
         const salesBoost = state.roster.sales * 0.5 * finalMarket;
@@ -317,6 +328,14 @@ export const useGameStore = create(
 
         const currentCost = (totalWorkers * state.burnRate) / 60;
         const netChange = currentRevenue - currentCost;
+
+        // Debt Accumulation: 0.05 per dev per tick. Double if Crunch (but tick 0-49 is Work).
+        // Since AdvanceTick handles phase logic:
+        // Actually Crunch Phase is tick 50-60.
+        // We are in 'WORK' block here (tick 0-49).
+        // So just standard accumulation.
+        const debtIncrease = state.roster.dev * 0.05;
+        const newDebt = state.technicalDebt + debtIncrease;
 
         // Marketing Decay
         let newMarketingMult = state.marketingMultiplier;
@@ -326,7 +345,6 @@ export const useGameStore = create(
           if (newMarketingLeft <= 0) newMarketingMult = 1.0;
         }
 
-        // Micro Events
         if (Math.random() < 0.01) {
           state.addTerminalLog(`> LOG: System Routine Check.`);
         }
@@ -338,15 +356,34 @@ export const useGameStore = create(
           marketingMultiplier: newMarketingMult,
           marketingLeft: newMarketingLeft,
           activeEvents: activeEvents,
+          technicalDebt: newDebt,
         });
       } else {
+        // Crunch Phase (50-60)
+        // Debt increases double here?
+        // But economic calc is skipped in Crunch phase currently.
+        // We should add debt accumulation here if requested "Immer wenn produziert wird"
+        // But Crunch phase implies NO production (state freeze).
+        // Spec: "Wenn gamePhase === 'CRUNCH', verdoppele den Anstieg"
+        // BUT also: "Immer wenn produziert wird...".
+        // If no production in Crunch, no debt increase?
+        // Or does Crunch imply frantic coding without revenue?
+        // Let's assume Crunch adds debt even without revenue (stressful).
+        const debtIncrease = state.roster.dev * 0.05 * 2;
+        const newDebt = state.technicalDebt + debtIncrease;
+
         if (newTick > 60) {
           if (state.isAiThinking) return;
           if (state.pendingDecision) state.applyPendingDecision();
           state.startNewDay();
           return;
         }
-        set({ tick: newTick, gamePhase: newPhase });
+
+        set({
+          tick: newTick,
+          gamePhase: newPhase,
+          technicalDebt: newDebt,
+        });
       }
     },
 
@@ -375,7 +412,12 @@ export const useGameStore = create(
           mood: Math.max(0, state.mood - 1),
           eventHistory: history,
           activeEvents: persistentEvents,
-          startOfDayCash: state.cash, // Snap financial memory
+          startOfDayCash: state.cash,
+          // Reset productivity if it was zeroed by Refactor?
+          // Spec says "kostet 1 Tag keinen Umsatz".
+          // So we should reset it to default (10 + buffs).
+          // Simplified: Reset to 10 + (coffee ? 2 : 0).
+          productivity: state.inventory.includes('coffee_machine') ? 12 : 10,
         };
       });
     },

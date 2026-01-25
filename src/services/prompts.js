@@ -49,7 +49,13 @@ AKTIONEN (Wähle GENAU EINE):
    - Kosten: 5000€.
    - Löst SHITSTORM auf.
 
-5. PIVOT
+5. REFACTOR
+   - "action": "REFACTOR"
+   - "parameters": {}
+   - Kosten: 0€ Cash, aber 0 Productivity für 1 Tag.
+   - Effekt: Senkt Technical Debt massiv (-30). Verhindert Crashes.
+
+6. PIVOT
    - "action": "PIVOT"
    - "parameters": {}
    - Letzter Ausweg.
