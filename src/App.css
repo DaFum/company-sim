@@ -13,6 +13,24 @@ body {
   flex-direction: column;
   align-items: center;
   min-height: 100vh;
+  position: relative; /* For CRT overlay positioning context */
+}
+
+/* CRT Overlay */
+.crt-overlay {
+  background:
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  background-size:
+    100% 2px,
+    3px 100%;
+  pointer-events: none; /* Klicks gehen durch */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
 }
 
 .mute-button {
@@ -25,6 +43,7 @@ body {
   border: 1px solid #555;
   border-radius: 5px;
   cursor: pointer;
+  z-index: 1001; /* Above CRT */
 }
 
 .dashboard {
@@ -268,6 +287,7 @@ body {
   position: relative;
   min-height: 200px;
   box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+  text-shadow: 0 0 5px #00ff00; /* Glowing Text */
 }
 
 .terminal-header {
@@ -401,6 +421,37 @@ body {
   cursor: pointer;
 }
 
+/* AiStatus Component */
+.ai-status-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 10px; /* spacing if put in controls */
+}
+
+.ai-status-eye {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+.ai-status-text {
+  font-weight: bold;
+}
+
+/* Floating Number Component */
+.floating-number {
+  position: absolute;
+  font-weight: bold;
+  font-size: 1.5em;
+  pointer-events: none;
+  animation: floatUp 1.5s forwards;
+  z-index: 1002;
+}
+
 /* Animations */
 @keyframes fadeIn {
   from {
@@ -458,5 +509,31 @@ body {
   }
   100% {
     transform: translate(1px, -2px) rotate(-1deg);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-50px);
+    opacity: 0;
   }
 }
