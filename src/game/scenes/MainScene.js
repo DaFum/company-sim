@@ -52,10 +52,13 @@ export default class MainScene extends Phaser.Scene {
     // Camera
     this.cameras.main.centerOn(400, 300);
     this.cameras.main.setBackgroundColor('#2d2d2d');
+
+    // INPUTS
+    this.input.addPointer(1); // Enable multi-touch
     this.setupCameraControls();
+    this.setupTouchInteractions();
 
     // Visuals
-    this.setupParticles();
     this.setupTooltip();
     this.setupDayNightCycle();
 
@@ -120,6 +123,12 @@ export default class MainScene extends Phaser.Scene {
       console.warn('[MainScene] Store unavailable.');
     }
 
+    // Zoom Handlers
+    this.zoomInHandler = () => this.handleZoom(0.2);
+    this.zoomOutHandler = () => this.handleZoom(-0.2);
+    window.addEventListener('ZOOM_IN', this.zoomInHandler);
+    window.addEventListener('ZOOM_OUT', this.zoomOutHandler);
+
     // 6) Cleanup Hook
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.onShutdown, this);
   }
@@ -159,19 +168,25 @@ export default class MainScene extends Phaser.Scene {
       this.input.keyboard.shutdown();
     }
 
+    // Clean Window Events
+    window.removeEventListener('ZOOM_IN', this.zoomInHandler);
+    window.removeEventListener('ZOOM_OUT', this.zoomOutHandler);
+
     // 5) Pathing cleanup
     this.easystar = null;
     this._grid = null;
     this._pendingPathRequests = 0;
   }
 
-  // --- CAMERA ---
+  // --- CAMERA & INPUT ---
   setupCameraControls() {
+    // Zoom (Wheel)
     this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
       const newZoom = this.cameras.main.zoom - deltaY * 0.001;
       this.cameras.main.setZoom(Phaser.Math.Clamp(newZoom, 0.5, 2));
     });
 
+    // Pan (Pointer Move - Works for Mouse & Touch drag)
     this.input.on('pointermove', (pointer) => {
       if (!pointer.isDown) return;
       this.cameras.main.scrollX -= (pointer.x - pointer.prevPosition.x) / this.cameras.main.zoom;
@@ -179,16 +194,33 @@ export default class MainScene extends Phaser.Scene {
     });
   }
 
-  // --- VISUALS: PARTICLES ---
-  setupParticles() {
-    this.particles = this.add.particles('particle_pixel');
-    this.particles.setDepth(50);
+  handleZoom(delta) {
+    this.cameras.main.setZoom(Phaser.Math.Clamp(this.cameras.main.zoom + delta, 0.5, 2));
   }
 
+  setupTouchInteractions() {
+    // Tap on Worker
+    this.input.on('gameobjectdown', (pointer, gameObject) => {
+      if (gameObject instanceof WorkerSprite) {
+        this.showTooltip(
+          gameObject.x,
+          gameObject.y - 40,
+          `${gameObject.role.toUpperCase()}\n${gameObject.energy.toFixed(0)}%`
+        );
+      }
+    });
+
+    // Tap on BG to close
+    this.input.on('pointerdown', (pointer, currentlyOver) => {
+      if (currentlyOver.length === 0) {
+        this.hideTooltip();
+      }
+    });
+  }
+
+  // --- VISUALS: PARTICLES ---
   createSmoke(x, y) {
-    const emitter = this.particles.createEmitter({
-      x,
-      y,
+    const emitter = this.add.particles(x, y, 'particle_pixel', {
       speed: { min: 10, max: 30 },
       angle: { min: 240, max: 300 },
       scale: { start: 1, end: 3 },
@@ -197,13 +229,12 @@ export default class MainScene extends Phaser.Scene {
       frequency: 100,
       tint: 0x555555,
     });
-    this.time.delayedCall(2000, () => emitter.remove());
+    emitter.setDepth(50);
+    this.time.delayedCall(2000, () => emitter.destroy());
   }
 
   createCodeBits(x, y) {
-    const emitter = this.particles.createEmitter({
-      x,
-      y,
+    const emitter = this.add.particles(x, y, 'particle_pixel', {
       speed: { min: 5, max: 15 },
       angle: { min: 260, max: 280 },
       scale: { start: 0.5, end: 0 },
@@ -211,7 +242,8 @@ export default class MainScene extends Phaser.Scene {
       frequency: 200,
       tint: 0x00ff00,
     });
-    this.time.delayedCall(1000, () => emitter.remove());
+    emitter.setDepth(50);
+    this.time.delayedCall(1000, () => emitter.destroy());
   }
 
   // --- VISUALS: TOOLTIPS ---
@@ -225,13 +257,10 @@ export default class MainScene extends Phaser.Scene {
       })
       .setDepth(100)
       .setVisible(false)
-      .setScrollFactor(0); // Optional: Sticky UI, or allow it to move with world if removed
+      .setScrollFactor(0);
   }
 
   showTooltip(x, y, text) {
-    // World coordinates to Screen coordinates if scroll factor is 0,
-    // BUT since we want tooltip next to sprite in WORLD, we should remove ScrollFactor(0) or project.
-    // Simpler: Tooltip lives in world space above sprites.
     this.tooltip.setScrollFactor(1);
     this.tooltip.setPosition(x, y);
     this.tooltip.setText(text);
@@ -396,10 +425,8 @@ export default class MainScene extends Phaser.Scene {
         const v = this.add.sprite(startX, startY + i * 40, key);
         this.physics.add.existing(v);
 
-        const tween = this.tweens.add({ targets: v, x: endX, duration: 2000 });
-        v.once(Phaser.GameObjects.Events.DESTROY, () => {
-          if (tween) tween.stop();
-        });
+        this.tweens.add({ targets: v, x: endX, duration: 2000 });
+        v.once(Phaser.GameObjects.Events.DESTROY, () => this.tweens.killTweensOf(v));
 
         this.visitorGroup.add(v);
       }
@@ -420,11 +447,12 @@ export default class MainScene extends Phaser.Scene {
   syncChaosVisuals(events) {
     this.tweens.killAll();
     this.overlayGroup?.clear(true, true);
-    this.cameras.main.clearTint();
 
     for (const e of events) {
       if (e.type === 'TECH_OUTAGE') {
-        this.cameras.main.setTint(0x0000aa);
+        const rect = this.add.rectangle(400, 300, 800, 600, 0x0000aa, 0.3);
+        this.overlayGroup.add(rect);
+
         this.addOverlayText('SYSTEM FAILURE', '#0000ff');
         this.createSmoke(2 * 32, 2 * 32); // Server Smoke
         this.workersGroup.children.iterate((w) => w?.showFeedback?.('???'));

@@ -49,8 +49,8 @@ export const useGameStore = create(
     ceoPersona: getRandomPersona(),
 
     // Resources (Refactored for Traits)
-    // roster: { dev: 1, sales: 0, support: 0 }, // Deprecated, derived from employees array
-    // workers: 1, // Derived
+    roster: { dev: 1, sales: 0, support: 0 }, // Initial Sync
+    workers: 1, // Initial Sync
     employees: [createEmployee('dev', Date.now())], // Initial: 1 Dev
 
     productivity: 10,

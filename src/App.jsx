@@ -36,7 +36,9 @@ function App() {
   useGameLoop();
 
   // 2. Den AI Director starten
-  const { lastDecision, confirmDecision } = useAiDirector();
+  useAiDirector();
+  const lastDecision = useGameStore((state) => state.pendingDecision);
+  const confirmDecision = useGameStore((state) => state.applyPendingDecision);
 
   // 3. Daten aus dem Store holen
   const {
