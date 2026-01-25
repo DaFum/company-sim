@@ -1,12 +1,13 @@
 import Phaser from 'phaser';
 
 export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, x, y, role, id) {
+  constructor(scene, x, y, role, id, trait = 'NORMAL') {
     const texture = `worker_${role}`;
     super(scene, x, y, texture);
 
     this.role = role;
     this.id = id;
+    this.trait = trait;
 
     // Physics
     scene.physics.add.existing(this);
@@ -14,10 +15,10 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     this.body.setSize(24, 24);
 
     // State Machine
-    this.state = 'IDLE'; // IDLE, WORKING, MOVING, COFFEE
+    this.state = 'IDLE';
     this.stateTimer = 0;
-    this.energy = 100; // 0-100
-    this.movementIntent = null; // null | 'FETCH_COFFEE'
+    this.energy = 100;
+    this.movementIntent = null;
 
     // Pathfinding
     this.path = [];
@@ -26,19 +27,22 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     this.statusIcon = null;
     this._jiggleTimer = 0;
 
+    // Trait Visual Marker
+    this.traitIcon = null;
+    if (this.trait === '10x_ENGINEER') this.showTraitIcon('🔥', '#ff9900');
+    if (this.trait === 'TOXIC') this.showTraitIcon('🤢', '#00ff00');
+    if (this.trait === 'JUNIOR') this.showTraitIcon('👶', '#ffffff');
+
     // Cleanup
     this.once(Phaser.GameObjects.Events.DESTROY, () => {
-      if (this.statusIcon) {
-        this.statusIcon.destroy();
-        this.statusIcon = null;
-      }
+      if (this.statusIcon) this.statusIcon.destroy();
+      if (this.traitIcon) this.traitIcon.destroy();
     });
   }
 
   update(time, delta) {
     this.stateTimer -= delta;
 
-    // Energy Decay
     if (this.state !== 'COFFEE') {
       this.energy -= delta * 0.005;
     }
@@ -55,7 +59,7 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
       }
     }
 
-    // Role Animations (Physics Safe)
+    // Role Animations
     if (this.state === 'WORKING' && this.role === 'dev') {
       this._jiggleTimer -= delta;
       if (this._jiggleTimer <= 0) {
@@ -67,25 +71,39 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
       }
     }
 
-    // Icon Update (Delta Safe)
+    // Icon Update
     if (this.statusIcon) {
       this.statusIcon.setPosition(this.x, this.y - 20);
       const fadePerMs = 1 / 800;
       this.statusIcon.alpha -= delta * fadePerMs;
-
       if (this.statusIcon.alpha <= 0) {
         this.statusIcon.destroy();
         this.statusIcon = null;
       }
     }
+
+    // Trait Icon Follow
+    if (this.traitIcon) {
+      this.traitIcon.setPosition(this.x + 10, this.y - 15);
+    }
+  }
+
+  showTraitIcon(text, color) {
+    this.traitIcon = this.scene.add
+      .text(this.x, this.y, text, {
+        fontSize: '12px',
+        color,
+        stroke: '#000',
+        strokeThickness: 2,
+      })
+      .setOrigin(0.5);
   }
 
   decideNextAction() {
-    // 1. Check Energy (Ant Farm Logic)
     if (this.energy < 30 && this.state !== 'COFFEE' && this.movementIntent !== 'FETCH_COFFEE') {
       this.movementIntent = 'FETCH_COFFEE';
       this.showFeedback('☕');
-      this.scene.requestMove(this, 23, 2); // Coffee Machine
+      this.scene.requestMove(this, 23, 2);
       return;
     }
 
@@ -123,7 +141,6 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
 
   followPath() {
     if (!this.path || this.path.length === 0) {
-      // Arrived
       if (this.movementIntent === 'FETCH_COFFEE') {
         this.state = 'COFFEE';
         this.stateTimer = 5000;

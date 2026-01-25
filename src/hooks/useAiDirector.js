@@ -31,20 +31,26 @@ export const useAiDirector = () => {
         try {
           // 1. Collect Context
           const state = useGameStore.getState();
-          // INJECT PERSONA
           const systemPrompt = generateSystemPrompt().replace(
             '{{PERSONA}}',
             state.ceoPersona || 'Visionary'
           );
 
-          // Calculate Financial Trend
           const financialTrend = state.cash - (state.startOfDayCash || state.cash);
+
+          // Aggregate Traits
+          const traitSummary = state.employees.reduce((acc, e) => {
+            acc[e.trait] = (acc[e.trait] || 0) + 1;
+            return acc;
+          }, {});
 
           const fullState = {
             cash: state.cash,
             financial_trend: financialTrend,
+            product_age: state.productAge, // NEW
             workers: state.workers,
             roster: state.roster,
+            employee_traits: traitSummary, // NEW
             day: state.day,
             mood: state.mood,
             yesterday_events: state.eventHistory || [],
