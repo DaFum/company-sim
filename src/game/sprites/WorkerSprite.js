@@ -116,6 +116,9 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
         if (this.particleEmitter) {
             this.particleEmitter.destroy();
         }
+        if (this.workTween) {
+            this.workTween.stop();
+        }
         if (this.scene) {
             this.scene.events.off('update', this.updateLight, this);
         }
@@ -202,22 +205,61 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
         }
 
         if (this.role === 'dev') {
-            // Jiggle Effect
-            if (this.scene.time.now % 100 < 20) { // Einfacher Timer über Scene-Zeit
-                this.x += Phaser.Math.Between(-1, 1);
-                this.y += Phaser.Math.Between(-1, 1);
-            }
-
             // Code Particles (selten)
             if (Phaser.Math.RND.frac() < 0.01) { // [2] Effizienter Zufall
                 this.scene.createCodeBits(this.x, this.y - 10);
             }
         }
 
-        if (this.stateTimer <= 0) {
-            this.currentState = STATE.IDLE;
-            this.showFeedback('$');
+        // Animation is handled by TweenChain (startWorkSequence)
+    }
+
+    startWorkSequence() {
+        // Falls bereits eine Animation läuft, stoppen
+        if (this.workTween) {
+            this.workTween.stop();
         }
+
+        // Erstelle eine Kette von Bewegungen
+        this.workTween = this.scene.tweens.chain({
+            targets: this, // Gilt für alle Schritte
+            onComplete: () => {
+                this.finishTask(); // Callback wenn ALLES fertig ist
+            },
+            tweens: [
+                // Schritt 1: "Eintauchen" in die Arbeit (Squash-Effekt)
+                {
+                    scaleX: 1.2,
+                    scaleY: 0.8,
+                    duration: 150,
+                    ease: 'Quad.easeOut'
+                },
+                // Schritt 2: Heftiges Tippen / Arbeiten (Wackeln)
+                {
+                    angle: { from: -5, to: 5 }, // Rotation
+                    x: { from: this.x - 1, to: this.x + 1 }, // Leichtes Vibrieren
+                    duration: 80,
+                    yoyo: true,
+                    repeat: 10, // 10 mal hin und her (ca. 1.6 Sekunden)
+                    ease: 'Linear'
+                },
+                // Schritt 3: "Entspannen" / Normalisierung
+                {
+                    scaleX: 1,
+                    scaleY: 1,
+                    angle: 0,
+                    x: this.x, // Sicherstellen, dass er exakt zurückkehrt
+                    duration: 200,
+                    ease: 'Back.easeOut'
+                }
+            ]
+        });
+    }
+
+    finishTask() {
+        this.currentState = STATE.IDLE;
+        this.showFeedback('$');
+        this.stateTimer = 500; // Kurze Pause
     }
 
     updateCoffee(delta) {
@@ -331,7 +373,7 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
         if (this.role === 'dev') {
             if (Phaser.Math.RND.frac() > 0.3) {
                 this.currentState = STATE.WORKING;
-                this.stateTimer = 3000 + Phaser.Math.Between(0, 2000);
+                this.startWorkSequence();
                 this.showFeedback('101');
             } else {
                 this.currentState = STATE.IDLE;
