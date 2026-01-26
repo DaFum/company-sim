@@ -31,7 +31,7 @@ export default class MainScene extends Phaser.Scene {
   }
 
   create() {
-    console.log('[MainScene] Booting (Omega Refactor)...');
+    console.log('[MainScene] Booting (Refactor)...');
     this.soundManager = new SoundManager(this);
 
     // 1) Groups
@@ -123,14 +123,16 @@ export default class MainScene extends Phaser.Scene {
       console.warn('[MainScene] Store unavailable.');
     }
 
-    // Zoom Handlers
-    this.zoomInHandler = () => this.handleZoom(0.2);
-    this.zoomOutHandler = () => this.handleZoom(-0.2);
-    window.addEventListener('ZOOM_IN', this.zoomInHandler);
-    window.addEventListener('ZOOM_OUT', this.zoomOutHandler);
+    // Event Handler Referenzen speichern für sauberes Entfernen
+    this._onZoomIn = () => this.handleZoom(0.2);
+    this._onZoomOut = () => this.handleZoom(-0.2);
 
-    // 6) Cleanup Hook
+    window.addEventListener('ZOOM_IN', this._onZoomIn);
+    window.addEventListener('ZOOM_OUT', this._onZoomOut);
+
+    // Phaser-internes Shutdown Event nutzen
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.onShutdown, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.onDestroy, this);
   }
 
   update() {
@@ -147,8 +149,10 @@ export default class MainScene extends Phaser.Scene {
     console.log('[MainScene] Shutting down. Cleaning up...');
 
     // 1) Unsubscribe store
-    this.unsubscribers.forEach((u) => u());
-    this.unsubscribers = [];
+    if (this.unsubscribers) {
+        this.unsubscribers.forEach((u) => u());
+        this.unsubscribers = [];
+    }
 
     // 2) Kill tweens
     this.tweens.killAll();
@@ -169,13 +173,20 @@ export default class MainScene extends Phaser.Scene {
     }
 
     // Clean Window Events
-    window.removeEventListener('ZOOM_IN', this.zoomInHandler);
-    window.removeEventListener('ZOOM_OUT', this.zoomOutHandler);
+    window.removeEventListener('ZOOM_IN', this._onZoomIn);
+    window.removeEventListener('ZOOM_OUT', this._onZoomOut);
 
     // 5) Pathing cleanup
     this.easystar = null;
     this._grid = null;
     this._pendingPathRequests = 0;
+  }
+
+  onDestroy() {
+    // Aufräumen von Plugins oder Managern, falls nötig
+    if (this.soundManager) {
+        this.soundManager = null; // Garbage Collection helfen
+    }
   }
 
   // --- CAMERA & INPUT ---
@@ -205,7 +216,7 @@ export default class MainScene extends Phaser.Scene {
         this.showTooltip(
           gameObject.x,
           gameObject.y - 40,
-          `${gameObject.role.toUpperCase()}\n${gameObject.energy.toFixed(0)}%`
+          `${gameObject.role.toUpperCase()}\nEnergy: ${Math.max(0, gameObject.energy).toFixed(0)}%`
         );
       }
     });

@@ -1,210 +1,273 @@
 import Phaser from 'phaser';
 
+const STATE = {
+    IDLE: 'IDLE',
+    MOVING: 'MOVING',
+    WORKING: 'WORKING',
+    COFFEE: 'COFFEE'
+};
+
 export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, x, y, role, id, trait = 'NORMAL') {
-    const texture = `worker_${role}`;
-    super(scene, x, y, texture);
+    constructor(scene, x, y, role, id, trait = 'NORMAL') {
+        super(scene, x, y, `worker_${role}`);
 
-    this.role = role;
-    this.id = id;
-    this.trait = trait;
+        this.role = role;
+        this.id = id;
+        this.trait = trait;
 
-    // Physics
-    scene.physics.add.existing(this);
-    this.setCollideWorldBounds(true);
-    this.body.setSize(24, 24);
+        // Physics Setup
+        scene.physics.add.existing(this);
+        this.setCollideWorldBounds(true);
+        this.body.setSize(24, 24);
 
-    // State Machine
-    this.state = 'IDLE';
-    this.stateTimer = 0;
-    this.energy = 100;
-    this.movementIntent = null;
-
-    // Pathfinding
-    this.path = [];
-
-    // Visuals
-    this.statusIcon = null;
-    this._jiggleTimer = 0;
-    this.traitIcon = null;
-
-    // Trait Visual Marker
-    if (this.trait === '10x_ENGINEER') this.showTraitIcon('🔥', '#ff9900');
-    if (this.trait === 'TOXIC') this.showTraitIcon('🤢', '#00ff00');
-    if (this.trait === 'JUNIOR') this.showTraitIcon('👶', '#ffffff');
-
-    // Interactivity
-    this.setInteractive();
-    this.on('pointerover', () => {
-      this.scene.showTooltip(
-        this.x,
-        this.y - 40,
-        `${this.role.toUpperCase()}\nEnergy: ${this.energy.toFixed(0)}%\nTrait: ${this.trait}`
-      );
-    });
-    this.on('pointerout', () => {
-      this.scene.hideTooltip();
-    });
-
-    // Cleanup
-    this.once(Phaser.GameObjects.Events.DESTROY, () => {
-      if (this.statusIcon) this.statusIcon.destroy();
-      if (this.traitIcon) this.traitIcon.destroy();
-    });
-  }
-
-  update(time, delta) {
-    this.stateTimer -= delta;
-
-    if (this.state !== 'COFFEE') {
-      this.energy -= delta * 0.005;
-    }
-
-    if (this.state === 'MOVING') {
-      this.followPath();
-    } else if (this.state === 'IDLE' || this.state === 'WORKING') {
-      if (this.stateTimer <= 0) this.decideNextAction();
-    } else if (this.state === 'COFFEE') {
-      if (this.stateTimer <= 0) {
+        // State Machine
+        this.currentState = STATE.IDLE;
+        this.stateTimer = 0;
         this.energy = 100;
-        this.state = 'IDLE';
-        this.showFeedback('Refilled!');
-      }
-    }
-
-    // Role Animations
-    if (this.state === 'WORKING' && this.role === 'dev') {
-      this._jiggleTimer -= delta;
-      if (this._jiggleTimer <= 0) {
-        this._jiggleTimer = 80;
-        const nx = this.x + (Math.random() - 0.5) * 1;
-        const ny = this.y + (Math.random() - 0.5) * 1;
-        this.setPosition(nx, ny);
-        this.body.reset(nx, ny);
-
-        // Code Particles
-        if (Math.random() < 0.1) {
-          // Occasional code burst
-          this.scene.createCodeBits(this.x, this.y - 10);
-        }
-      }
-    }
-
-    // Icon Update
-    if (this.statusIcon) {
-      this.statusIcon.setPosition(this.x, this.y - 20);
-      const fadePerMs = 1 / 800;
-      this.statusIcon.alpha -= delta * fadePerMs;
-      if (this.statusIcon.alpha <= 0) {
-        this.statusIcon.destroy();
-        this.statusIcon = null;
-      }
-    }
-
-    // Trait Icon Follow
-    if (this.traitIcon) {
-      this.traitIcon.setPosition(this.x + 10, this.y - 15);
-    }
-  }
-
-  showTraitIcon(text, color) {
-    this.traitIcon = this.scene.add
-      .text(this.x, this.y, text, {
-        fontSize: '12px',
-        color,
-        stroke: '#000',
-        strokeThickness: 2,
-      })
-      .setOrigin(0.5);
-  }
-
-  decideNextAction() {
-    if (this.energy < 30 && this.state !== 'COFFEE' && this.movementIntent !== 'FETCH_COFFEE') {
-      this.movementIntent = 'FETCH_COFFEE';
-      this.showFeedback('☕');
-      this.scene.requestMove(this, 23, 2);
-      return;
-    }
-
-    if (this.role === 'dev') {
-      if (Math.random() > 0.3) {
-        this.state = 'WORKING';
-        this.stateTimer = 3000 + Math.random() * 2000;
-        this.showFeedback('101');
-      } else {
-        this.state = 'IDLE';
-        this.moveToRandomPoint();
-      }
-    } else if (this.role === 'sales') {
-      this.state = 'IDLE';
-      this.moveToRandomPoint();
-      if (Math.random() > 0.8) this.showFeedback('$');
-    } else if (this.role === 'support') {
-      this.state = 'IDLE';
-      this.moveToRandomPoint();
-    }
-  }
-
-  moveToRandomPoint() {
-    const gridX = Phaser.Math.Between(1, 23);
-    const gridY = Phaser.Math.Between(1, 18);
-    this.scene.requestMove(this, gridX, gridY);
-  }
-
-  startPath(path) {
-    if (path && path.length > 0) {
-      this.path = path;
-      this.state = 'MOVING';
-    }
-  }
-
-  followPath() {
-    if (!this.path || this.path.length === 0) {
-      if (this.movementIntent === 'FETCH_COFFEE') {
-        this.state = 'COFFEE';
-        this.stateTimer = 5000;
         this.movementIntent = null;
-      } else {
-        this.state = 'IDLE';
-        this.stateTimer = 1000;
-      }
 
-      this.body.reset(this.x, this.y);
-      this.setVelocity(0, 0);
-      return;
+        // Pathfinding Cache
+        this.path = [];
+        this.movementTarget = new Phaser.Math.Vector2();
+
+        // Performance: Text Object Pooling
+        // Wir erstellen das Text-Objekt einmal und verstecken es, statt es ständig neu zu erzeugen.
+        this.statusIcon = this.scene.add.text(0, 0, '', {
+            fontSize: '14px',
+            fontFamily: 'Arial',
+            stroke: '#000',
+            strokeThickness: 2
+        }).setOrigin(0.5).setVisible(false).setDepth(100); // Hohe Depth, damit es über allem liegt
+
+        // Interaction
+        this.setInteractive();
+        this.on('pointerover', () => {
+             this.scene.showTooltip(
+                this.x,
+                this.y - 40,
+                `${this.role.toUpperCase()}\nEnergy: ${Math.max(0, this.energy).toFixed(0)}%\nTrait: ${this.trait}`
+            );
+        });
+        this.on('pointerout', () => this.scene.hideTooltip());
+
+        // Cleanup
+        this.on(Phaser.GameObjects.Events.DESTROY, this.preDestroy, this);
+
+        // Trait Visual Marker
+        this.traitIcon = null;
+        if (this.trait === '10x_ENGINEER') this.showTraitIcon('🔥', '#ff9900');
+        if (this.trait === 'TOXIC') this.showTraitIcon('🤢', '#00ff00');
+        if (this.trait === 'JUNIOR') this.showTraitIcon('👶', '#ffffff');
     }
 
-    const nextTile = this.path[0];
-    const targetX = nextTile.x * 32 + 16;
-    const targetY = nextTile.y * 32 + 16;
-
-    const dist = Phaser.Math.Distance.Between(this.x, this.y, targetX, targetY);
-
-    if (dist < 4) {
-      this.path.shift();
-    } else {
-      const speed = this.role === 'support' ? 150 : 100;
-      this.scene.physics.moveTo(this, targetX, targetY, speed);
+    preDestroy() {
+        // [1] Wichtig: Wenn das Sprite zerstört wird, müssen wir auch sein UI-Element zerstören
+        if (this.statusIcon) {
+            this.statusIcon.destroy();
+        }
+        if (this.traitIcon) {
+            this.traitIcon.destroy();
+        }
+        // Listener entfernen nicht zwingend nötig da Sprite zerstört wird, aber guter Stil
+        this.off('pointerover');
+        this.off('pointerout');
     }
-  }
 
-  showFeedback(text) {
-    if (this.statusIcon) this.statusIcon.destroy();
+    update(time, delta) {
+        this.stateTimer -= delta;
 
-    let color = '#00ff00';
-    if (text === '$') color = '#ffff00';
-    if (text === '???') color = '#ff4444';
-    if (text === '☕') color = '#ffffff';
+        // Status-Icon Position syncen (Performance-effizienter als Container für simple Labels)
+        if (this.statusIcon.visible) {
+            this.statusIcon.setPosition(this.x, this.y - 25);
+        }
 
-    this.statusIcon = this.scene.add
-      .text(this.x, this.y - 20, text, {
-        fontSize: '14px',
-        color,
-        stroke: '#000',
-        strokeThickness: 2,
-      })
-      .setOrigin(0.5);
+        // Trait Icon Follow
+        if (this.traitIcon) {
+            this.traitIcon.setPosition(this.x + 10, this.y - 15);
+        }
 
-    this.statusIcon.alpha = 1;
-  }
+        // State Machine Pattern
+        switch (this.currentState) {
+            case STATE.MOVING:
+                this.updateMoving(delta);
+                break;
+            case STATE.WORKING:
+                this.updateWorking(delta);
+                break;
+            case STATE.COFFEE:
+                this.updateCoffee(delta);
+                break;
+            case STATE.IDLE:
+            default:
+                this.updateIdle(delta);
+                break;
+        }
+    }
+
+    updateIdle(delta) {
+        this.energy -= delta * 0.005;
+        if (this.stateTimer <= 0) {
+            this.decideNextAction();
+        }
+    }
+
+    updateMoving(delta) {
+        this.energy -= delta * 0.005;
+        this.followPath();
+    }
+
+    updateWorking(delta) {
+        this.energy -= delta * 0.005;
+
+        if (this.role === 'dev') {
+            // Jiggle Effect
+            if (this.scene.time.now % 100 < 20) { // Einfacher Timer über Scene-Zeit
+                this.x += Phaser.Math.Between(-1, 1);
+                this.y += Phaser.Math.Between(-1, 1);
+            }
+
+            // Code Particles (selten)
+            if (Phaser.Math.RND.frac() < 0.01) { // [2] Effizienter Zufall
+                this.scene.createCodeBits(this.x, this.y - 10);
+            }
+        }
+
+        if (this.stateTimer <= 0) {
+            this.currentState = STATE.IDLE;
+            this.showFeedback('$');
+        }
+    }
+
+    updateCoffee(delta) {
+        // Energie regenerieren
+        if (this.stateTimer <= 0) {
+            this.energy = 100;
+            this.currentState = STATE.IDLE;
+            this.showFeedback('Refilled!');
+        }
+    }
+
+    startPath(path) {
+        if (path && path.length > 0) {
+            this.path = path;
+            this.currentState = STATE.MOVING;
+            // Wir nehmen sofort den ersten Punkt ins Visier
+            this.nextPathPoint();
+        }
+    }
+
+    nextPathPoint() {
+        if (this.path.length === 0) {
+            this.stopMovement();
+            return;
+        }
+
+        const nextTile = this.path.shift();
+        // Tile-Mitte berechnen (32 = tileSize)
+        this.movementTarget.set(
+            nextTile.x * 32 + 16,
+            nextTile.y * 32 + 16
+        );
+
+        const speed = this.role === 'support' ? 150 : 100;
+        this.scene.physics.moveTo(this, this.movementTarget.x, this.movementTarget.y, speed);
+    }
+
+    followPath() {
+        // [3] Effiziente Distanzberechnung
+        const distSq = this.movementTarget.distanceSq(new Phaser.Math.Vector2(this.x, this.y));
+
+        // 4px * 4px = 16 (Squared Distance ist schneller als sqrt)
+        if (distSq < 16) {
+            this.nextPathPoint();
+        }
+    }
+
+    stopMovement() {
+        this.body.reset(this.x, this.y); // Stoppt Velocity sofort
+
+        if (this.movementIntent === 'FETCH_COFFEE') {
+            this.currentState = STATE.COFFEE;
+            this.stateTimer = 5000;
+            this.movementIntent = null;
+        } else {
+            this.currentState = STATE.IDLE;
+            this.stateTimer = 1000;
+        }
+    }
+
+    showFeedback(text) {
+        const colors = {
+            '$': '#ffff00',
+            '???': '#ff4444',
+            '☕': '#ffffff',
+            'Refilled!': '#ffffff',
+            '101': '#00ff00',
+            'default': '#00ff00'
+        };
+
+        const color = colors[text] || colors['default'];
+
+        // Reuse statt Recreate [4]
+        this.statusIcon.setText(text);
+        this.statusIcon.setColor(color);
+        this.statusIcon.setVisible(true);
+        this.statusIcon.setAlpha(1);
+        this.statusIcon.y = this.y - 20;
+
+        // Animation für das Aufsteigen und Verschwinden
+        this.scene.tweens.add({
+            targets: this.statusIcon,
+            y: this.y - 40,
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => {
+                this.statusIcon.setVisible(false);
+            }
+        });
+    }
+
+    showTraitIcon(text, color) {
+        this.traitIcon = this.scene.add
+          .text(this.x, this.y, text, {
+            fontSize: '12px',
+            color,
+            stroke: '#000',
+            strokeThickness: 2,
+          })
+          .setOrigin(0.5);
+    }
+
+    decideNextAction() {
+        if (this.energy < 30 && this.currentState !== STATE.COFFEE && this.movementIntent !== 'FETCH_COFFEE') {
+            this.movementIntent = 'FETCH_COFFEE';
+            this.showFeedback('☕');
+            this.scene.requestMove(this, 23, 2);
+            return;
+        }
+
+        if (this.role === 'dev') {
+            if (Phaser.Math.RND.frac() > 0.3) {
+                this.currentState = STATE.WORKING;
+                this.stateTimer = 3000 + Phaser.Math.Between(0, 2000);
+                this.showFeedback('101');
+            } else {
+                this.currentState = STATE.IDLE;
+                this.moveToRandomPoint();
+            }
+        } else if (this.role === 'sales') {
+            this.currentState = STATE.IDLE;
+            this.moveToRandomPoint();
+            if (Phaser.Math.RND.frac() > 0.8) this.showFeedback('$');
+        } else if (this.role === 'support') {
+            this.currentState = STATE.IDLE;
+            this.moveToRandomPoint();
+        }
+    }
+
+    moveToRandomPoint() {
+        const gridX = Phaser.Math.Between(1, 23);
+        const gridY = Phaser.Math.Between(1, 18);
+        this.scene.requestMove(this, gridX, gridY);
+    }
 }
