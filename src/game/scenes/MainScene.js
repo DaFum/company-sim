@@ -373,7 +373,21 @@ export default class MainScene extends Phaser.Scene {
   }
 
   spawnObject(x, y, texture) {
-    this.objectGroup.add(this.add.image(x * this.tileSize + 16, y * this.tileSize + 16, texture));
+    const obj = this.add.image(x * this.tileSize + 16, y * this.tileSize + 16, texture);
+    this.objectGroup.add(obj);
+
+    // FX Polish
+    if (obj.postFX) {
+        if (texture === 'obj_server') {
+            // Bloom: color, offsetX, offsetY, blurStrength, strength, steps
+            obj.postFX.addBloom(0x00ff00, 1, 1, 1, 1.2, 2);
+        }
+
+        if (texture === 'obj_plant') {
+            // Shadow: x, y, decay, power, color, samples, intensity
+            obj.postFX.addShadow(0, 0, 0.1, 0.5, 0x000000, 2, 0.8);
+        }
+    }
   }
 
   // --- WORKERS ---

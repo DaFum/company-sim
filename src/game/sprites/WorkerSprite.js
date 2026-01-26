@@ -19,6 +19,12 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
         scene.physics.add.existing(this);
         this.setCollideWorldBounds(true);
         this.body.setSize(24, 24);
+        this.body.setOffset(4, 8); // Offset, damit Füße am Boden sind
+
+        // --- VISUAL POLISH: SHADOW FX ---
+        if (this.preFX) {
+             this.preFX.addShadow(0, 0.1, 0.1, 1, 0x000000, 2, 0.5);
+        }
 
         // State Machine
         this.currentState = STATE.IDLE;
@@ -47,8 +53,20 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
                 this.y - 40,
                 `${this.role.toUpperCase()}\nEnergy: ${Math.max(0, this.energy).toFixed(0)}%\nTrait: ${this.trait}`
             );
+
+            // Glow FX hinzufügen
+            if (this.preFX && !this._glowFX) {
+                this._glowFX = this.preFX.addGlow(0xffffff, 2, 0, false, 0.1, 10);
+            }
         });
-        this.on('pointerout', () => this.scene.hideTooltip());
+        this.on('pointerout', () => {
+            this.scene.hideTooltip();
+
+            if (this._glowFX) {
+                this.preFX.remove(this._glowFX);
+                this._glowFX = null;
+            }
+        });
 
         // Cleanup
         this.on(Phaser.GameObjects.Events.DESTROY, this.preDestroy, this);
