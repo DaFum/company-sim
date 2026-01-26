@@ -35,7 +35,7 @@ export default class MainScene extends Phaser.Scene {
     this.soundManager = new SoundManager(this);
 
     // 1) Groups
-    this.floorGroup = this.add.group();
+    this.floorTexture = null; // Replaces floorGroup
     this.objectGroup = this.add.group();
     this.workersGroup = this.add.group({ runChildUpdate: true });
     this.visitorGroup = this.add.group({ runChildUpdate: true });
@@ -123,6 +123,22 @@ export default class MainScene extends Phaser.Scene {
       console.warn('[MainScene] Store unavailable.');
     }
 
+    // --- PUSH THE LIMITS: POST-PROCESSING STACK ---
+    // 1. Tilt Shift (Bokeh)
+    this.cameras.main.postFX.addTiltShift(0.5, 2.0, 0.4, true);
+
+    // 2. Vignette
+    this.cameras.main.postFX.addVignette(0.5, 0.5, 0.8, 0.4);
+
+    // 3. Bloom
+    this.cameras.main.postFX.addBloom(0xffffff, 1, 1, 1.2, 1.5);
+
+    // --- ATMOSPHERE: DYNAMIC LIGHTING ---
+    this.playerLight = this.add.pointlight(0, 0, 0xffaa00, 200, 0.1);
+    this.input.on('pointermove', (pointer) => {
+        this.playerLight.setPosition(pointer.worldX, pointer.worldY);
+    });
+
     // Event Handler Referenzen speichern für sauberes Entfernen
     this._onZoomIn = () => this.handleZoom(0.2);
     this._onZoomOut = () => this.handleZoom(-0.2);
@@ -158,7 +174,10 @@ export default class MainScene extends Phaser.Scene {
     this.tweens.killAll();
 
     // 3) Destroy groups
-    this.floorGroup?.clear(true, true);
+    if (this.floorTexture) {
+        this.floorTexture.destroy();
+        this.floorTexture = null;
+    }
     this.objectGroup?.clear(true, true);
     this.workersGroup?.clear(true, true);
     this.visitorGroup?.clear(true, true);
@@ -351,17 +370,36 @@ export default class MainScene extends Phaser.Scene {
     });
   }
 
-  // --- FLOOR ---
+  // --- FLOOR (RenderTexture) ---
   createFloor(level) {
-    this.floorGroup?.clear(true, true);
+    // Statt einer Group nutzen wir eine RenderTexture für maximale Performance
+    if (this.floorTexture) this.floorTexture.destroy();
+
+    // Doppelte Größe um Ränder abzudecken, aber hier reicht Grid-Size
+    this.floorTexture = this.add.renderTexture(0, 0, this.cols * this.tileSize, this.rows * this.tileSize).setDepth(0);
+
     const textureKey = `floor_${level}`;
+
+    this.floorTexture.beginDraw();
     for (let x = 0; x < this.cols; x++) {
-      for (let y = 0; y < this.rows; y++) {
-        const tile = this.add.image(x * this.tileSize, y * this.tileSize, textureKey).setOrigin(0);
-        if ((x + y) % 2 === 0) tile.setTint(0xdddddd);
-        this.floorGroup.add(tile);
-      }
+        for (let y = 0; y < this.rows; y++) {
+            this.floorTexture.batchDrawFrame(textureKey, 0, x * this.tileSize, y * this.tileSize);
+        }
     }
+    this.floorTexture.endDraw();
+    // Pipeline für Floor aktivieren? Optional. Hier erstmal Standard.
+  }
+
+  addFootprint(x, y) {
+      if (this.floorTexture) {
+          // Optimize: Reuse a shared Graphics object or create once
+          if (!this._footprintGraphics) {
+               this._footprintGraphics = this.make.graphics({ add: false });
+               this._footprintGraphics.fillStyle(0x000000, 0.1);
+               this._footprintGraphics.fillCircle(0, 0, 2);
+          }
+          this.floorTexture.draw(this._footprintGraphics, x, y);
+      }
   }
 
   // --- OBJECTS ---

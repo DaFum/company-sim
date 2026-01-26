@@ -52,6 +52,12 @@ export default class PreloadScene extends Phaser.Scene {
     }
 
     createHighQualityAssets() {
+        // --- PARTICLES ---
+        this.genTexture('particle_pixel', 4, 4, (g) => {
+            g.fillStyle(0xffffff, 1);
+            g.fillRect(0, 0, 4, 4);
+        });
+
         // Hilfsfunktion für konsistente Charakter-Basis
         const drawCharBase = (g, shirtColor) => {
             g.lineStyle(2, PALETTE.OUTLINE, 1); // Fette Outline für Lesbarkeit

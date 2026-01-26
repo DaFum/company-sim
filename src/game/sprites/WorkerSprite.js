@@ -26,6 +26,30 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
              this.preFX.addShadow(0, 0.1, 0.1, 1, 0x000000, 2, 0.5);
         }
 
+        // --- PUSH THE LIMITS: DYNAMIC LIGHTING ---
+        // Jeder Worker strahlt Licht aus. Farbe basiert auf Rolle.
+        const lightColor = role === 'dev' ? 0x0088ff : (role === 'sales' ? 0x00ff00 : 0xff0000);
+
+        // PointLight: extrem schnell gerenderte "falsche" Lichter
+        this.light = scene.add.pointlight(x, y, lightColor, 60, 0.3).setDepth(this.depth - 1);
+
+        // Wir speichern eine Referenz für das Update
+        this.scene.events.on('update', this.updateLight, this);
+
+        // Particle Emitter (One-time creation)
+        const particleColor = role === 'dev' ? [0x00ff00, 0x004400] : [0xffff00, 0xffaa00];
+        this.particleEmitter = this.scene.add.particles(0, 0, 'particle_pixel', {
+            speed: { min: 50, max: 100 },
+            angle: { min: 220, max: 320 },
+            scale: { start: 0.6, end: 0 },
+            alpha: { start: 1, end: 0 },
+            gravityY: 100,
+            lifespan: 600,
+            quantity: 2,
+            tint: particleColor,
+            emitting: false
+        });
+
         // State Machine
         this.currentState = STATE.IDLE;
         this.stateTimer = 0;
@@ -86,9 +110,38 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
         if (this.traitIcon) {
             this.traitIcon.destroy();
         }
+        if (this.light) {
+            this.light.destroy();
+        }
+        if (this.particleEmitter) {
+            this.particleEmitter.destroy();
+        }
+        if (this.scene) {
+            this.scene.events.off('update', this.updateLight, this);
+        }
+
         // Listener entfernen nicht zwingend nötig da Sprite zerstört wird, aber guter Stil
         this.off('pointerover');
         this.off('pointerout');
+    }
+
+    updateLight(time, delta) {
+        if (!this.light || !this.body) return;
+
+        // Position synchronisieren
+        this.light.setPosition(this.x, this.y);
+
+        // Pulsierender Effekt (Jitter) für Lebendigkeit
+        const jitter = Math.sin(time * 0.005) * 5;
+        this.light.radius = 60 + jitter;
+    }
+
+    spawnWorkParticles() {
+        if (!this.particleEmitter) return;
+
+        // Position emitter to current sprite position and explode
+        this.particleEmitter.setPosition(this.x, this.y - 10);
+        this.particleEmitter.explode(2);
     }
 
     update(time, delta) {
@@ -131,11 +184,22 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
 
     updateMoving(delta) {
         this.energy -= delta * 0.005;
+
+        // Footprints (alle 200ms)
+        if (this.scene.time.now % 200 < 20) {
+            this.scene.addFootprint(this.x, this.y + 12);
+        }
+
         this.followPath();
     }
 
     updateWorking(delta) {
         this.energy -= delta * 0.005;
+
+        // Particles
+        if (Math.random() < 0.05) {
+            this.spawnWorkParticles();
+        }
 
         if (this.role === 'dev') {
             // Jiggle Effect
