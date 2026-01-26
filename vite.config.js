@@ -5,4 +5,9 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   base: process.env.GITHUB_PAGES === 'true' ? '/github-repository-vi/' : '/',
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@': resolve(projectRoot, 'src'),
+    },
+  },
 });
