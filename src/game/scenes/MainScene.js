@@ -282,12 +282,16 @@ export default class MainScene extends Phaser.Scene {
       .text(0, 0, '', {
         font: '12px monospace',
         fill: '#ffffff',
-        backgroundColor: '#00000088',
-        padding: { x: 5, y: 5 },
+        backgroundColor: '#000000dd', // More opaque for better contrast
+        padding: { x: 8, y: 8 },
       })
       .setDepth(100)
       .setVisible(false)
       .setScrollFactor(0);
+
+    // Add Shadow FX for depth (PostFX)
+    // x, y, decay, power, color, samples, intensity
+    this.tooltip.postFX.addShadow(0, 4, 0.1, 1, 0x000000, 2, 1);
   }
 
   showTooltip(x, y, text) {
