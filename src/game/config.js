@@ -15,6 +15,9 @@ export const gameConfig = {
     width: 800,
     height: 600,
   },
+  input: {
+    activePointers: 3, // Enable Multitouch (Pinch-to-Zoom)
+  },
   scene: [PreloadScene, MainScene],
   physics: {
     default: 'arcade',

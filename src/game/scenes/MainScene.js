@@ -58,6 +58,14 @@ export default class MainScene extends Phaser.Scene {
     this.setupCameraControls();
     this.setupTouchInteractions();
 
+    // Touch-spezifische Variablen initialisieren
+    this.pinchDistance = 0;
+    this.isDragging = false;
+    this.dragOrigin = new Phaser.Math.Vector2();
+
+    // Fullscreen Button für Mobile (optional aber empfohlen)
+    this.createFullscreenButton();
+
     // Visuals
     this.setupTooltip();
     this.setupDayNightCycle();
@@ -134,10 +142,32 @@ export default class MainScene extends Phaser.Scene {
     this.cameras.main.postFX.addBloom(0xffffff, 1, 1, 1.2, 1.5);
 
     // --- ATMOSPHERE: DYNAMIC LIGHTING ---
-    this.playerLight = this.add.pointlight(0, 0, 0xffaa00, 200, 0.1);
+    // 1. LIGHTS AKTIVIEREN [Source 1766]
+    this.lights.enable();
+    this.lights.setAmbientColor(0x555555); // Dunkleres Umgebungslicht für Kontrast
+
+    // Ein Licht, das der Maus folgt (Taschenlampe)
+    const mouseLight = this.lights.addLight(0, 0, 200).setColor(0xffffff).setIntensity(2);
     this.input.on('pointermove', (pointer) => {
-        this.playerLight.setPosition(pointer.worldX, pointer.worldY);
+        mouseLight.x = pointer.worldX;
+        mouseLight.y = pointer.worldY;
     });
+
+    // 2. KAFFEE ANIMATION ERSTELLEN [Source 1357]
+    if (!this.anims.exists('coffee_drain')) {
+        this.anims.create({
+            key: 'coffee_drain',
+            frames: this.anims.generateFrameNumbers('obj_coffee_anim', { start: 0, end: 2 }),
+            frameRate: 0.5, // Langsam leer werden
+            repeat: 0
+        });
+        this.anims.create({
+            key: 'coffee_refill',
+            frames: this.anims.generateFrameNumbers('obj_coffee_anim', { frames: [3, 0] }),
+            frameRate: 2,
+            repeat: 0
+        });
+    }
 
     // Event Handler Referenzen speichern für sauberes Entfernen
     this._onZoomIn = () => this.handleZoom(0.2);
@@ -151,7 +181,7 @@ export default class MainScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.DESTROY, this.onDestroy, this);
   }
 
-  update() {
+  update(time, delta) {
     // Batch EasyStar calculations
     if (this.easystar && this._pendingPathRequests > 0) {
       for (let i = 0; i < this._maxPathCalculationsPerTick; i++) {
@@ -159,6 +189,59 @@ export default class MainScene extends Phaser.Scene {
         if (this._pendingPathRequests <= 0) break;
       }
     }
+
+    this.handleMobileControls();
+  }
+
+  handleMobileControls() {
+      const input = this.input;
+      const camera = this.cameras.main;
+
+      // Pointer Referenzen
+      const pointer1 = input.pointer1;
+      const pointer2 = input.pointer2;
+
+      // --- 1. PINCH TO ZOOM (Zwei Finger) ---
+      if (pointer1.isDown && pointer2.isDown) {
+          // Berechne Distanz zwischen den Fingern
+          const dist = Phaser.Math.Distance.Between(
+              pointer1.x, pointer1.y,
+              pointer2.x, pointer2.y
+          );
+
+          if (this.pinchDistance > 0) {
+              // Wenn wir einen vorherigen Wert haben, vergleichen wir
+              const delta = dist - this.pinchDistance;
+
+              // Zoom anpassen (Sensitivität anpassen mit 0.005)
+              const newZoom = camera.zoom + (delta * 0.005);
+              camera.setZoom(Phaser.Math.Clamp(newZoom, 0.5, 3)); // Limits setzen
+          }
+
+          // Speichere aktuelle Distanz für nächsten Frame
+          this.pinchDistance = dist;
+          this.isDragging = false; // Zoom blockiert Dragging
+          return;
+      } else {
+          this.pinchDistance = 0; // Reset wenn Finger losgelassen
+      }
+
+      // --- 2. PANNING (Ein Finger / Maus ziehen) ---
+      const activePointer = input.activePointer;
+
+      if (activePointer.isDown) {
+          if (this.isDragging) {
+              // Kamera bewegen basierend auf der Differenz zur Startposition
+              // Wir teilen durch Zoom, damit die Geschwindigkeit bei jedem Zoomlevel gleich wirkt
+              camera.scrollX -= (activePointer.x - activePointer.prevPosition.x) / camera.zoom;
+              camera.scrollY -= (activePointer.y - activePointer.prevPosition.y) / camera.zoom;
+          } else {
+              // Start des Drags
+              this.isDragging = true;
+          }
+      } else {
+          this.isDragging = false;
+      }
   }
 
   onShutdown() {
@@ -213,39 +296,74 @@ export default class MainScene extends Phaser.Scene {
     // Zoom (Wheel)
     this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
       const newZoom = this.cameras.main.zoom - deltaY * 0.001;
-      this.cameras.main.setZoom(Phaser.Math.Clamp(newZoom, 0.5, 2));
+      this.cameras.main.setZoom(Phaser.Math.Clamp(newZoom, 0.5, 3));
     });
 
-    // Pan (Pointer Move - Works for Mouse & Touch drag)
-    this.input.on('pointermove', (pointer) => {
-      if (!pointer.isDown) return;
-      this.cameras.main.scrollX -= (pointer.x - pointer.prevPosition.x) / this.cameras.main.zoom;
-      this.cameras.main.scrollY -= (pointer.y - pointer.prevPosition.y) / this.cameras.main.zoom;
-    });
+    // Legacy Pan Removed - Handled in update() via handleMobileControls
   }
 
   handleZoom(delta) {
-    this.cameras.main.setZoom(Phaser.Math.Clamp(this.cameras.main.zoom + delta, 0.5, 2));
+    this.cameras.main.setZoom(Phaser.Math.Clamp(this.cameras.main.zoom + delta, 0.5, 3));
   }
 
   setupTouchInteractions() {
-    // Tap on Worker
+    // Tap on Worker with Drag Tolerance
     this.input.on('gameobjectdown', (pointer, gameObject) => {
       if (gameObject instanceof WorkerSprite) {
-        this.showTooltip(
-          gameObject.x,
-          gameObject.y - 40,
-          `${gameObject.role.toUpperCase()}\nEnergy: ${Math.max(0, gameObject.energy).toFixed(0)}%`
-        );
+         // Wir setzen einen once-listener auf pointerup für dieses spezifische Event
+         // Aber gameobjectdown feuert beim Start.
+         // Einfacher: Wir prüfen im Globalen Pointer Up oder nutzen InputPlugin Features.
+         // Hier nutzen wir einen Trick: Wenn Input Down, merken wir uns Position.
+         // Aber pointer.getDistance() ist einfacher im pointerup event.
       }
     });
 
-    // Tap on BG to close
-    this.input.on('pointerdown', (pointer, currentlyOver) => {
-      if (currentlyOver.length === 0) {
-        this.hideTooltip();
-      }
+    // Besser: Globaler Pointer Up Check
+    this.input.on('pointerup', (pointer) => {
+        // Nur wenn es ein Tap war (< 10px Bewegung)
+        if (pointer.getDistance() < 10) {
+            // Check Collision
+            // Wir müssen manuell raycasten oder prüfen was unter dem Pointer ist
+            const worldPoint = pointer.positionToCamera(this.cameras.main);
+            const workers = this.workersGroup.getChildren();
+
+            // Einfache AABB Prüfung
+            const clickedWorker = workers.find(w =>
+                w.getBounds().contains(worldPoint.x, worldPoint.y)
+            );
+
+            if (clickedWorker) {
+                this.showTooltip(
+                  clickedWorker.x,
+                  clickedWorker.y - 40,
+                  `${clickedWorker.role.toUpperCase()}\nEnergy: ${Math.max(0, clickedWorker.energy).toFixed(0)}%`
+                );
+            } else {
+                 this.hideTooltip();
+            }
+        }
     });
+  }
+
+  createFullscreenButton() {
+      // Einfacher Button oben rechts
+      const btn = this.add.text(760, 40, '⛶', {
+          fontSize: '32px',
+          backgroundColor: '#00000055',
+          padding: { x: 5, y: 5 }
+      })
+          .setOrigin(1, 0) // Oben Rechts verankern
+          .setScrollFactor(0)
+          .setDepth(200)
+          .setInteractive();
+
+      btn.on('pointerup', () => {
+          if (this.scale.isFullscreen) {
+              this.scale.stopFullscreen(); //
+          } else {
+              this.scale.startFullscreen(); //
+          }
+      });
   }
 
   // --- VISUALS: PARTICLES ---
@@ -410,12 +528,41 @@ export default class MainScene extends Phaser.Scene {
   spawnObjects() {
     this.objectGroup?.clear(true, true);
     this.spawnObject(2, 2, 'obj_server');
-    this.spawnObject(23, 2, 'obj_coffee');
+    this.spawnObject(23, 2, 'obj_coffee_anim', true); // Animated coffee
     this.spawnObject(2, 17, 'obj_plant');
+
+    // NEU: Drucker in der Nähe vom Support
+    this.spawnObject(5, 5, 'obj_printer');
+
+    // NEU: Watercooler zentral für Socializing
+    this.spawnObject(12, 10, 'obj_watercooler');
+
+    // NEU: Whiteboard im Dev-Bereich
+    this.spawnObject(3, 15, 'obj_whiteboard');
+
+    // NEU: Vending Machine
+    this.spawnObject(20, 10, 'obj_vending');
   }
 
-  spawnObject(x, y, texture) {
-    const obj = this.add.image(x * this.tileSize + 16, y * this.tileSize + 16, texture);
+  spawnObject(x, y, texture, isAnimated = false) {
+    let obj;
+    if (isAnimated) {
+        obj = this.add.sprite(x * this.tileSize + 16, y * this.tileSize + 16, texture);
+        if (texture === 'obj_coffee_anim') {
+            obj.play('coffee_drain');
+            obj.setInteractive();
+            obj.on('pointerdown', () => {
+                obj.play('coffee_refill');
+                this.soundManager.play('kaching');
+            });
+        }
+    } else {
+        obj = this.add.image(x * this.tileSize + 16, y * this.tileSize + 16, texture);
+    }
+
+    // Enable Normal Map Lighting for all objects if supported
+    obj.setPipeline('Light2D');
+
     this.objectGroup.add(obj);
 
     // FX Polish
@@ -488,14 +635,20 @@ export default class MainScene extends Phaser.Scene {
     const sprites = this.visitorGroup.getChildren().filter((v) => v.texture?.key === key);
 
     if (isActive && sprites.length === 0) {
-      for (let i = 0; i < count; i++) {
-        const v = this.add.sprite(startX, startY + i * 40, key);
-        this.physics.add.existing(v);
+      if (key === 'visitor_pizza') {
+          this.spawnPizzaGuyOrbit();
+      } else {
+          for (let i = 0; i < count; i++) {
+            const v = this.add.sprite(startX, startY + i * 40, key);
+            this.physics.add.existing(v);
+            // Enable lighting for visitors too
+            v.setPipeline('Light2D');
 
-        this.tweens.add({ targets: v, x: endX, duration: 2000 });
-        v.once(Phaser.GameObjects.Events.DESTROY, () => this.tweens.killTweensOf(v));
+            this.tweens.add({ targets: v, x: endX, duration: 2000 });
+            v.once(Phaser.GameObjects.Events.DESTROY, () => this.tweens.killTweensOf(v));
 
-        this.visitorGroup.add(v);
+            this.visitorGroup.add(v);
+          }
       }
     } else if (!isActive && sprites.length > 0) {
       sprites.forEach((s) => {
@@ -503,6 +656,34 @@ export default class MainScene extends Phaser.Scene {
         s.destroy();
       });
     }
+  }
+
+  spawnPizzaGuyOrbit() {
+    // 1. Startpunkt definieren (z.B. Mitte des Raumes)
+    const centerX = 400;
+    const centerY = 300;
+    const xRadius = 250;
+    const yRadius = 150;
+
+    // 2. Erstelle den Pfad
+    const path = new Phaser.Curves.Path(centerX + xRadius, centerY);
+
+    // 3. Füge die Ellipse hinzu
+    path.ellipseTo(xRadius, yRadius, 0, 360, false, 0);
+
+    // 4. Erstelle den PathFollower
+    const pizzaGuy = this.add.follower(path, 0, 0, 'visitor_pizza');
+    pizzaGuy.setPipeline('Light2D');
+
+    // 5. Starte die Bewegung
+    pizzaGuy.startFollow({
+        duration: 10000,
+        repeat: -1,
+        rotateToPath: false,
+        ease: 'Linear'
+    });
+
+    this.visitorGroup.add(pizzaGuy);
   }
 
   // --- VISUALS ---

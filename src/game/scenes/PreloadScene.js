@@ -47,8 +47,139 @@ export default class PreloadScene extends Phaser.Scene {
 
     create() {
         this.createHighQualityAssets();
+        this.createAdvancedAssets(); // Procedural Normal Maps & Animations
         console.log('[PreloadScene] High-Fidelity Assets ready. Switching -> MainScene');
         this.scene.start('MainScene');
+    }
+
+    createAdvancedAssets() {
+        // 1. WORKER MIT NORMAL MAP (Reagiert auf Licht)
+        this.genSpriteWithNormal('worker_dev_adv', 32, 32, (g, isNormal) => {
+            if (isNormal) {
+                // Flat Surface (Zeigt nach oben Z) = 0x8080ff (RGB: 128, 128, 255)
+                g.fillStyle(0x8080ff, 1);
+                g.fillRect(0, 0, 32, 32);
+
+                // Kanten simulieren (Links=Rot-, Rechts=Rot+, Oben=Grün+, Unten=Grün-)
+                // Wir nutzen einfache Farben, um Neigung zu simulieren
+                g.fillStyle(0xff8080, 1); // Rechts geneigt
+                g.fillRect(24, 12, 4, 14);
+                g.fillStyle(0x008080, 1); // Links geneigt
+                g.fillRect(4, 12, 4, 14);
+            } else {
+                // Diffuse Textur (Das eigentliche Bild)
+                g.fillStyle(0x3366cc, 1); // Blaues Shirt
+                g.fillRect(4, 12, 24, 14); // Breiterer Körper
+
+                // Kopf
+                g.fillStyle(0xffccaa, 1);
+                g.fillRect(8, 2, 16, 14);
+
+                // Monitor-Brille (Cyberpunk Look)
+                g.fillStyle(0x00ffff, 0.8);
+                g.fillRect(10, 6, 12, 4);
+            }
+        });
+
+        // 2. ANIMIERTE KAFFEEMASCHINE (Sprite Sheet Generation)
+        // Wir erstellen 4 Frames horizontal: Voll -> Halb -> Leer -> Refilling
+        this.genSpriteSheet('obj_coffee_anim', 32, 32, 4, (g, frameIndex) => {
+            // Gehäuse
+            g.fillStyle(0x444444, 1);
+            g.fillRoundedRect(4, 4, 24, 28, 2);
+
+            // Kanne Glas
+            g.fillStyle(0xaaddff, 0.3);
+            g.fillRect(8, 14, 16, 14);
+
+            // Flüssigkeit (Höhe basiert auf Frame)
+            const levels = [10, 5, 0, 10]; // Pixel Höhe
+            const color = frameIndex === 3 ? 0x00ff00 : 0x6f4e37; // Grün beim Nachfüllen
+
+            if (levels[frameIndex] > 0) {
+                g.fillStyle(color, 1);
+                g.fillRect(8, 28 - levels[frameIndex], 16, levels[frameIndex]);
+            }
+
+            // LED Status
+            const ledColor = frameIndex === 2 ? 0xff0000 : 0x00ff00;
+            g.fillStyle(ledColor);
+            g.fillCircle(16, 8, 2);
+        });
+
+        // --- NEW PROCEDURAL ASSETS ---
+
+        // WATER COOLER
+        this.genTexture('obj_watercooler', 32, 32, (g) => {
+            g.fillStyle(0x4488ff, 0.6); // Tank
+            g.fillRect(10, 2, 12, 12);
+            g.fillStyle(0xeeeeee, 1); // Base
+            g.fillRect(8, 14, 16, 18);
+            g.fillStyle(0xff0000, 1); // Tap Hot
+            g.fillRect(12, 18, 2, 4);
+            g.fillStyle(0x0000ff, 1); // Tap Cold
+            g.fillRect(18, 18, 2, 4);
+            g.lineStyle(1, 0x999999);
+            g.strokeRect(8, 14, 16, 18);
+        });
+
+        // PRINTER
+        this.genTexture('obj_printer', 32, 32, (g) => {
+            g.fillStyle(0xd0d0d0, 1);
+            g.fillRect(4, 10, 24, 18);
+            g.lineStyle(1, 0x555555);
+            g.strokeRect(4, 10, 24, 18);
+            g.fillStyle(0xffffff, 1); // Paper
+            g.fillRect(8, 4, 16, 6);
+            g.fillStyle(0x333333, 1); // Display
+            g.fillRect(18, 12, 8, 4);
+            g.fillStyle(0x00ff00, 1); // LED
+            g.fillCircle(8, 14, 2);
+        });
+
+        // WHITEBOARD
+        this.genTexture('obj_whiteboard', 32, 32, (g) => {
+            g.lineStyle(2, 0x888888, 1);
+            g.beginPath();
+            g.moveTo(4, 30); g.lineTo(4, 10);
+            g.moveTo(28, 30); g.lineTo(28, 10);
+            g.strokePath();
+            g.fillStyle(0xffffff, 1);
+            g.fillRect(2, 6, 28, 18);
+            g.lineStyle(1, 0xcccccc);
+            g.strokeRect(2, 6, 28, 18);
+            g.lineStyle(1, 0xff0000, 0.8);
+            g.beginPath();
+            g.moveTo(6, 14); g.lineTo(12, 10); g.lineTo(18, 16);
+            g.strokePath();
+            g.lineStyle(1, 0x0000ff, 0.8);
+            g.strokeCircle(22, 12, 3);
+        });
+
+        // DESK
+        this.genTexture('obj_desk', 32, 32, (g) => {
+            g.fillStyle(0x8b5a2b, 1);
+            g.fillRect(2, 12, 28, 14);
+            g.fillStyle(0x333333, 1);
+            g.fillRect(6, 6, 12, 8); // Screen
+            g.fillStyle(0x111111, 1);
+            g.fillRect(10, 14, 4, 2); // Stand
+            g.fillStyle(0xffffff, 1);
+            g.fillRect(22, 14, 6, 4); // Papers
+        });
+
+        // VENDING MACHINE
+        this.genTexture('obj_vending', 32, 32, (g) => {
+            g.fillStyle(0xcc3333, 1);
+            g.fillRect(6, 2, 20, 28);
+            g.fillStyle(0x222222, 0.8);
+            g.fillRect(8, 6, 16, 16);
+            g.fillStyle(0xffaa00); g.fillRect(10, 8, 2, 2);
+            g.fillStyle(0x00ff00); g.fillRect(14, 8, 2, 2);
+            g.fillStyle(0x0000ff); g.fillRect(18, 8, 2, 2);
+            g.fillStyle(0x111111, 1);
+            g.fillRect(8, 24, 16, 4);
+        });
     }
 
     createHighQualityAssets() {
@@ -214,6 +345,48 @@ export default class PreloadScene extends Phaser.Scene {
         createFloor('floor_1', 0xeeeeee, 0xd0d0d0);
         createFloor('floor_2', 0xdcb484, 0x8b5a2b); // keeping old colors roughly? no user snippet implies floor_1 style
         createFloor('floor_3', 0x223344, 0x446688);
+    }
+
+    /**
+     * Erstellt eine Textur UND eine zugehörige Normal Map.
+     */
+    genSpriteWithNormal(key, w, h, drawFn) {
+        // 1. Diffuse Textur
+        this.genTexture(key, w, h, (g) => drawFn(g, false));
+        // 2. Normal Map (Key + '_n')
+        this.genTexture(key + '_n', w, h, (g) => drawFn(g, true));
+    }
+
+    /**
+     * Erstellt ein Spritesheet durch mehrfaches Zeichnen auf eine breite Textur.
+     */
+    genSpriteSheet(key, frameW, frameH, frameCount, drawFn) {
+        if (this.textures.exists(key)) return;
+
+        const totalWidth = frameW * frameCount;
+        const g = this.make.graphics({ x: 0, y: 0, add: false });
+
+        try {
+            g.clear();
+
+            for (let i = 0; i < frameCount; i++) {
+                // Verschiebe den Ursprung für jeden Frame
+                g.save();
+                g.translate(i * frameW, 0);
+                drawFn(g, i); // Zeichne Frame i
+                g.restore();
+            }
+
+            g.generateTexture(key, totalWidth, frameH);
+
+            const texture = this.textures.get(key);
+            Phaser.Textures.Parsers.SpriteSheet(texture, 0, 0, 0, totalWidth, frameH, {
+                frameWidth: frameW,
+                frameHeight: frameH
+            });
+        } finally {
+            g.destroy();
+        }
     }
 
     // TextureGuard + MemSafe generator
