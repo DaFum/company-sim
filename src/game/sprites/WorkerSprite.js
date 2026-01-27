@@ -161,8 +161,12 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     this.stateTimer -= delta;
 
     // Sync Status-Icon position (More performance efficient than Container for simple labels)
+    // Only update position if feedback tween is NOT active, to prevent fighting the animation
     if (this.statusIcon.visible) {
-      this.statusIcon.setPosition(this.x, this.y - 25);
+      const isFeedbackPlaying = this.feedbackTween && this.feedbackTween.isPlaying();
+      if (!isFeedbackPlaying) {
+        this.statusIcon.setPosition(this.x, this.y - 25);
+      }
     }
 
     // Trait Icon Follow
