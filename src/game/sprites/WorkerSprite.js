@@ -22,7 +22,7 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     this.body.setOffset(4, 8); // Offset so feet are on the ground
 
     // --- VISUAL POLISH: SHADOW FX ---
-    if (this.preFX) {
+    if (scene.game.renderer.type === Phaser.WEBGL && this.preFX) {
       this.preFX.addShadow(0, 0.1, 0.1, 1, 0x000000, 2, 0.5);
     }
 
@@ -31,10 +31,12 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     const lightColor = role === 'dev' ? 0x0088ff : role === 'sales' ? 0x00ff00 : 0xff0000;
 
     // PointLight: extremely fast rendered "fake" lights
-    this.light = scene.add.pointlight(x, y, lightColor, 60, 0.3).setDepth(this.depth - 1);
-
-    // Store reference for update
-    this.scene.events.on('update', this.updateLight, this);
+    // Only created if WebGL is available to avoid issues
+    if (scene.game.renderer.type === Phaser.WEBGL) {
+      this.light = scene.add.pointlight(x, y, lightColor, 60, 0.3).setDepth(this.depth - 1);
+      // Store reference for update
+      this.scene.events.on('update', this.updateLight, this);
+    }
 
     // Particle Emitter (One-time creation)
     const particleColor = role === 'dev' ? [0x00ff00, 0x004400] : [0xffff00, 0xffaa00];
@@ -59,6 +61,7 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     // Pathfinding Cache
     this.path = [];
     this.movementTarget = new Phaser.Math.Vector2();
+    this._tempVec = new Phaser.Math.Vector2(); // Reusable vector
 
     // Performance: Text Object Pooling
     // We create the text object once and hide it, instead of creating it constantly.
@@ -186,14 +189,14 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
   }
 
   updateIdle(delta) {
-    this.energy -= delta * 0.005;
+    this.energy = Math.max(0, this.energy - delta * 0.005);
     if (this.stateTimer <= 0) {
       this.decideNextAction();
     }
   }
 
   updateMoving(delta) {
-    this.energy -= delta * 0.005;
+    this.energy = Math.max(0, this.energy - delta * 0.005);
 
     // Footprints (every 200ms)
     if (this.scene.time.now % 200 < 20) {
@@ -204,7 +207,7 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
   }
 
   updateWorking(delta) {
-    this.energy -= delta * 0.005;
+    this.energy = Math.max(0, this.energy - delta * 0.005);
 
     // Particles
     if (Math.random() < 0.05) {
@@ -228,6 +231,8 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
       this.workTween.stop();
     }
 
+    const startX = this.x;
+
     // Create a chain of movements
     this.workTween = this.scene.tweens.chain({
       targets: this, // Applies to all steps
@@ -245,7 +250,7 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
         // Step 2: Heavy typing / Working (Jiggle)
         {
           angle: { from: -5, to: 5 }, // Rotation
-          x: { from: this.x - 1, to: this.x + 1 }, // Slight vibration
+          x: { from: startX - 1, to: startX + 1 }, // Slight vibration around START position
           duration: 80,
           yoyo: true,
           repeat: 10, // 10 times back and forth (approx 1.6 seconds)
@@ -256,7 +261,7 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
           scaleX: 1,
           scaleY: 1,
           angle: 0,
-          x: this.x, // Ensure it returns exactly
+          x: startX, // Ensure it returns exactly to start
           duration: 200,
           ease: 'Back.easeOut',
         },
@@ -267,7 +272,7 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
   finishTask() {
     this.currentState = STATE.IDLE;
     this.showFeedback('$');
-    this.stateTimer = 500; // Short pause
+    this.stateTimer = 1500; // Longer pause for feedback animation
   }
 
   updateCoffee() {
@@ -304,7 +309,9 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
 
   followPath() {
     // [3] Efficient distance calculation
-    const distSq = this.movementTarget.distanceSq(new Phaser.Math.Vector2(this.x, this.y));
+    // Reuse tempVec to avoid garbage collection
+    this._tempVec.set(this.x, this.y);
+    const distSq = this.movementTarget.distanceSq(this._tempVec);
 
     // 4px * 4px = 16 (Squared Distance is faster than sqrt)
     if (distSq < 16) {

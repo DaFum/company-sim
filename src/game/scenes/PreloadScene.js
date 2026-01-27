@@ -53,34 +53,6 @@ export default class PreloadScene extends Phaser.Scene {
   }
 
   createAdvancedAssets() {
-    // 1. WORKER WITH NORMAL MAP (Reacts to Light)
-    this.genSpriteWithNormal('worker_dev_adv', 32, 32, (g, isNormal) => {
-      if (isNormal) {
-        // Flat Surface (Facing up Z) = 0x8080ff (RGB: 128, 128, 255)
-        g.fillStyle(0x8080ff, 1);
-        g.fillRect(0, 0, 32, 32);
-
-        // Simulate edges (Left=Red-, Right=Red+, Top=Green+, Bottom=Green-)
-        // Using simple colors to simulate slope
-        g.fillStyle(0xff8080, 1); // Sloped Right
-        g.fillRect(24, 12, 4, 14);
-        g.fillStyle(0x008080, 1); // Sloped Left
-        g.fillRect(4, 12, 4, 14);
-      } else {
-        // Diffuse Texture (The actual image)
-        g.fillStyle(0x3366cc, 1); // Blue Shirt
-        g.fillRect(4, 12, 24, 14); // Wider Body
-
-        // Head
-        g.fillStyle(0xffccaa, 1);
-        g.fillRect(8, 2, 16, 14);
-
-        // Monitor Glasses (Cyberpunk Look)
-        g.fillStyle(0x00ffff, 0.8);
-        g.fillRect(10, 6, 12, 4);
-      }
-    });
-
     // 2. ANIMATED COFFEE MACHINE (Sprite Sheet Generation)
     // We create 4 frames horizontally: Full -> Half -> Empty -> Refilling
     this.genSpriteSheet('obj_coffee_anim', 32, 32, 4, (g, frameIndex) => {

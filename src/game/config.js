@@ -3,7 +3,7 @@ import PreloadScene from './scenes/PreloadScene';
 import MainScene from './scenes/MainScene';
 
 export const gameConfig = {
-  type: Phaser.WEBGL, // Enforce WebGL for Shader Support
+  type: Phaser.AUTO, // Try WebGL, fallback to Canvas
   parent: 'game-container',
   width: 800,
   height: 600,

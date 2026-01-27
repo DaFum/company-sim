@@ -131,14 +131,17 @@ export default class MainScene extends Phaser.Scene {
     }
 
     // --- PUSH THE LIMITS: POST-PROCESSING STACK ---
-    // 1. Tilt Shift (Bokeh)
-    this.cameras.main.postFX.addTiltShift(0.5, 2.0, 0.4, true);
+    // Only apply postFX if supported (WebGL)
+    if (this.game.renderer.type === Phaser.WEBGL) {
+      // 1. Tilt Shift (Bokeh)
+      this.cameras.main.postFX.addTiltShift(0.5, 2.0, 0.4, true);
 
-    // 2. Vignette
-    this.cameras.main.postFX.addVignette(0.5, 0.5, 0.8, 0.4);
+      // 2. Vignette
+      this.cameras.main.postFX.addVignette(0.5, 0.5, 0.8, 0.4);
 
-    // 3. Bloom
-    this.cameras.main.postFX.addBloom(0xffffff, 1, 1, 1.2, 1.5);
+      // 3. Bloom
+      this.cameras.main.postFX.addBloom(0xffffff, 1, 1, 1.2, 1.5);
+    }
 
     // --- ATMOSPHERE: DYNAMIC LIGHTING ---
     // 1. ENABLE LIGHTS
@@ -146,11 +149,14 @@ export default class MainScene extends Phaser.Scene {
     this.lights.setAmbientColor(0x555555); // Darker ambient light for contrast
 
     // Mouse follower light (Flashlight)
-    const mouseLight = this.lights.addLight(0, 0, 200).setColor(0xffffff).setIntensity(2);
-    this.input.on('pointermove', (pointer) => {
-      mouseLight.x = pointer.worldX;
-      mouseLight.y = pointer.worldY;
-    });
+    this.mouseLight = this.lights.addLight(0, 0, 200).setColor(0xffffff).setIntensity(2);
+    this._onPointerMove = (pointer) => {
+      if (this.mouseLight) {
+        this.mouseLight.x = pointer.worldX;
+        this.mouseLight.y = pointer.worldY;
+      }
+    };
+    this.input.on('pointermove', this._onPointerMove);
 
     // 2. CREATE COFFEE ANIMATION
     if (!this.anims.exists('coffee_drain')) {
@@ -219,7 +225,8 @@ export default class MainScene extends Phaser.Scene {
       this.isDragging = false; // Zoom blocks dragging
       return;
     } else {
-      this.pinchDistance = 0; // Reset when finger released
+      // Reset pinch distance if not pinching
+      this.pinchDistance = 0;
     }
 
     // --- 2. PANNING (One finger / Mouse drag) ---
@@ -252,7 +259,15 @@ export default class MainScene extends Phaser.Scene {
     // 2) Kill tweens
     this.tweens.killAll();
 
-    // 3) Destroy groups
+    // 3) Destroy groups & Objects
+    if (this.mouseLight) {
+      this.mouseLight.destroy();
+      this.mouseLight = null;
+    }
+    if (this._footprintGraphics) {
+      this._footprintGraphics.destroy();
+      this._footprintGraphics = null;
+    }
     if (this.floorTexture) {
       this.floorTexture.destroy();
       this.floorTexture = null;
@@ -263,6 +278,7 @@ export default class MainScene extends Phaser.Scene {
     this.overlayGroup?.clear(true, true);
 
     // 4) Input cleanup
+    this.input?.off('pointermove', this._onPointerMove);
     this.input?.removeAllListeners();
     if (this.input?.keyboard) {
       this.input.keyboard.removeAllListeners();
@@ -340,9 +356,9 @@ export default class MainScene extends Phaser.Scene {
   }
 
   createFullscreenButton() {
-    // Simple button top right
+    // Simple button top right (Relative)
     const btn = this.add
-      .text(760, 40, '⛶', {
+      .text(this.scale.width - 40, 40, '⛶', {
         fontSize: '32px',
         backgroundColor: '#00000055',
         padding: { x: 5, y: 5 },
@@ -404,7 +420,9 @@ export default class MainScene extends Phaser.Scene {
 
     // Add Shadow FX for depth (PostFX)
     // x, y, decay, power, color, samples, intensity
-    this.tooltip.postFX.addShadow(0, 4, 0.1, 1, 0x000000, 2, 1);
+    if (this.game.renderer.type === Phaser.WEBGL) {
+      this.tooltip.postFX.addShadow(0, 4, 0.1, 1, 0x000000, 2, 1);
+    }
   }
 
   showTooltip(x, y, text) {
@@ -558,12 +576,14 @@ export default class MainScene extends Phaser.Scene {
     }
 
     // Enable Normal Map Lighting for all objects if supported
-    obj.setPipeline('Light2D');
+    if (this.game.renderer.pipelines && this.game.renderer.pipelines.has('Light2D')) {
+      obj.setPipeline('Light2D');
+    }
 
     this.objectGroup.add(obj);
 
-    // FX Polish
-    if (obj.postFX) {
+    // FX Polish (WebGL Only)
+    if (this.game.renderer.type === Phaser.WEBGL && obj.postFX) {
       if (texture === 'obj_server') {
         // Bloom: color, offsetX, offsetY, blurStrength, strength, steps
         obj.postFX.addBloom(0x00ff00, 1, 1, 1, 1.2, 2);
@@ -639,7 +659,9 @@ export default class MainScene extends Phaser.Scene {
           const v = this.add.sprite(startX, startY + i * 40, key);
           this.physics.add.existing(v);
           // Enable lighting for visitors too
-          v.setPipeline('Light2D');
+          if (this.game.renderer.pipelines && this.game.renderer.pipelines.has('Light2D')) {
+            v.setPipeline('Light2D');
+          }
 
           this.tweens.add({ targets: v, x: endX, duration: 2000 });
           v.once(Phaser.GameObjects.Events.DESTROY, () => this.tweens.killTweensOf(v));
@@ -670,7 +692,9 @@ export default class MainScene extends Phaser.Scene {
 
     // 4. Create PathFollower
     const pizzaGuy = this.add.follower(path, 0, 0, 'visitor_pizza');
-    pizzaGuy.setPipeline('Light2D');
+    if (this.game.renderer.pipelines && this.game.renderer.pipelines.has('Light2D')) {
+      pizzaGuy.setPipeline('Light2D');
+    }
 
     // 5. Start movement
     pizzaGuy.startFollow({
