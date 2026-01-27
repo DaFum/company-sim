@@ -352,7 +352,7 @@ export default class PreloadScene extends Phaser.Scene {
       for (let i = 0; i < frameCount; i++) {
         // Shift origin for each frame
         g.save();
-        g.translate(i * frameW, 0);
+        g.translateCanvas(i * frameW, 0);
         drawFn(g, i); // Draw Frame i
         g.restore();
       }
