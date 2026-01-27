@@ -7,6 +7,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 // https://vite.dev/config/
 export default defineConfig({
+  // eslint-disable-next-line no-undef
   base: process.env.GITHUB_PAGES === 'true' ? '/company-sim/' : '/',
   plugins: [react()],
   resolve: {

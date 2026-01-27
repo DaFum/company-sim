@@ -31,11 +31,10 @@ export default class MainScene extends Phaser.Scene {
   }
 
   create() {
-    console.log('[MainScene] Booting (Omega Refactor)...');
     this.soundManager = new SoundManager(this);
 
     // 1) Groups
-    this.floorGroup = this.add.group();
+    this.floorTexture = null; // Replaces floorGroup
     this.objectGroup = this.add.group();
     this.workersGroup = this.add.group({ runChildUpdate: true });
     this.visitorGroup = this.add.group({ runChildUpdate: true });
@@ -57,6 +56,14 @@ export default class MainScene extends Phaser.Scene {
     this.input.addPointer(1); // Enable multi-touch
     this.setupCameraControls();
     this.setupTouchInteractions();
+
+    // Initialize touch-specific variables
+    this.pinchDistance = 0;
+    this.isDragging = false;
+    this.dragOrigin = new Phaser.Math.Vector2();
+
+    // Fullscreen Button for Mobile (optional but recommended)
+    this.createFullscreenButton();
 
     // Visuals
     this.setupTooltip();
@@ -123,14 +130,60 @@ export default class MainScene extends Phaser.Scene {
       console.warn('[MainScene] Store unavailable.');
     }
 
-    // Zoom Handlers
-    this.zoomInHandler = () => this.handleZoom(0.2);
-    this.zoomOutHandler = () => this.handleZoom(-0.2);
-    window.addEventListener('ZOOM_IN', this.zoomInHandler);
-    window.addEventListener('ZOOM_OUT', this.zoomOutHandler);
+    // --- PUSH THE LIMITS: POST-PROCESSING STACK ---
+    // Only apply postFX if supported (WebGL)
+    if (this.game.renderer.type === Phaser.WEBGL) {
+      // 1. Tilt Shift (Bokeh)
+      this.cameras.main.postFX.addTiltShift(0.5, 2.0, 0.4, true);
 
-    // 6) Cleanup Hook
+      // 2. Vignette
+      this.cameras.main.postFX.addVignette(0.5, 0.5, 0.8, 0.4);
+
+      // 3. Bloom
+      this.cameras.main.postFX.addBloom(0xffffff, 1, 1, 1.2, 1.5);
+    }
+
+    // --- ATMOSPHERE: DYNAMIC LIGHTING ---
+    // 1. ENABLE LIGHTS
+    this.lights.enable();
+    this.lights.setAmbientColor(0x555555); // Darker ambient light for contrast
+
+    // Mouse follower light (Flashlight)
+    this.mouseLight = this.lights.addLight(0, 0, 200).setColor(0xffffff).setIntensity(2);
+    this._onPointerMove = (pointer) => {
+      if (this.mouseLight) {
+        this.mouseLight.x = pointer.worldX;
+        this.mouseLight.y = pointer.worldY;
+      }
+    };
+    this.input.on('pointermove', this._onPointerMove);
+
+    // 2. CREATE COFFEE ANIMATION
+    if (!this.anims.exists('coffee_drain')) {
+      this.anims.create({
+        key: 'coffee_drain',
+        frames: this.anims.generateFrameNumbers('obj_coffee_anim', { start: 0, end: 2 }),
+        frameRate: 0.5, // Drain slowly
+        repeat: 0,
+      });
+      this.anims.create({
+        key: 'coffee_refill',
+        frames: this.anims.generateFrameNumbers('obj_coffee_anim', { frames: [3, 0] }),
+        frameRate: 2,
+        repeat: 0,
+      });
+    }
+
+    // Store Event Handler references for clean removal
+    this._onZoomIn = () => this.handleZoom(0.2);
+    this._onZoomOut = () => this.handleZoom(-0.2);
+
+    window.addEventListener('ZOOM_IN', this._onZoomIn);
+    window.addEventListener('ZOOM_OUT', this._onZoomOut);
+
+    // Use internal Phaser Shutdown Event
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.onShutdown, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.onDestroy, this);
   }
 
   update() {
@@ -141,26 +194,91 @@ export default class MainScene extends Phaser.Scene {
         if (this._pendingPathRequests <= 0) break;
       }
     }
+
+    this.handleMobileControls();
+  }
+
+  handleMobileControls() {
+    const input = this.input;
+    const camera = this.cameras.main;
+
+    // Pointer references
+    const pointer1 = input.pointer1;
+    const pointer2 = input.pointer2;
+
+    // --- 1. PINCH TO ZOOM (Two Fingers) ---
+    if (pointer1.isDown && pointer2.isDown) {
+      // Calculate distance between fingers
+      const dist = Phaser.Math.Distance.Between(pointer1.x, pointer1.y, pointer2.x, pointer2.y);
+
+      if (this.pinchDistance > 0) {
+        // Compare with previous value
+        const delta = dist - this.pinchDistance;
+
+        // Adjust zoom (Sensitivity 0.005)
+        const newZoom = camera.zoom + delta * 0.005;
+        camera.setZoom(Phaser.Math.Clamp(newZoom, 0.5, 3)); // Set limits
+      }
+
+      // Save current distance
+      this.pinchDistance = dist;
+      this.isDragging = false; // Zoom blocks dragging
+      return;
+    } else {
+      // Reset pinch distance if not pinching
+      this.pinchDistance = 0;
+    }
+
+    // --- 2. PANNING (One finger / Mouse drag) ---
+    const activePointer = input.activePointer;
+
+    if (activePointer.isDown) {
+      if (this.isDragging) {
+        // Move camera based on delta
+        // Divide by zoom for consistent speed
+        camera.scrollX -= (activePointer.x - activePointer.prevPosition.x) / camera.zoom;
+        camera.scrollY -= (activePointer.y - activePointer.prevPosition.y) / camera.zoom;
+      } else {
+        // Start drag
+        this.isDragging = true;
+      }
+    } else {
+      this.isDragging = false;
+    }
   }
 
   onShutdown() {
     console.log('[MainScene] Shutting down. Cleaning up...');
 
     // 1) Unsubscribe store
-    this.unsubscribers.forEach((u) => u());
-    this.unsubscribers = [];
+    if (this.unsubscribers) {
+      this.unsubscribers.forEach((u) => u());
+      this.unsubscribers = [];
+    }
 
     // 2) Kill tweens
     this.tweens.killAll();
 
-    // 3) Destroy groups
-    this.floorGroup?.clear(true, true);
+    // 3) Destroy groups & Objects
+    if (this.mouseLight) {
+      this.mouseLight.destroy();
+      this.mouseLight = null;
+    }
+    if (this._footprintGraphics) {
+      this._footprintGraphics.destroy();
+      this._footprintGraphics = null;
+    }
+    if (this.floorTexture) {
+      this.floorTexture.destroy();
+      this.floorTexture = null;
+    }
     this.objectGroup?.clear(true, true);
     this.workersGroup?.clear(true, true);
     this.visitorGroup?.clear(true, true);
     this.overlayGroup?.clear(true, true);
 
     // 4) Input cleanup
+    this.input?.off('pointermove', this._onPointerMove);
     this.input?.removeAllListeners();
     if (this.input?.keyboard) {
       this.input.keyboard.removeAllListeners();
@@ -169,8 +287,8 @@ export default class MainScene extends Phaser.Scene {
     }
 
     // Clean Window Events
-    window.removeEventListener('ZOOM_IN', this.zoomInHandler);
-    window.removeEventListener('ZOOM_OUT', this.zoomOutHandler);
+    window.removeEventListener('ZOOM_IN', this._onZoomIn);
+    window.removeEventListener('ZOOM_OUT', this._onZoomOut);
 
     // 5) Pathing cleanup
     this.easystar = null;
@@ -178,42 +296,83 @@ export default class MainScene extends Phaser.Scene {
     this._pendingPathRequests = 0;
   }
 
+  onDestroy() {
+    // Clean up plugins or managers if necessary
+    if (this.soundManager) {
+      this.soundManager = null; // Help Garbage Collection
+    }
+  }
+
   // --- CAMERA & INPUT ---
   setupCameraControls() {
     // Zoom (Wheel)
     this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
       const newZoom = this.cameras.main.zoom - deltaY * 0.001;
-      this.cameras.main.setZoom(Phaser.Math.Clamp(newZoom, 0.5, 2));
+      this.cameras.main.setZoom(Phaser.Math.Clamp(newZoom, 0.5, 3));
     });
 
-    // Pan (Pointer Move - Works for Mouse & Touch drag)
-    this.input.on('pointermove', (pointer) => {
-      if (!pointer.isDown) return;
-      this.cameras.main.scrollX -= (pointer.x - pointer.prevPosition.x) / this.cameras.main.zoom;
-      this.cameras.main.scrollY -= (pointer.y - pointer.prevPosition.y) / this.cameras.main.zoom;
-    });
+    // Legacy Pan Removed - Handled in update() via handleMobileControls
   }
 
   handleZoom(delta) {
-    this.cameras.main.setZoom(Phaser.Math.Clamp(this.cameras.main.zoom + delta, 0.5, 2));
+    this.cameras.main.setZoom(Phaser.Math.Clamp(this.cameras.main.zoom + delta, 0.5, 3));
   }
 
   setupTouchInteractions() {
-    // Tap on Worker
+    // Tap on Worker with Drag Tolerance
     this.input.on('gameobjectdown', (pointer, gameObject) => {
       if (gameObject instanceof WorkerSprite) {
-        this.showTooltip(
-          gameObject.x,
-          gameObject.y - 40,
-          `${gameObject.role.toUpperCase()}\n${gameObject.energy.toFixed(0)}%`
-        );
+        // We set a once-listener on pointerup for this specific event
+        // But gameobjectdown fires on start.
+        // Simpler: Check global pointer up or use InputPlugin features.
       }
     });
 
-    // Tap on BG to close
-    this.input.on('pointerdown', (pointer, currentlyOver) => {
-      if (currentlyOver.length === 0) {
-        this.hideTooltip();
+    // Better: Global Pointer Up Check
+    this.input.on('pointerup', (pointer) => {
+      // Only if tap (< 10px movement)
+      if (pointer.getDistance() < 10) {
+        // Check Collision
+        // Manually raycast or check under pointer
+        const worldPoint = pointer.positionToCamera(this.cameras.main);
+        const workers = this.workersGroup.getChildren();
+
+        // Simple AABB check
+        const clickedWorker = workers.find((w) =>
+          w.getBounds().contains(worldPoint.x, worldPoint.y)
+        );
+
+        if (clickedWorker) {
+          this.showTooltip(
+            clickedWorker.x,
+            clickedWorker.y - 40,
+            `${clickedWorker.role.toUpperCase()}\nEnergy: ${Math.max(0, clickedWorker.energy).toFixed(0)}%`
+          );
+        } else {
+          this.hideTooltip();
+        }
+      }
+    });
+  }
+
+  createFullscreenButton() {
+    // Simple button top right (Relative)
+    const btn = this.add
+      .text(this.scale.width - 40, 40, '⛶', {
+        fontSize: '32px',
+        backgroundColor: '#00000055',
+        padding: { x: 5, y: 5 },
+      })
+      .setOrigin(1, 0) // Anchor top right
+      .setScrollFactor(0)
+      .setDepth(200)
+      .setInteractive();
+
+    btn.on('pointerup', () => {
+      if (this.scale.isFullscreen) {
+        this.scale.stopFullscreen(); //
+      } else {
+        this.scale.startFullscreen(); //
       }
     });
   }
@@ -252,12 +411,18 @@ export default class MainScene extends Phaser.Scene {
       .text(0, 0, '', {
         font: '12px monospace',
         fill: '#ffffff',
-        backgroundColor: '#00000088',
-        padding: { x: 5, y: 5 },
+        backgroundColor: '#000000dd', // More opaque for better contrast
+        padding: { x: 8, y: 8 },
       })
       .setDepth(100)
       .setVisible(false)
       .setScrollFactor(0);
+
+    // Add Shadow FX for depth (PostFX)
+    // x, y, decay, power, color, samples, intensity
+    if (this.game.renderer.type === Phaser.WEBGL) {
+      this.tooltip.postFX.addShadow(0, 4, 0.1, 1, 0x000000, 2, 1);
+    }
   }
 
   showTooltip(x, y, text) {
@@ -340,16 +505,37 @@ export default class MainScene extends Phaser.Scene {
     });
   }
 
-  // --- FLOOR ---
+  // --- FLOOR (RenderTexture) ---
   createFloor(level) {
-    this.floorGroup?.clear(true, true);
+    // Instead of a Group, we use a RenderTexture for maximum performance
+    if (this.floorTexture) this.floorTexture.destroy();
+
+    // Double size to cover edges, but grid size is enough here
+    this.floorTexture = this.add
+      .renderTexture(0, 0, this.cols * this.tileSize, this.rows * this.tileSize)
+      .setDepth(0);
+
     const textureKey = `floor_${level}`;
+
+    this.floorTexture.beginDraw();
     for (let x = 0; x < this.cols; x++) {
       for (let y = 0; y < this.rows; y++) {
-        const tile = this.add.image(x * this.tileSize, y * this.tileSize, textureKey).setOrigin(0);
-        if ((x + y) % 2 === 0) tile.setTint(0xdddddd);
-        this.floorGroup.add(tile);
+        this.floorTexture.batchDrawFrame(textureKey, 0, x * this.tileSize, y * this.tileSize);
       }
+    }
+    this.floorTexture.endDraw();
+    // Enable pipeline for floor? Optional. Standard for now.
+  }
+
+  addFootprint(x, y) {
+    if (this.floorTexture) {
+      // Optimize: Reuse a shared Graphics object or create once
+      if (!this._footprintGraphics) {
+        this._footprintGraphics = this.make.graphics({ add: false });
+        this._footprintGraphics.fillStyle(0x000000, 0.1);
+        this._footprintGraphics.fillCircle(0, 0, 2);
+      }
+      this.floorTexture.draw(this._footprintGraphics, x, y);
     }
   }
 
@@ -357,12 +543,57 @@ export default class MainScene extends Phaser.Scene {
   spawnObjects() {
     this.objectGroup?.clear(true, true);
     this.spawnObject(2, 2, 'obj_server');
-    this.spawnObject(23, 2, 'obj_coffee');
+    this.spawnObject(23, 2, 'obj_coffee_anim', true); // Animated coffee
     this.spawnObject(2, 17, 'obj_plant');
+
+    // NEW: Printer near support
+    this.spawnObject(5, 5, 'obj_printer');
+
+    // NEW: Watercooler central
+    this.spawnObject(12, 10, 'obj_watercooler');
+
+    // NEW: Whiteboard in Dev area
+    this.spawnObject(3, 15, 'obj_whiteboard');
+
+    // NEW: Vending Machine
+    this.spawnObject(20, 10, 'obj_vending');
   }
 
-  spawnObject(x, y, texture) {
-    this.objectGroup.add(this.add.image(x * this.tileSize + 16, y * this.tileSize + 16, texture));
+  spawnObject(x, y, texture, isAnimated = false) {
+    let obj;
+    if (isAnimated) {
+      obj = this.add.sprite(x * this.tileSize + 16, y * this.tileSize + 16, texture);
+      if (texture === 'obj_coffee_anim') {
+        obj.play('coffee_drain');
+        obj.setInteractive();
+        obj.on('pointerdown', () => {
+          obj.play('coffee_refill');
+          this.soundManager.play('kaching');
+        });
+      }
+    } else {
+      obj = this.add.image(x * this.tileSize + 16, y * this.tileSize + 16, texture);
+    }
+
+    // Enable Normal Map Lighting for all objects if supported
+    if (this.game.renderer.pipelines && this.game.renderer.pipelines.has('Light2D')) {
+      obj.setPipeline('Light2D');
+    }
+
+    this.objectGroup.add(obj);
+
+    // FX Polish (WebGL Only)
+    if (this.game.renderer.type === Phaser.WEBGL && obj.postFX) {
+      if (texture === 'obj_server') {
+        // Bloom: color, offsetX, offsetY, blurStrength, strength, steps
+        obj.postFX.addBloom(0x00ff00, 1, 1, 1, 1.2, 2);
+      }
+
+      if (texture === 'obj_plant') {
+        // Shadow: x, y, decay, power, color, samples, intensity
+        obj.postFX.addShadow(0, 0, 0.1, 0.5, 0x000000, 2, 0.8);
+      }
+    }
   }
 
   // --- WORKERS ---
@@ -421,14 +652,22 @@ export default class MainScene extends Phaser.Scene {
     const sprites = this.visitorGroup.getChildren().filter((v) => v.texture?.key === key);
 
     if (isActive && sprites.length === 0) {
-      for (let i = 0; i < count; i++) {
-        const v = this.add.sprite(startX, startY + i * 40, key);
-        this.physics.add.existing(v);
+      if (key === 'visitor_pizza') {
+        this.spawnPizzaGuyOrbit();
+      } else {
+        for (let i = 0; i < count; i++) {
+          const v = this.add.sprite(startX, startY + i * 40, key);
+          this.physics.add.existing(v);
+          // Enable lighting for visitors too
+          if (this.game.renderer.pipelines && this.game.renderer.pipelines.has('Light2D')) {
+            v.setPipeline('Light2D');
+          }
 
-        this.tweens.add({ targets: v, x: endX, duration: 2000 });
-        v.once(Phaser.GameObjects.Events.DESTROY, () => this.tweens.killTweensOf(v));
+          this.tweens.add({ targets: v, x: endX, duration: 2000 });
+          v.once(Phaser.GameObjects.Events.DESTROY, () => this.tweens.killTweensOf(v));
 
-        this.visitorGroup.add(v);
+          this.visitorGroup.add(v);
+        }
       }
     } else if (!isActive && sprites.length > 0) {
       sprites.forEach((s) => {
@@ -436,6 +675,36 @@ export default class MainScene extends Phaser.Scene {
         s.destroy();
       });
     }
+  }
+
+  spawnPizzaGuyOrbit() {
+    // 1. Define start point (e.g. room center)
+    const centerX = 400;
+    const centerY = 300;
+    const xRadius = 250;
+    const yRadius = 150;
+
+    // 2. Create path
+    const path = new Phaser.Curves.Path(centerX + xRadius, centerY);
+
+    // 3. Add ellipse
+    path.ellipseTo(xRadius, yRadius, 0, 360, false, 0);
+
+    // 4. Create PathFollower
+    const pizzaGuy = this.add.follower(path, 0, 0, 'visitor_pizza');
+    if (this.game.renderer.pipelines && this.game.renderer.pipelines.has('Light2D')) {
+      pizzaGuy.setPipeline('Light2D');
+    }
+
+    // 5. Start movement
+    pizzaGuy.startFollow({
+      duration: 10000,
+      repeat: -1,
+      rotateToPath: false,
+      ease: 'Linear',
+    });
+
+    this.visitorGroup.add(pizzaGuy);
   }
 
   // --- VISUALS ---

@@ -71,7 +71,7 @@ export const useAiDirector = () => {
             };
           }
 
-          console.log('🧠 KI Response:', result);
+          console.log('[AI] Response:', result);
 
           // 3. Set Decision
           setPendingDecision({
