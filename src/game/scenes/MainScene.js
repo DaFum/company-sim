@@ -140,13 +140,13 @@ export default class MainScene extends Phaser.Scene {
       this.cameras.main.postFX.addVignette(0.5, 0.5, 0.8, 0.4);
 
       // 3. Bloom
-      this.cameras.main.postFX.addBloom(0xffffff, 1, 1, 1.2, 1.5);
+      this.cameras.main.postFX.addBloom(0xffffff, 1, 1, 0.5, 1.0);
     }
 
     // --- ATMOSPHERE: DYNAMIC LIGHTING ---
     // 1. ENABLE LIGHTS
     this.lights.enable();
-    this.lights.setAmbientColor(0x555555); // Darker ambient light for contrast
+    this.lights.setAmbientColor(0x888888); // Brighter ambient light for better visibility
 
     // Mouse follower light (Flashlight)
     this.mouseLight = this.lights.addLight(0, 0, 200).setColor(0xffffff).setIntensity(2);

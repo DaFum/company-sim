@@ -55,7 +55,12 @@ export default class PreloadScene extends Phaser.Scene {
   createAdvancedAssets() {
     // 2. ANIMATED COFFEE MACHINE (Sprite Sheet Generation)
     // We create 4 frames horizontally: Full -> Half -> Empty -> Refilling
-    this.genSpriteSheet('obj_coffee_anim', 32, 32, 4, (g, frameIndex) => {
+    this.genSpriteSheetWithNormal('obj_coffee_anim', 32, 32, 4, (g, frameIndex, isNormal) => {
+      if (isNormal) {
+        g.fillStyle(0x8080ff, 1);
+        g.fillRect(0, 0, 32, 32);
+        return;
+      }
       // Casing
       g.fillStyle(0x444444, 1);
       g.fillRoundedRect(4, 4, 24, 28, 2);
@@ -82,7 +87,12 @@ export default class PreloadScene extends Phaser.Scene {
     // --- NEW PROCEDURAL ASSETS ---
 
     // WATER COOLER
-    this.genTexture('obj_watercooler', 32, 32, (g) => {
+    this.genSpriteWithNormal('obj_watercooler', 32, 32, (g, isNormal) => {
+      if (isNormal) {
+        g.fillStyle(0x8080ff, 1);
+        g.fillRect(0, 0, 32, 32);
+        return;
+      }
       g.fillStyle(0x4488ff, 0.6); // Tank
       g.fillRect(10, 2, 12, 12);
       g.fillStyle(0xeeeeee, 1); // Base
@@ -96,7 +106,12 @@ export default class PreloadScene extends Phaser.Scene {
     });
 
     // PRINTER
-    this.genTexture('obj_printer', 32, 32, (g) => {
+    this.genSpriteWithNormal('obj_printer', 32, 32, (g, isNormal) => {
+      if (isNormal) {
+        g.fillStyle(0x8080ff, 1);
+        g.fillRect(0, 0, 32, 32);
+        return;
+      }
       g.fillStyle(0xd0d0d0, 1);
       g.fillRect(4, 10, 24, 18);
       g.lineStyle(1, 0x555555);
@@ -110,7 +125,12 @@ export default class PreloadScene extends Phaser.Scene {
     });
 
     // WHITEBOARD
-    this.genTexture('obj_whiteboard', 32, 32, (g) => {
+    this.genSpriteWithNormal('obj_whiteboard', 32, 32, (g, isNormal) => {
+      if (isNormal) {
+        g.fillStyle(0x8080ff, 1);
+        g.fillRect(0, 0, 32, 32);
+        return;
+      }
       g.lineStyle(2, 0x888888, 1);
       g.beginPath();
       g.moveTo(4, 30);
@@ -133,7 +153,12 @@ export default class PreloadScene extends Phaser.Scene {
     });
 
     // DESK
-    this.genTexture('obj_desk', 32, 32, (g) => {
+    this.genSpriteWithNormal('obj_desk', 32, 32, (g, isNormal) => {
+      if (isNormal) {
+        g.fillStyle(0x8080ff, 1);
+        g.fillRect(0, 0, 32, 32);
+        return;
+      }
       g.fillStyle(0x8b5a2b, 1);
       g.fillRect(2, 12, 28, 14);
       g.fillStyle(0x333333, 1);
@@ -145,7 +170,12 @@ export default class PreloadScene extends Phaser.Scene {
     });
 
     // VENDING MACHINE
-    this.genTexture('obj_vending', 32, 32, (g) => {
+    this.genSpriteWithNormal('obj_vending', 32, 32, (g, isNormal) => {
+      if (isNormal) {
+        g.fillStyle(0x8080ff, 1);
+        g.fillRect(0, 0, 32, 32);
+        return;
+      }
       g.fillStyle(0xcc3333, 1);
       g.fillRect(6, 2, 20, 28);
       g.fillStyle(0x222222, 0.8);
@@ -188,6 +218,7 @@ export default class PreloadScene extends Phaser.Scene {
     };
 
     // --- WORKER: DEV ---
+    // Workers don't use Light2D currently, keeping as genTexture
     this.genTexture('worker_dev', 32, 32, (g) => {
       drawCharBase(g, PALETTE.SHIRT_DEV);
       // Headphones (typical for Devs)
@@ -228,7 +259,12 @@ export default class PreloadScene extends Phaser.Scene {
     });
 
     // --- VISITOR: PIZZA ---
-    this.genTexture('visitor_pizza', 32, 32, (g) => {
+    this.genSpriteWithNormal('visitor_pizza', 32, 32, (g, isNormal) => {
+      if (isNormal) {
+        g.fillStyle(0x8080ff, 1);
+        g.fillRect(0, 0, 32, 32);
+        return;
+      }
       // Keep simple or improve? User didn't specify, but I should keep it to avoid missing texture
       // Let's make it match style slightly
       g.lineStyle(2, PALETTE.OUTLINE, 1);
@@ -245,7 +281,12 @@ export default class PreloadScene extends Phaser.Scene {
     });
 
     // --- VISITOR: INVESTOR ---
-    this.genTexture('visitor_investor', 32, 32, (g) => {
+    this.genSpriteWithNormal('visitor_investor', 32, 32, (g, isNormal) => {
+      if (isNormal) {
+        g.fillStyle(0x8080ff, 1);
+        g.fillRect(0, 0, 32, 32);
+        return;
+      }
       g.lineStyle(2, PALETTE.OUTLINE, 1);
       g.fillStyle(0x555555, 1); // Suit
       g.fillRect(6, 10, 20, 20);
@@ -259,7 +300,16 @@ export default class PreloadScene extends Phaser.Scene {
     });
 
     // --- OBJECT: SERVER ---
-    this.genTexture('obj_server', 32, 32, (g) => {
+    this.genSpriteWithNormal('obj_server', 32, 32, (g, isNormal) => {
+      if (isNormal) {
+        // Flat Normal Map Farbe (0x8080ff ist "flach" in Normal-Map Sprache)
+        g.fillStyle(0x8080ff, 1);
+        g.fillRect(0, 0, 32, 32);
+        // Optional: Kanten hervorheben für 3D Effekt
+        g.lineStyle(2, 0x80ff80, 1); // "Licht von oben" simulieren
+        g.strokeRect(4, 2, 24, 28);
+        return;
+      }
       // Casing
       g.fillStyle(0x222222, 1);
       g.lineStyle(2, 0x000000, 1);
@@ -284,7 +334,12 @@ export default class PreloadScene extends Phaser.Scene {
     });
 
     // --- OBJECT: COFFEE --- (Missing in user snippet but needed for game)
-    this.genTexture('obj_coffee', 32, 32, (g) => {
+    this.genSpriteWithNormal('obj_coffee', 32, 32, (g, isNormal) => {
+      if (isNormal) {
+        g.fillStyle(0x8080ff, 1);
+        g.fillRect(0, 0, 32, 32);
+        return;
+      }
       g.fillStyle(PALETTE.METAL, 1);
       g.lineStyle(2, PALETTE.OUTLINE, 1);
       g.fillRect(6, 6, 20, 24);
@@ -294,7 +349,15 @@ export default class PreloadScene extends Phaser.Scene {
     });
 
     // --- OBJECT: PLANT ---
-    this.genTexture('obj_plant', 32, 32, (g) => {
+    this.genSpriteWithNormal('obj_plant', 32, 32, (g, isNormal) => {
+      if (isNormal) {
+        g.fillStyle(0x8080ff, 1); // Basis flach
+        g.fillRect(0, 0, 32, 32);
+        // Topf als Erhebung
+        g.fillStyle(0x80ff80, 1);
+        g.fillRect(10, 22, 12, 8);
+        return;
+      }
       // Pot
       g.fillStyle(0x8b4513, 1); // Brown
       g.fillRect(10, 22, 12, 8);
@@ -335,6 +398,16 @@ export default class PreloadScene extends Phaser.Scene {
     this.genTexture(key, w, h, (g) => drawFn(g, false));
     // 2. Normal Map (Key + '_n')
     this.genTexture(key + '_n', w, h, (g) => drawFn(g, true));
+  }
+
+  /**
+   * Creates a Spritesheet AND an associated Normal Map Spritesheet.
+   */
+  genSpriteSheetWithNormal(key, frameW, frameH, frameCount, drawFn) {
+    // 1. Diffuse
+    this.genSpriteSheet(key, frameW, frameH, frameCount, (g, i) => drawFn(g, i, false));
+    // 2. Normal Map
+    this.genSpriteSheet(key + '_n', frameW, frameH, frameCount, (g, i) => drawFn(g, i, true));
   }
 
   /**
