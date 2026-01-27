@@ -119,6 +119,9 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
         if (this.workTween) {
             this.workTween.stop();
         }
+        if (this.feedbackTween) {
+            this.feedbackTween.stop();
+        }
         if (this.scene) {
             this.scene.events.off('update', this.updateLight, this);
         }
@@ -339,8 +342,13 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
         this.statusIcon.setAlpha(1);
         this.statusIcon.y = this.y - 20;
 
+        // Prevent overlapping animations: stop existing feedback tween
+        if (this.feedbackTween && this.feedbackTween.isPlaying()) {
+            this.feedbackTween.stop();
+        }
+
         // Animation für das Aufsteigen und Verschwinden
-        this.scene.tweens.add({
+        this.feedbackTween = this.scene.tweens.add({
             targets: this.statusIcon,
             y: this.y - 40,
             alpha: 0,
