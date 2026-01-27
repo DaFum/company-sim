@@ -5,9 +5,17 @@ import App from './App.jsx';
 
 const loadEruda = () => {
   const urlParams = new URLSearchParams(window.location.search);
+
+  let erudaFromStorage = null;
+  try {
+    erudaFromStorage = window.localStorage.getItem('active-eruda');
+  } catch (e) {
+    // localStorage may be unavailable (e.g., in private mode or disabled); ignore and fall back to URL param only
+  }
+
   const erudaEnabled =
     urlParams.get('eruda') === 'true' ||
-    localStorage.getItem('active-eruda') === 'true';
+    erudaFromStorage === 'true';
 
   if (erudaEnabled) {
     import('eruda').then((eruda) => eruda.default.init());
