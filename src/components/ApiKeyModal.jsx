@@ -30,7 +30,7 @@ export const ApiKeyModal = () => {
       // Cleanup URL
       window.history.replaceState(null, '', window.location.pathname);
     }
-  }, []);
+  }, [setAiProvider, setApiKey]);
 
   // Load Models on Mount
   useEffect(() => {
@@ -43,19 +43,19 @@ export const ApiKeyModal = () => {
     loadModels();
   }, []);
 
-  // Wenn Key schon da ist, Modal nicht anzeigen
+  // If key is already present, do not show modal
   if (apiKey) return null;
 
   const handleSaveOpenAI = async () => {
     if (!inputKey.startsWith('sk-')) {
-      setError('Key muss mit "sk-" beginnen.');
+      setError('Key must start with "sk-".');
       return;
     }
 
     setIsValidating(true);
     setError('');
 
-    const testPrompt = 'Antworte nur mit einem leeren JSON-Objekt: {}';
+    const testPrompt = 'Reply only with an empty JSON object: {}';
     const testState = {};
 
     try {
@@ -66,10 +66,10 @@ export const ApiKeyModal = () => {
         setAiProvider('openai');
         setApiKey(inputKey);
       } else {
-        setError('Ungültige Antwort vom Server.');
+        setError('Invalid response from server.');
       }
     } catch {
-      setError('Verbindung fehlgeschlagen. Key ungültig?');
+      setError('Connection failed. Invalid Key?');
     } finally {
       setIsValidating(false);
     }
@@ -84,9 +84,9 @@ export const ApiKeyModal = () => {
   return (
     <div className="modal-overlay">
       <div className="modal-content">
-        <h2>🔐 API Key benötigt</h2>
+        <h2>🔐 API Key Required</h2>
         <p className="modal-description">
-          Wähle deinen AI Provider, um das "Gehirn" der Simulation zu aktivieren.
+          Choose your AI Provider to activate the simulation's "Brain".
         </p>
 
         {/* OPTION 1: POLLINATIONS (FREE) */}
@@ -97,7 +97,7 @@ export const ApiKeyModal = () => {
 
           {/* MODEL SELECTOR FOR POLLINATIONS */}
           <div className="model-selector">
-            <label className="model-label">Wähle ein Modell:</label>
+            <label className="model-label">Choose a model:</label>
             <select
               value={aiModel}
               onChange={(e) => setAiModel(e.target.value)}
@@ -105,7 +105,7 @@ export const ApiKeyModal = () => {
               className="model-select"
             >
               {isLoadingModels ? (
-                <option>Lade Modelle...</option>
+                <option>Loading models...</option>
               ) : (
                 availableModels.map((model) => (
                   <option key={model.name} value={model.name}>
@@ -116,11 +116,11 @@ export const ApiKeyModal = () => {
             </select>
           </div>
 
-          <small className="small-text">Keine Kosten. Keine Registrierung.</small>
+          <small className="small-text">No costs. No registration.</small>
         </div>
 
         {/* OPTION 2: OPENAI */}
-        <p className="openai-label">Oder nutze deinen eigenen OpenAI Key:</p>
+        <p className="openai-label">Or use your own OpenAI Key:</p>
 
         <input
           type="password"
@@ -137,10 +137,10 @@ export const ApiKeyModal = () => {
           disabled={isValidating}
           className={`save-button ${isValidating ? 'validating' : 'ready'}`}
         >
-          {isValidating ? 'Prüfe...' : 'OpenAI Key speichern'}
+          {isValidating ? 'Checking...' : 'Save OpenAI Key'}
         </button>
 
-        <p className="storage-note">Der Key wird nur im Session Storage gespeichert.</p>
+        <p className="storage-note">The Key is only stored in Session Storage.</p>
       </div>
     </div>
   );

@@ -28,6 +28,6 @@ export const gameConfig = {
   },
   render: {
     batchSize: 4096, // Increase batch size for many particles/lights
-    maxLights: 50    // Allow more dynamic lights
-  }
+    maxLights: 50, // Allow more dynamic lights
+  },
 };

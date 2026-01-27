@@ -11,18 +11,18 @@ export const GameCanvas = () => {
   // Sync Mute State with Phaser
   useEffect(() => {
     if (gameRef.current?.sound) {
-        gameRef.current.sound.mute = isMuted;
+      gameRef.current.sound.mute = isMuted;
     }
   }, [isMuted]);
 
   useEffect(() => {
-    // 1. Initialisierung: Phaser starten, wenn Komponente mountet
+    // 1. Init: Start Phaser on mount
     if (!gameRef.current) {
       console.log('Initializing Phaser Game...');
       gameRef.current = new Phaser.Game(gameConfig);
     }
 
-    // 2. Aufräumen: Phaser zerstören, wenn Komponente unmountet
+    // 2. Cleanup: Destroy Phaser on unmount
     return () => {
       if (gameRef.current) {
         console.log('Destroying Phaser Game...');
@@ -30,9 +30,9 @@ export const GameCanvas = () => {
         gameRef.current = null;
       }
     };
-  }, []); // Leeres Array -> Nur einmal beim Mounten ausführen
+  }, []); // Empty array -> Run once on mount
 
-  // Der "Black Box" Container. React rendert dies einmal und fasst es dann nie wieder an.
+  // The "Black Box" Container. React renders this once and never touches it again.
   return (
     <div
       id="game-container"

@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 
 export const useGameLoop = () => {
-  // Wir holen uns die Actions und den Speed aus dem Store
+  // Get actions and speed from store
   const advanceTick = useGameStore((state) => state.advanceTick);
   const isPlaying = useGameStore((state) => state.isPlaying);
   const gameSpeed = useGameStore((state) => state.gameSpeed);
@@ -11,13 +11,13 @@ export const useGameLoop = () => {
     let intervalId;
 
     if (isPlaying) {
-      // Der Loop: Feuert alle `gameSpeed` Millisekunden
+      // The Loop: Fires every `gameSpeed` ms
       intervalId = setInterval(() => {
         advanceTick();
       }, gameSpeed);
     }
 
-    // Cleanup: Stoppt den Interval, wenn Komponente unmountet oder Pause gedrückt wird
+    // Cleanup: Stops interval on unmount or pause
     return () => clearInterval(intervalId);
   }, [isPlaying, advanceTick, gameSpeed]);
 };
