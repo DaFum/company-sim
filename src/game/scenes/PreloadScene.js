@@ -352,7 +352,7 @@ export default class PreloadScene extends Phaser.Scene {
       });
     };
 
-    createFloor('floor_1', 0xeeeeee, 0xd0d0d0);
+    createFloor('floor_1', 0x999999, 0x888888);
     createFloor('floor_2', 0xdcb484, 0x8b5a2b); // keeping old colors roughly? no user snippet implies floor_1 style
     createFloor('floor_3', 0x223344, 0x446688);
   }
