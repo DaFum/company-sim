@@ -3,6 +3,53 @@ import { useGameStore } from '../store/gameStore';
 import { callAI } from '../services/aiService';
 import { generateSystemPrompt } from '../services/prompts';
 
+const formatDecision = (action, params, reason) => {
+  const safeParams = params && typeof params === 'object' ? params : {};
+  const count = safeParams.count ?? 1;
+  const role = safeParams.role ?? 'Dev';
+  const itemId = safeParams.item_id ?? 'Item';
+  let title = action;
+  let amount = 0;
+
+  switch (action) {
+    case 'HIRE_WORKER':
+      title = `Hire ${count} ${role}(s)`;
+      amount = count * 500;
+      break;
+    case 'FIRE_WORKER':
+      title = `Fire ${count} ${role}(s)`;
+      amount = count * 200;
+      break;
+    case 'BUY_UPGRADE':
+      title = `Buy Upgrade: ${itemId}`;
+      amount = 2000;
+      break;
+    case 'MARKETING_PUSH':
+      title = 'Launch Marketing Push';
+      amount = 5000;
+      break;
+    case 'PIVOT':
+      title = 'Pivot Strategy';
+      amount = 0;
+      break;
+    case 'REFACTOR':
+      title = 'Refactor Technical Debt';
+      amount = 0;
+      break;
+    default:
+      title = `Action: ${action}`;
+      amount = 0;
+  }
+
+  return {
+    action,
+    parameters: safeParams,
+    reasoning: reason,
+    decision_title: title,
+    amount,
+  };
+};
+
 export const useAiDirector = () => {
   const tick = useGameStore((state) => state.tick);
   const apiKey = useGameStore((state) => state.apiKey);
@@ -74,11 +121,12 @@ export const useAiDirector = () => {
           console.log('[AI] Response:', result);
 
           // 3. Set Decision
-          setPendingDecision({
-            action: result.action || 'NONE',
-            parameters: result.parameters || {},
-            reason: result.reasoning || 'Analyzing market data.',
-          });
+          const decisionData = formatDecision(
+            result.action || 'NONE',
+            result.parameters || {},
+            result.reasoning || 'Analyzing market data.'
+          );
+          setPendingDecision(decisionData);
 
           useGameStore.setState({ isAiThinking: false });
         } catch (e) {
