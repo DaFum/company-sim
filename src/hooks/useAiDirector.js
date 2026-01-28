@@ -4,20 +4,24 @@ import { callAI } from '../services/aiService';
 import { generateSystemPrompt } from '../services/prompts';
 
 const formatDecision = (action, params, reason) => {
+  const safeParams = params && typeof params === 'object' ? params : {};
+  const count = safeParams.count ?? 1;
+  const role = safeParams.role ?? 'Dev';
+  const itemId = safeParams.item_id ?? 'Item';
   let title = action;
   let amount = 0;
 
   switch (action) {
     case 'HIRE_WORKER':
-      title = `Hire ${params.count || 1} ${params.role || 'Dev'}(s)`;
-      amount = (params.count || 1) * 500;
+      title = `Hire ${count} ${role}(s)`;
+      amount = count * 500;
       break;
     case 'FIRE_WORKER':
-      title = `Fire ${params.count || 1} ${params.role || 'Dev'}(s)`;
-      amount = (params.count || 1) * 200;
+      title = `Fire ${count} ${role}(s)`;
+      amount = count * 200;
       break;
     case 'BUY_UPGRADE':
-      title = `Buy Upgrade: ${params.item_id || 'Item'}`;
+      title = `Buy Upgrade: ${itemId}`;
       amount = 2000;
       break;
     case 'MARKETING_PUSH':
@@ -39,7 +43,7 @@ const formatDecision = (action, params, reason) => {
 
   return {
     action,
-    parameters: params,
+    parameters: safeParams,
     reasoning: reason,
     decision_title: title,
     amount,
