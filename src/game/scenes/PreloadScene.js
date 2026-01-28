@@ -198,6 +198,12 @@ export default class PreloadScene extends Phaser.Scene {
       g.fillRect(0, 0, 4, 4);
     });
 
+    // --- SHADOW BLOB (Optimization) ---
+    this.genTexture('shadow_blob', 24, 12, (g) => {
+      g.fillStyle(0x000000, 0.4);
+      g.fillEllipse(12, 6, 24, 12);
+    });
+
     // Helper function for consistent character base
     const drawCharBase = (g, shirtColor) => {
       g.lineStyle(2, PALETTE.OUTLINE, 1); // Bold outline for readability

@@ -195,6 +195,20 @@ export default class MainScene extends Phaser.Scene {
       }
     }
 
+    // Depth Sorting
+    this.workersGroup.children.iterate((child) => {
+      child.setDepth(child.y);
+    });
+    this.visitorGroup.children.iterate((child) => {
+      child.setDepth(child.y);
+    });
+    // Static objects can also be sorted if they are in a Group,
+    // but typically they are static. If we want them to interact properly
+    // with workers, they should be setDepth(y) once on creation.
+    // For now, let's ensure objectGroup members have depth set.
+    // (Optional: this could be done in spawnObject)
+    // this.objectGroup.children.iterate((child) => child.setDepth(child.y));
+
     this.handleMobileControls();
   }
 
@@ -579,6 +593,9 @@ export default class MainScene extends Phaser.Scene {
     if (this.game.renderer.pipelines && this.game.renderer.pipelines.has('Light2D')) {
       obj.setPipeline('Light2D');
     }
+
+    // Set Initial Depth for static objects
+    obj.setDepth(obj.y);
 
     this.objectGroup.add(obj);
 

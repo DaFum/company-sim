@@ -21,10 +21,9 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     this.body.setSize(24, 24);
     this.body.setOffset(4, 8); // Offset so feet are on the ground
 
-    // --- VISUAL POLISH: SHADOW FX ---
-    if (scene.game.renderer.type === Phaser.WEBGL && this.preFX) {
-      this.preFX.addShadow(0, 0.1, 0.1, 1, 0x000000, 2, 0.5);
-    }
+    // --- VISUAL POLISH: OPTIMIZED SHADOW ---
+    // Using a sprite instead of Shader FX for performance
+    this.shadow = scene.add.image(x, y + 10, 'shadow_blob').setDepth(this.depth - 1).setAlpha(0.5);
 
     // --- PUSH THE LIMITS: DYNAMIC LIGHTING ---
     // Every worker emits light. Color based on role.
@@ -34,8 +33,7 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     // Only created if WebGL is available to avoid issues
     if (scene.game.renderer.type === Phaser.WEBGL) {
       this.light = scene.add.pointlight(x, y, lightColor, 60, 0.3).setDepth(this.depth - 1);
-      // Store reference for update
-      this.scene.events.on('update', this.updateLight, this);
+      // NOTE: Update logic moved to preUpdate to avoid event listener leaks
     }
 
     // Particle Emitter (One-time creation)
@@ -100,7 +98,8 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     });
 
     // Cleanup
-    this.on(Phaser.GameObjects.Events.DESTROY, this.preDestroy, this);
+    // Note: 'destroy' override handles cleanup more reliably than listening to DESTROY event
+    // when using groups.
 
     // Trait Visual Marker
     this.traitIcon = null;
@@ -109,44 +108,50 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     if (this.trait === 'JUNIOR') this.showTraitIcon('👶', '#ffffff');
   }
 
-  preDestroy() {
-    // [1] Important: When sprite is destroyed, we must also destroy its UI element
+  // --- MEMORY LEAK FIX ---
+  destroy(fromScene) {
+    if (this.light) {
+      this.light.destroy();
+      this.light = null;
+    }
+    if (this.shadow) {
+      this.shadow.destroy();
+      this.shadow = null;
+    }
     if (this.statusIcon) {
       this.statusIcon.destroy();
+      this.statusIcon = null;
     }
     if (this.traitIcon) {
       this.traitIcon.destroy();
-    }
-    if (this.light) {
-      this.light.destroy();
+      this.traitIcon = null;
     }
     if (this.particleEmitter) {
       this.particleEmitter.destroy();
+      this.particleEmitter = null;
     }
-    if (this.workTween) {
-      this.workTween.stop();
-    }
-    if (this.feedbackTween) {
-      this.feedbackTween.stop();
-    }
-    if (this.scene) {
-      this.scene.events.off('update', this.updateLight, this);
-    }
+    if (this.workTween) this.workTween.stop();
+    if (this.feedbackTween) this.feedbackTween.stop();
 
-    // Removing listeners is not strictly necessary as sprite is destroyed, but good style
-    this.off('pointerover');
-    this.off('pointerout');
+    super.destroy(fromScene);
   }
 
-  updateLight(time) {
-    if (!this.light || !this.body) return;
+  preUpdate(time, delta) {
+    super.preUpdate(time, delta);
 
-    // Sync position
-    this.light.setPosition(this.x, this.y);
+    // Sync Light Position
+    if (this.light) {
+      this.light.setPosition(this.x, this.y);
+      // Pulsing effect
+      const jitter = Math.sin(time * 0.005) * 5;
+      this.light.radius = 60 + jitter;
+    }
 
-    // Pulsing effect (Jitter) for aliveness
-    const jitter = Math.sin(time * 0.005) * 5;
-    this.light.radius = 60 + jitter;
+    // Sync Shadow Position
+    if (this.shadow) {
+      this.shadow.setPosition(this.x, this.y + 12);
+      this.shadow.setDepth(this.depth - 1); // Keep shadow under worker
+    }
   }
 
   spawnWorkParticles() {
