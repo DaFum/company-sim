@@ -248,11 +248,8 @@ export default class MainScene extends Phaser.Scene {
           camera.setZoom(newZoom);
 
           // Re-calculate scroll to match world point to screen point
-          const midScreenX = midX - camera.width / 2;
-          const midScreenY = midY - camera.height / 2;
-
-          camera.scrollX = wx - midScreenX / newZoom - camera.width / 2;
-          camera.scrollY = wy - midScreenY / newZoom - camera.height / 2;
+          camera.scrollX = wx - midX / newZoom;
+          camera.scrollY = wy - midY / newZoom;
         }
       }
 
