@@ -128,10 +128,12 @@ export default class MainScene extends Phaser.Scene {
 
       // 5) Initial Sync
       const state = store.getState();
-      this.syncRoster(state.roster);
-      this.syncVisitors(state.activeVisitors);
-      this.updateMoodVisuals(state.mood);
-      this.syncChaosVisuals(state.activeEvents);
+      if (state) {
+        this.syncRoster(state.roster);
+        this.syncVisitors(state.activeVisitors);
+        this.updateMoodVisuals(state.mood);
+        this.syncChaosVisuals(state.activeEvents);
+      }
     } else {
       console.warn('[MainScene] Store unavailable.');
     }
@@ -202,10 +204,10 @@ export default class MainScene extends Phaser.Scene {
     }
 
     // Depth Sorting
-    this.workersGroup.children.iterate((child) => {
+    this.workersGroup?.children.iterate((child) => {
       child.setDepth(child.y);
     });
-    this.visitorGroup.children.iterate((child) => {
+    this.visitorGroup?.children.iterate((child) => {
       child.setDepth(child.y);
     });
     // Static objects can also be sorted if they are in a Group,

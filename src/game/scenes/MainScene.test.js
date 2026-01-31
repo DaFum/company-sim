@@ -5,7 +5,7 @@ import MainScene from './MainScene.js';
 // Mock dependencies
 vi.mock('../../store/gameStore', () => ({
   useGameStore: {
-    subscribe: vi.fn(),
+    subscribe: vi.fn(() => vi.fn()),
     getState: vi.fn(() => ({
       roster: { dev: 1, sales: 0, support: 0 },
       activeVisitors: [],
@@ -46,22 +46,24 @@ vi.mock('../SoundManager', () => ({
 }));
 
 vi.mock('../sprites/WorkerSprite', () => ({
-  default: vi.fn((scene, x, y, role, id) => ({
-    scene,
-    x,
-    y,
-    role,
-    id,
-    energy: 100,
-    destroy: vi.fn(),
-    setDepth: vi.fn(),
-    setTint: vi.fn(),
-    showFeedback: vi.fn(),
-    startPath: vi.fn(),
-    getBounds: vi.fn(() => ({
-      contains: vi.fn(() => false),
-    })),
-  })),
+  default: vi.fn(function (scene, x, y, role, id) {
+    return {
+      scene,
+      x,
+      y,
+      role,
+      id,
+      energy: 100,
+      destroy: vi.fn(),
+      setDepth: vi.fn(),
+      setTint: vi.fn(),
+      showFeedback: vi.fn(),
+      startPath: vi.fn(),
+      getBounds: vi.fn(() => ({
+        contains: vi.fn(() => false),
+      })),
+    };
+  }),
 }));
 
 describe('MainScene', () => {
@@ -397,6 +399,7 @@ describe('MainScene', () => {
 
     it('should process pending path calculations', () => {
       scene._pendingPathRequests = 3;
+      scene._maxPathCalculationsPerTick = 3;
       scene.update();
 
       expect(scene.easystar.calculate).toHaveBeenCalledTimes(3);
@@ -525,9 +528,10 @@ describe('MainScene', () => {
     });
 
     it('should destroy existing floor texture', () => {
-      scene.floorTexture = { destroy: vi.fn() };
+      const destroy = vi.fn();
+      scene.floorTexture = { destroy };
       scene.createFloor(1);
-      expect(scene.floorTexture.destroy).toHaveBeenCalled();
+      expect(destroy).toHaveBeenCalled();
     });
 
     it('should create render texture with correct dimensions', () => {
@@ -599,8 +603,9 @@ describe('MainScene', () => {
     });
 
     it('should clear existing objects', () => {
+      const clearSpy = vi.spyOn(scene.objectGroup, 'clear');
       scene.spawnObjects();
-      expect(scene.objectGroup.clear).toHaveBeenCalledWith(true, true);
+      expect(clearSpy).toHaveBeenCalledWith(true, true);
     });
 
     it('should spawn server object', () => {
@@ -661,12 +666,19 @@ describe('MainScene', () => {
     });
 
     it('should add object to objectGroup', () => {
+      const addSpy = vi.spyOn(scene.objectGroup, 'add');
       scene.spawnObject(0, 0, 'test_obj', false);
-      expect(scene.objectGroup.add).toHaveBeenCalled();
+      expect(addSpy).toHaveBeenCalled();
     });
 
     it('should play animation for coffee machine', () => {
-      const mockSprite = { play: vi.fn(), setInteractive: vi.fn(), on: vi.fn(), setDepth: vi.fn() };
+      const mockSprite = {
+        play: vi.fn(),
+        setInteractive: vi.fn(),
+        on: vi.fn(),
+        setDepth: vi.fn(),
+        setPipeline: vi.fn(),
+      };
       scene.add.sprite = vi.fn(() => mockSprite);
 
       scene.spawnObject(0, 0, 'obj_coffee_anim', true);
@@ -675,7 +687,13 @@ describe('MainScene', () => {
     });
 
     it('should make coffee machine interactive', () => {
-      const mockSprite = { play: vi.fn(), setInteractive: vi.fn(), on: vi.fn(), setDepth: vi.fn() };
+      const mockSprite = {
+        play: vi.fn(),
+        setInteractive: vi.fn(),
+        on: vi.fn(),
+        setDepth: vi.fn(),
+        setPipeline: vi.fn(),
+      };
       scene.add.sprite = vi.fn(() => mockSprite);
 
       scene.spawnObject(0, 0, 'obj_coffee_anim', true);
@@ -784,9 +802,10 @@ describe('MainScene', () => {
     });
 
     it('should add worker to scene and group', () => {
+      const addSpy = vi.spyOn(scene.workersGroup, 'add');
       scene.spawnWorker('sales');
       expect(scene.add.existing).toHaveBeenCalled();
-      expect(scene.workersGroup.add).toHaveBeenCalled();
+      expect(addSpy).toHaveBeenCalled();
     });
   });
 
@@ -886,8 +905,9 @@ describe('MainScene', () => {
     });
 
     it('should clear overlay group', () => {
+      const clearSpy = vi.spyOn(scene.overlayGroup, 'clear');
       scene.syncChaosVisuals([]);
-      expect(scene.overlayGroup.clear).toHaveBeenCalledWith(true, true);
+      expect(clearSpy).toHaveBeenCalledWith(true, true);
     });
 
     it('should create overlay for TECH_OUTAGE', () => {
@@ -1058,30 +1078,39 @@ describe('MainScene', () => {
     });
 
     it('should destroy mouse light', () => {
-      scene.mouseLight = { destroy: vi.fn() };
+      const destroy = vi.fn();
+      scene.mouseLight = { destroy };
       scene.onShutdown();
-      expect(scene.mouseLight.destroy).toHaveBeenCalled();
+      expect(destroy).toHaveBeenCalled();
       expect(scene.mouseLight).toBeNull();
     });
 
     it('should destroy footprint graphics', () => {
-      scene._footprintGraphics = { destroy: vi.fn() };
+      const destroy = vi.fn();
+      scene._footprintGraphics = { destroy };
       scene.onShutdown();
-      expect(scene._footprintGraphics.destroy).toHaveBeenCalled();
+      expect(destroy).toHaveBeenCalled();
     });
 
     it('should destroy floor texture', () => {
-      scene.floorTexture = { destroy: vi.fn() };
+      const destroy = vi.fn();
+      scene.floorTexture = { destroy };
       scene.onShutdown();
-      expect(scene.floorTexture.destroy).toHaveBeenCalled();
+      expect(destroy).toHaveBeenCalled();
     });
 
     it('should clear all groups', () => {
+      const objClear = vi.spyOn(scene.objectGroup, 'clear');
+      const workClear = vi.spyOn(scene.workersGroup, 'clear');
+      const visClear = vi.spyOn(scene.visitorGroup, 'clear');
+      const overClear = vi.spyOn(scene.overlayGroup, 'clear');
+
       scene.onShutdown();
-      expect(scene.objectGroup.clear).toHaveBeenCalledWith(true, true);
-      expect(scene.workersGroup.clear).toHaveBeenCalledWith(true, true);
-      expect(scene.visitorGroup.clear).toHaveBeenCalledWith(true, true);
-      expect(scene.overlayGroup.clear).toHaveBeenCalledWith(true, true);
+
+      expect(objClear).toHaveBeenCalledWith(true, true);
+      expect(workClear).toHaveBeenCalledWith(true, true);
+      expect(visClear).toHaveBeenCalledWith(true, true);
+      expect(overClear).toHaveBeenCalledWith(true, true);
     });
 
     it('should remove all input listeners', () => {
@@ -1124,9 +1153,12 @@ describe('MainScene', () => {
   describe('edge cases and regression tests', () => {
     it('should handle missing store gracefully', async () => {
       const { useGameStore } = await import('../../store/gameStore');
+      const originalGetState = useGameStore.getState;
       useGameStore.getState = vi.fn(() => null);
 
       expect(() => scene.create()).not.toThrow();
+
+      useGameStore.getState = originalGetState;
     });
 
     it('should handle null workers group in update', () => {
