@@ -49,6 +49,46 @@ const createEmployee = (role, id) => ({
 });
 
 /**
+ * @typedef {Object} EmployeeMetrics
+ * @property {number} totalDevOutput
+ * @property {number} totalSalesOutput
+ * @property {number} debtAcc
+ * @property {number} moodDecay
+ */
+
+/**
+ * Calculates output, debt accumulation, and mood decay based on the current employees.
+ * @param {Employee[]} employees - List of employees.
+ * @returns {EmployeeMetrics} Aggregated metrics.
+ */
+const calculateEmployeeMetrics = (employees) => {
+  let totalDevOutput = 0;
+  let totalSalesOutput = 0;
+  let debtAcc = 0;
+  let moodDecay = 0;
+
+  employees.forEach((e) => {
+    let output = 1.0; // Base mod
+    // Trait Modifiers
+    if (e.trait === '10x_ENGINEER') {
+      output = 4.0;
+      debtAcc += 0.2;
+    }
+    if (e.trait === 'JUNIOR') {
+      output = 0.5;
+    }
+    if (e.trait === 'TOXIC') {
+      moodDecay += 0.01;
+    } // Small tick decay
+
+    if (e.role === 'dev') totalDevOutput += output;
+    if (e.role === 'sales') totalSalesOutput += output;
+  });
+
+  return { totalDevOutput, totalSalesOutput, debtAcc, moodDecay };
+};
+
+/**
  * @typedef {Object} GameStats
  * @property {Object} roster - Count of employees by role.
  * @property {number} totalBurn - Total daily expense.
@@ -535,31 +575,12 @@ export const useGameStore = create(
         if (isShitstorm) finalMarket *= 0.5;
 
         // Calc Output via Employees
-        let totalDevOutput = 0;
-        let totalSalesOutput = 0;
-        let debtAcc = 0;
-        let moodDecay = 0;
-
-        state.employees.forEach((e) => {
-          let output = 1.0; // Base mod
-          // Trait Modifiers
-          if (e.trait === '10x_ENGINEER') {
-            output = 4.0;
-            debtAcc += 0.2;
-          }
-          if (e.trait === 'JUNIOR') {
-            output = 0.5;
-          }
-          if (e.trait === 'TOXIC') {
-            moodDecay += 0.01;
-          } // Small tick decay
-
-          if (e.role === 'dev') totalDevOutput += output;
-          if (e.role === 'sales') totalSalesOutput += output;
-        });
+        const { totalDevOutput, totalSalesOutput, debtAcc, moodDecay } = calculateEmployeeMetrics(
+          state.employees
+        );
 
         // Add base debt (normal work)
-        debtAcc += stats.roster.dev * 0.05;
+        const totalDebtAcc = debtAcc + stats.roster.dev * 0.05;
 
         // Formula
         const devValue =
@@ -590,7 +611,7 @@ export const useGameStore = create(
           marketingMultiplier: newMarketingMult,
           marketingLeft: newMarketingLeft,
           activeEvents: activeEvents,
-          technicalDebt: state.technicalDebt + debtAcc,
+          technicalDebt: state.technicalDebt + totalDebtAcc,
           productAge: state.productAge + 1,
           mood: Math.max(0, state.mood - moodDecay),
           // Sync UI helpers
