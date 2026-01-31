@@ -184,8 +184,10 @@ export default class PreloadScene extends Phaser.Scene {
       // Drawers
       g.lineStyle(1, 0x555555);
       g.beginPath();
-      g.moveTo(6, 12); g.lineTo(26, 12);
-      g.moveTo(6, 20); g.lineTo(26, 20);
+      g.moveTo(6, 12);
+      g.lineTo(26, 12);
+      g.moveTo(6, 20);
+      g.lineTo(26, 20);
       g.strokePath();
       // Handles
       g.fillStyle(0xcccccc);
@@ -338,7 +340,10 @@ export default class PreloadScene extends Phaser.Scene {
     });
 
     // --- OBJECT: SERVER ---
-    this.genSpriteWithNormal('obj_server', 32, 32,
+    this.genSpriteWithNormal(
+      'obj_server',
+      32,
+      32,
       // Diffuse
       (g) => {
         // Casing
@@ -385,7 +390,10 @@ export default class PreloadScene extends Phaser.Scene {
     });
 
     // --- OBJECT: PLANT ---
-    this.genSpriteWithNormal('obj_plant', 32, 32,
+    this.genSpriteWithNormal(
+      'obj_plant',
+      32,
+      32,
       // Diffuse
       (g) => {
         // Pot
@@ -413,14 +421,21 @@ export default class PreloadScene extends Phaser.Scene {
     // --- WALL ---
     const brickRects = [
       // Row 1
-      [0, 0, 15, 10], [17, 0, 15, 10],
+      [0, 0, 15, 10],
+      [17, 0, 15, 10],
       // Row 2
-      [0, 12, 6, 10], [8, 12, 16, 10], [26, 12, 6, 10],
+      [0, 12, 6, 10],
+      [8, 12, 16, 10],
+      [26, 12, 6, 10],
       // Row 3
-      [0, 24, 15, 8], [17, 24, 15, 8],
+      [0, 24, 15, 8],
+      [17, 24, 15, 8],
     ];
 
-    this.genSpriteWithNormal('wall', 32, 32,
+    this.genSpriteWithNormal(
+      'wall',
+      32,
+      32,
       // Diffuse
       (g) => {
         g.fillStyle(0x444455, 1); // Dark Blue-Grey Base
@@ -428,7 +443,7 @@ export default class PreloadScene extends Phaser.Scene {
 
         // Bricks
         g.fillStyle(0x555566, 1);
-        brickRects.forEach(r => g.fillRect(...r));
+        brickRects.forEach((r) => g.fillRect(...r));
 
         g.lineStyle(1, 0x222233, 0.5);
         g.strokeRect(0, 0, 32, 32);
@@ -439,7 +454,7 @@ export default class PreloadScene extends Phaser.Scene {
         g.fillRect(0, 0, 32, 32);
         // Bricks Pop out
         g.fillStyle(0x80ff80, 1);
-        brickRects.forEach(r => g.fillRect(...r));
+        brickRects.forEach((r) => g.fillRect(...r));
       }
     );
 

@@ -26,10 +26,19 @@ const getRandomTrait = () => {
 };
 
 /**
+ * @typedef {Object} Employee
+ * @property {number|string} id - Unique identifier.
+ * @property {string} role - Employee role (dev, sales, support).
+ * @property {string} trait - Employee trait.
+ * @property {number} salary - Daily salary cost.
+ * @property {number} outputMod - Output modifier.
+ */
+
+/**
  * Creates a new employee object.
  * @param {string} role - Employee role.
  * @param {number|string} id - Unique ID.
- * @returns {Object} Employee object.
+ * @returns {Employee} Employee object.
  */
 const createEmployee = (role, id) => ({
   id,
@@ -40,8 +49,74 @@ const createEmployee = (role, id) => ({
 });
 
 /**
+ * @typedef {Object} GameStats
+ * @property {Object} roster - Count of employees by role.
+ * @property {number} totalBurn - Total daily expense.
+ * @property {number} count - Total employee count.
+ */
+
+/**
+ * @typedef {Object} GameStoreState
+ * @property {string} apiKey - OpenAI API Key.
+ * @property {string} aiProvider - AI Provider Name.
+ * @property {string} aiModel - AI Model Name.
+ * @property {number} cash - Current cash amount.
+ * @property {number} startOfDayCash - Cash at start of day.
+ * @property {number} day - Current day number.
+ * @property {number} tick - Current tick (0-60).
+ * @property {string} gamePhase - Current phase (WORK, CRUNCH).
+ * @property {boolean} isPlaying - Is game running.
+ * @property {boolean} isAiThinking - Is AI processing.
+ * @property {boolean} isMuted - Is audio muted.
+ * @property {number} gameSpeed - Game speed in ms.
+ * @property {number} officeLevel - Office upgrade level.
+ * @property {string[]} terminalLogs - Array of terminal messages.
+ * @property {Object|null} pendingDecision - Current AI decision waiting approval.
+ * @property {string[]} activeVisitors - List of active visitor types.
+ * @property {string} ceoPersona - CEO Persona.
+ * @property {Object} roster - Employee counts.
+ * @property {number} workers - Total worker count.
+ * @property {Employee[]} employees - List of employee objects.
+ * @property {number} productivity - Global productivity multiplier.
+ * @property {number} burnRate - Daily burn rate.
+ * @property {number} mood - Global mood (0-100).
+ * @property {number} productLevel - Product quality level.
+ * @property {number} productAge - Product age in ticks.
+ * @property {number} serverHealth - Server health percentage.
+ * @property {number} serverStability - Server stability multiplier.
+ * @property {number} marketingMultiplier - Marketing effect multiplier.
+ * @property {number} marketingLeft - Remaining marketing ticks.
+ * @property {string[]} inventory - List of purchased items.
+ * @property {number} technicalDebt - Accumulated technical debt.
+ * @property {Object[]} activeEvents - List of active chaos events.
+ * @property {Object[]} eventHistory - History of past events.
+ * @property {number} lastEventDay - Day of last event trigger.
+ * @property {() => GameStats} getStats - Calculates current stats.
+ * @property {(key: string) => void} setApiKey - Sets API Key.
+ * @property {(provider: string) => void} setAiProvider - Sets AI Provider.
+ * @property {(model: string) => void} setAiModel - Sets AI Model.
+ * @property {() => void} togglePause - Toggles pause.
+ * @property {() => void} toggleMute - Toggles mute.
+ * @property {() => void} toggleSpeed - Toggles speed.
+ * @property {(msg: string) => void} addTerminalLog - Adds log.
+ * @property {() => void} clearTerminalLogs - Clears logs.
+ * @property {(decision: Object) => void} setPendingDecision - Sets pending decision.
+ * @property {(type: string) => void} spawnVisitor - Spawns visitor.
+ * @property {(type: string) => void} despawnVisitor - Despawns visitor.
+ * @property {(type: string) => void} triggerEvent - Triggers event.
+ * @property {(type: string) => void} resolveEvent - Resolves event.
+ * @property {() => void} vetoDecision - Vetoes decision.
+ * @property {() => void} applyPendingDecision - Applies decision.
+ * @property {() => void} advanceTick - Advances game tick.
+ * @property {() => void} startNewDay - Starts new day.
+ * @property {() => Object} hireWorker - Debug: Hire worker.
+ * @property {() => Object} fireWorker - Debug: Fire worker.
+ */
+
+/**
  * Global game state store using Zustand.
  * Manages economics, employees, time, and game phase.
+ * @type {import('zustand').UseBoundStore<import('zustand').StoreApi<GameStoreState>>}
  */
 export const useGameStore = create(
   subscribeWithSelector((set, get) => ({
@@ -95,7 +170,7 @@ export const useGameStore = create(
     // --- COMPUTED PROPERTIES HELPERS ---
     /**
      * Calculates current roster counts and burn rate.
-     * @returns {{roster: Object, totalBurn: number, count: number}} Stats object.
+     * @returns {GameStats} Stats object.
      */
     getStats: () => {
       const state = get();

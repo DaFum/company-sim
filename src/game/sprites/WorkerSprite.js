@@ -8,6 +8,12 @@ const STATE = {
 };
 
 /**
+ * @typedef {Object} PathNode
+ * @property {number} x - The x coordinate of the node.
+ * @property {number} y - The y coordinate of the node.
+ */
+
+/**
  * Sprite representing a worker in the office simulation.
  * Handles state machine, movement, energy, and visual feedback.
  */
@@ -349,7 +355,7 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
 
   /**
    * Starts moving along a path.
-   * @param {Object[]} path - Array of path nodes {x, y}.
+   * @param {PathNode[]} path - Array of path nodes {x, y}.
    */
   startPath(path) {
     if (path && path.length > 0) {

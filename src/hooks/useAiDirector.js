@@ -4,11 +4,27 @@ import { callAI } from '../services/aiService';
 import { generateSystemPrompt } from '../services/prompts';
 
 /**
+ * @typedef {Object} DecisionParams
+ * @property {number} [count] - Number of workers to hire/fire.
+ * @property {string} [role] - Role of worker (Dev, Sales, Support).
+ * @property {string} [item_id] - ID of item to buy.
+ */
+
+/**
+ * @typedef {Object} Decision
+ * @property {string} action - The action key (e.g. HIRE_WORKER).
+ * @property {DecisionParams} parameters - The action parameters.
+ * @property {string} reasoning - The AI's reasoning.
+ * @property {string} decision_title - Human readable title.
+ * @property {number} amount - Cost associated with decision.
+ */
+
+/**
  * Formats the raw AI decision into a UI-friendly object.
  * @param {string} action - The action key (e.g. HIRE_WORKER).
- * @param {Object} params - The action parameters.
+ * @param {DecisionParams} params - The action parameters.
  * @param {string} reason - The AI's reasoning.
- * @returns {Object} Formatted decision object.
+ * @returns {Decision} Formatted decision object.
  */
 const formatDecision = (action, params, reason) => {
   const safeParams = params && typeof params === 'object' ? params : {};

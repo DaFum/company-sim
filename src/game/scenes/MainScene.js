@@ -9,6 +9,21 @@ const ZOOM_SENSITIVITY = 0.002;
 const MIN_INERTIA_VELOCITY_SQ = 0.1;
 
 /**
+ * @typedef {Object} Roster
+ * @property {number} dev - Number of developers.
+ * @property {number} sales - Number of sales people.
+ * @property {number} support - Number of support staff.
+ */
+
+/**
+ * @typedef {Object} GameEvent
+ * @property {string} type - The type of event (e.g., 'TECH_OUTAGE').
+ * @property {number} timeLeft - Remaining duration in ticks.
+ * @property {string} severity - Severity level (e.g., 'HIGH').
+ * @property {string} description - Description of the event.
+ */
+
+/**
  * Main gameplay scene controlling the office simulation.
  * Handles rendering, input, pathfinding, and syncing with the game store.
  */
@@ -867,7 +882,7 @@ export default class MainScene extends Phaser.Scene {
   // --- WORKERS ---
   /**
    * Syncs the visual worker count with the store roster.
-   * @param {Object} roster - Roster object containing role counts.
+   * @param {Roster} roster - Roster object containing role counts.
    */
   syncRoster(roster) {
     const currentDevs = this.getWorkersByRole('dev');
@@ -1023,7 +1038,7 @@ export default class MainScene extends Phaser.Scene {
 
   /**
    * Triggers visual effects for chaos events.
-   * @param {Object[]} events - List of active events.
+   * @param {GameEvent[]} events - List of active events.
    */
   syncChaosVisuals(events) {
     this.tweens.killAll();
