@@ -49,6 +49,7 @@ export default class MainScene extends Phaser.Scene {
 
     // 3) Initial Setup
     this.createFloor(1);
+    this.createWalls();
     this.spawnObjects();
     this.applyObstaclesToGrid();
 
@@ -535,7 +536,16 @@ export default class MainScene extends Phaser.Scene {
       for (let x = 0; x < this.cols; x++) this._grid[y][x] = 0;
     }
 
-    // Hardcoded obstacles
+    // 1. Perimeter Walls
+    for (let y = 0; y < this.rows; y++) {
+      for (let x = 0; x < this.cols; x++) {
+        if (x === 0 || x === this.cols - 1 || y === 0 || y === this.rows - 1) {
+          this._grid[y][x] = 1;
+        }
+      }
+    }
+
+    // 2. Hardcoded obstacles
     const blocked = [
       { x: 2, y: 2 },
       { x: 23, y: 2 },
@@ -549,6 +559,36 @@ export default class MainScene extends Phaser.Scene {
 
     this.easystar.setGrid(this._grid);
     this.easystar.setAcceptableTiles([0]);
+  }
+
+  createWalls() {
+    // Add walls to object group or a dedicated group
+    // Top & Bottom
+    for (let x = 0; x < this.cols; x++) {
+      this.spawnWall(x, 0);
+      this.spawnWall(x, this.rows - 1);
+    }
+    // Left & Right (skip corners as they are covered)
+    for (let y = 1; y < this.rows - 1; y++) {
+      this.spawnWall(0, y);
+      this.spawnWall(this.cols - 1, y);
+    }
+  }
+
+  spawnWall(x, y) {
+    const wall = this.add.image(x * this.tileSize + 16, y * this.tileSize + 16, 'wall');
+
+    // Enable Lighting
+    if (this.game.renderer.pipelines && this.game.renderer.pipelines.has('Light2D')) {
+      wall.setPipeline('Light2D');
+    }
+
+    // Depth: Walls at the top (y=0) should be behind everything?
+    // Walls at the bottom (y=rows-1) should be in front.
+    // Standard setDepth(y) works fine for isometric/top-down logic.
+    wall.setDepth(wall.y);
+
+    this.objectGroup.add(wall);
   }
 
   requestMove(worker, x, y) {

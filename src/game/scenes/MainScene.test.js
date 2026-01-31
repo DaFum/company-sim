@@ -306,10 +306,18 @@ describe('MainScene', () => {
       expect(() => scene.applyObstaclesToGrid()).not.toThrow();
     });
 
-    it('should reset grid to zeros', () => {
-      scene._grid[0][0] = 1;
+    it('should reset grid to zeros (inner tiles)', () => {
+      scene._grid[1][1] = 1; // Use inner tile as 0,0 is now wall
       scene.applyObstaclesToGrid();
-      expect(scene._grid[0][0]).toBe(0);
+      expect(scene._grid[1][1]).toBe(0);
+    });
+
+    it('should mark perimeter walls', () => {
+      scene.applyObstaclesToGrid();
+      expect(scene._grid[0][0]).toBe(1); // Top Left
+      expect(scene._grid[0][24]).toBe(1); // Top Right
+      expect(scene._grid[19][0]).toBe(1); // Bottom Left
+      expect(scene._grid[19][24]).toBe(1); // Bottom Right
     });
 
     it('should mark hardcoded obstacles', () => {

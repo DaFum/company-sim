@@ -338,6 +338,45 @@ export default class PreloadScene extends Phaser.Scene {
       }
     );
 
+    // --- WALL ---
+    this.genSpriteWithNormal('wall', 32, 32,
+      // Diffuse
+      (g) => {
+        g.fillStyle(0x444455, 1); // Dark Blue-Grey Base
+        g.fillRect(0, 0, 32, 32);
+
+        // Bricks
+        g.fillStyle(0x555566, 1);
+        // Row 1
+        g.fillRect(0, 0, 15, 10);
+        g.fillRect(17, 0, 15, 10);
+        // Row 2
+        g.fillRect(0, 12, 6, 10);
+        g.fillRect(8, 12, 16, 10);
+        g.fillRect(26, 12, 6, 10);
+        // Row 3
+        g.fillRect(0, 24, 15, 8);
+        g.fillRect(17, 24, 15, 8);
+
+        g.lineStyle(1, 0x222233, 0.5);
+        g.strokeRect(0,0,32,32);
+      },
+      // Normal
+      (g) => {
+        g.fillStyle(0x8080ff, 1);
+        g.fillRect(0, 0, 32, 32);
+        // Bricks Pop out
+        g.fillStyle(0x80ff80, 1);
+        g.fillRect(0, 0, 15, 10);
+        g.fillRect(17, 0, 15, 10);
+        g.fillRect(0, 12, 6, 10);
+        g.fillRect(8, 12, 16, 10);
+        g.fillRect(26, 12, 6, 10);
+        g.fillRect(0, 24, 15, 8);
+        g.fillRect(17, 24, 15, 8);
+      }
+    );
+
     // --- FLOORS (Tiles) ---
     // A clean tile pattern looks more professional than a flat rectangle
     const createFloor = (name, baseColor, checkColor) => {
