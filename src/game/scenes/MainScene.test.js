@@ -623,7 +623,7 @@ describe('MainScene', () => {
 
     it('should spawn animated coffee machine', () => {
       scene.spawnObjects();
-      expect(scene.spawnObject).toHaveBeenCalledWith(23, 2, 'obj_coffee_anim', true);
+      expect(scene.spawnObject).toHaveBeenCalledWith(23, 17, 'obj_coffee_anim', true);
     });
 
     it('should spawn plant object', () => {
@@ -633,22 +633,22 @@ describe('MainScene', () => {
 
     it('should spawn printer object', () => {
       scene.spawnObjects();
-      expect(scene.spawnObject).toHaveBeenCalledWith(5, 5, 'obj_printer');
+      expect(scene.spawnObject).toHaveBeenCalledWith(8, 14, 'obj_printer');
     });
 
     it('should spawn watercooler object', () => {
       scene.spawnObjects();
-      expect(scene.spawnObject).toHaveBeenCalledWith(12, 10, 'obj_watercooler');
+      expect(scene.spawnObject).toHaveBeenCalledWith(19, 17, 'obj_watercooler');
     });
 
     it('should spawn whiteboard object', () => {
       scene.spawnObjects();
-      expect(scene.spawnObject).toHaveBeenCalledWith(3, 15, 'obj_whiteboard');
+      expect(scene.spawnObject).toHaveBeenCalledWith(3, 14, 'obj_whiteboard');
     });
 
     it('should spawn vending machine object', () => {
       scene.spawnObjects();
-      expect(scene.spawnObject).toHaveBeenCalledWith(20, 10, 'obj_vending');
+      expect(scene.spawnObject).toHaveBeenCalledWith(21, 17, 'obj_vending');
     });
   });
 

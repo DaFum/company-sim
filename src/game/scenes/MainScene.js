@@ -643,21 +643,70 @@ export default class MainScene extends Phaser.Scene {
   // --- OBJECTS ---
   spawnObjects() {
     this.objectGroup?.clear(true, true);
+
+    // --- ZONE: SERVER ROOM (Top Left) ---
     this.spawnObject(2, 2, 'obj_server');
-    this.spawnObject(23, 2, 'obj_coffee_anim', true); // Animated coffee
+    this.spawnObject(3, 2, 'obj_server');
+    this.spawnObject(4, 2, 'obj_server');
+    this.spawnObject(2, 3, 'obj_server');
+
+    // --- ZONE: DEV AREA (Left/Mid) ---
+    // Rows of desks
+    for (let row = 6; row <= 12; row += 3) {
+      for (let col = 3; col <= 8; col += 2) {
+        this.spawnObject(col, row, 'obj_desk');
+        this.spawnObject(col, row - 1, 'obj_chair');
+      }
+    }
+    this.spawnObject(3, 14, 'obj_whiteboard');
+    this.spawnObject(8, 14, 'obj_printer');
+
+    // --- ZONE: MEETING ROOM (Top Right) ---
+    // Table is 2 tiles wide, spawn at x,y (x is left tile)
+    // We handle custom sprites carefully, but spawnObject centers them on x,y
+    // Let's spawn two separate "halves" or just place it and block tiles.
+    // For simplicity, we used a 64px texture. spawnObject logic assumes 32px grid centers.
+    // We'll spawn it at x=18, y=4. 18*32=576. +16=592.
+    // 64px wide means it covers x=18 and x=19.
+    const table = this.spawnObject(18, 4, 'obj_table_meeting');
+    // Adjust position if needed, or just let it overlap.
+    // Since it's 64 wide, center is at +32. spawnObject puts center at tile center +16.
+    // So visual x is (18*32)+16 = 592. Real width 64 -> left 560, right 624.
+    // Tile 18 starts 576. So it overhangs left? No.
+    // Phaser Image Origin 0.5. Center 592. Extent 560-624.
+    // Tile 17: 544-576. Tile 18: 576-608. Tile 19: 608-640.
+    // So it covers half of 18 and half of 19?
+    // Let's just place it and see.
+
+    // Chairs around table
+    this.spawnObject(18, 3, 'obj_chair');
+    this.spawnObject(19, 3, 'obj_chair');
+    this.spawnObject(18, 5, 'obj_chair');
+    this.spawnObject(19, 5, 'obj_chair');
+
+    // --- ZONE: SALES/SUPPORT (Bottom Right) ---
+    for (let row = 10; row <= 16; row += 3) {
+      for (let col = 16; col <= 21; col += 3) {
+        this.spawnObject(col, row, 'obj_desk');
+        this.spawnObject(col, row - 1, 'obj_chair');
+      }
+    }
+    this.spawnObject(22, 12, 'obj_cabinet');
+    this.spawnObject(22, 13, 'obj_cabinet');
+
+    // --- ZONE: LOUNGE (Bottom Left/Center) ---
+    this.spawnObject(12, 16, 'obj_rug'); // Decoration, walkable?
+    this.spawnObject(11, 16, 'obj_couch');
+    this.spawnObject(13, 16, 'obj_couch');
+
+    this.spawnObject(23, 17, 'obj_coffee_anim', true);
+    this.spawnObject(21, 17, 'obj_vending');
+    this.spawnObject(19, 17, 'obj_watercooler');
+
+    // Plants
     this.spawnObject(2, 17, 'obj_plant');
-
-    // NEW: Printer near support
-    this.spawnObject(5, 5, 'obj_printer');
-
-    // NEW: Watercooler central
-    this.spawnObject(12, 10, 'obj_watercooler');
-
-    // NEW: Whiteboard in Dev area
-    this.spawnObject(3, 15, 'obj_whiteboard');
-
-    // NEW: Vending Machine
-    this.spawnObject(20, 10, 'obj_vending');
+    this.spawnObject(23, 1, 'obj_plant');
+    this.spawnObject(10, 10, 'obj_plant');
   }
 
   spawnObject(x, y, texture, isAnimated = false) {
