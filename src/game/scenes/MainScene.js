@@ -61,6 +61,8 @@ export default class MainScene extends Phaser.Scene {
     this.pinchDistance = 0;
     this.isDragging = false;
     this.dragOrigin = new Phaser.Math.Vector2();
+    this.dragVelocity = new Phaser.Math.Vector2(0, 0);
+    this.dragFriction = 0.95;
 
     // Fullscreen Button for Mobile (optional but recommended)
     this.createFullscreenButton();
@@ -222,21 +224,40 @@ export default class MainScene extends Phaser.Scene {
 
     // --- 1. PINCH TO ZOOM (Two Fingers) ---
     if (pointer1.isDown && pointer2.isDown) {
+      this.isDragging = false; // Stop panning if pinching
+      this.dragVelocity.reset(); // Stop inertia
+
       // Calculate distance between fingers
       const dist = Phaser.Math.Distance.Between(pointer1.x, pointer1.y, pointer2.x, pointer2.y);
+      const midX = (pointer1.x + pointer2.x) / 2;
+      const midY = (pointer1.y + pointer2.y) / 2;
 
       if (this.pinchDistance > 0) {
-        // Compare with previous value
         const delta = dist - this.pinchDistance;
 
-        // Adjust zoom (Sensitivity 0.005)
-        const newZoom = camera.zoom + delta * 0.005;
-        camera.setZoom(Phaser.Math.Clamp(newZoom, 0.5, 3)); // Set limits
+        // Scale zoom factor based on current zoom for uniform feel
+        const zoomFactor = delta * 0.002 * camera.zoom;
+        const newZoom = Phaser.Math.Clamp(camera.zoom + zoomFactor, 0.5, 3);
+
+        if (newZoom !== camera.zoom) {
+          // Zoom-to-Point: Keep the world point under the pinch center stable
+          const worldPoint = camera.getWorldPoint(midX, midY);
+          const wx = worldPoint.x;
+          const wy = worldPoint.y;
+
+          camera.setZoom(newZoom);
+
+          // Re-calculate scroll to match world point to screen point
+          const midScreenX = midX - camera.width / 2;
+          const midScreenY = midY - camera.height / 2;
+
+          camera.scrollX = wx - midScreenX / newZoom - camera.width / 2;
+          camera.scrollY = wy - midScreenY / newZoom - camera.height / 2;
+        }
       }
 
       // Save current distance
       this.pinchDistance = dist;
-      this.isDragging = false; // Zoom blocks dragging
       return;
     } else {
       // Reset pinch distance if not pinching
@@ -250,14 +271,35 @@ export default class MainScene extends Phaser.Scene {
       if (this.isDragging) {
         // Move camera based on delta
         // Divide by zoom for consistent speed
-        camera.scrollX -= (activePointer.x - activePointer.prevPosition.x) / camera.zoom;
-        camera.scrollY -= (activePointer.y - activePointer.prevPosition.y) / camera.zoom;
+        const dx = (activePointer.x - activePointer.prevPosition.x) / camera.zoom;
+        const dy = (activePointer.y - activePointer.prevPosition.y) / camera.zoom;
+
+        camera.scrollX -= dx;
+        camera.scrollY -= dy;
+
+        // Track velocity (instantaneous)
+        this.dragVelocity.set(-dx, -dy);
       } else {
         // Start drag
         this.isDragging = true;
+        this.dragVelocity.reset();
       }
     } else {
       this.isDragging = false;
+
+      // Apply Inertia
+      if (this.dragVelocity.lengthSq() > 0.1) {
+        camera.scrollX += this.dragVelocity.x;
+        camera.scrollY += this.dragVelocity.y;
+
+        // Damping
+        this.dragVelocity.scale(this.dragFriction);
+
+        // Stop if too slow
+        if (this.dragVelocity.lengthSq() < 0.1) {
+          this.dragVelocity.reset();
+        }
+      }
     }
   }
 

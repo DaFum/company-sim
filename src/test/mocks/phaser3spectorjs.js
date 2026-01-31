@@ -6,6 +6,24 @@ class MockVector2 {
     this.x = x;
     this.y = y;
   }
+  reset() {
+    this.x = 0;
+    this.y = 0;
+    return this;
+  }
+  set(x, y) {
+    this.x = x;
+    this.y = y;
+    return this;
+  }
+  lengthSq() {
+    return this.x * this.x + this.y * this.y;
+  }
+  scale(v) {
+    this.x *= v;
+    this.y *= v;
+    return this;
+  }
 }
 
 // Mock Graphics
@@ -212,34 +230,37 @@ class MockFollower extends MockSprite {
 // Mock Group
 class MockGroup {
   constructor() {
-    this.children = new Set();
+    this.children = {
+      iterate: (cb) => this._children.forEach(cb),
+    };
+    this._children = new Set();
     this.runChildUpdate = true;
   }
 
   add(child) {
-    this.children.add(child);
+    this._children.add(child);
     return this;
   }
 
   remove(child) {
-    this.children.delete(child);
+    this._children.delete(child);
     return this;
   }
 
   clear(removeChildren = true, destroyChildren = false) {
     if (destroyChildren) {
-      this.children.forEach((child) => child.destroy?.());
+      this._children.forEach((child) => child.destroy?.());
     }
-    this.children.clear();
+    this._children.clear();
     return this;
   }
 
   getChildren() {
-    return Array.from(this.children);
+    return Array.from(this._children);
   }
 
   iterate(callback) {
-    this.children.forEach(callback);
+    this._children.forEach(callback);
   }
 }
 
@@ -260,6 +281,8 @@ class MockCamera {
     this.scrollY = 0;
     this.x = 0;
     this.y = 0;
+    this.width = 800;
+    this.height = 600;
 
     this.setZoom = vi.fn((zoom) => {
       this.zoom = zoom;
@@ -267,6 +290,7 @@ class MockCamera {
     });
     this.centerOn = vi.fn().mockReturnThis();
     this.setBackgroundColor = vi.fn().mockReturnThis();
+    this.getWorldPoint = vi.fn((x, y) => ({ x, y }));
     this.shake = vi.fn().mockReturnThis();
     this.postFX = {
       addTiltShift: vi.fn().mockReturnThis(),
