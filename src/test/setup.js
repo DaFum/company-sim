@@ -1,100 +1,104 @@
-import { vi } from 'vitest';
+import { beforeAll, afterEach, vi } from 'vitest';
+import '@testing-library/jest-dom';
 
-// Mock phaser3spectorjs before Phaser loads
-vi.mock('phaser3spectorjs', () => ({
-  default: {},
-}));
+// Mock Phaser globally
+beforeAll(() => {
+  // Mock window.URL if not available
+  if (typeof window.URL.createObjectURL === 'undefined') {
+    Object.defineProperty(window.URL, 'createObjectURL', {
+      value: vi.fn(() => 'blob:mock-url'),
+    });
+  }
+  if (typeof window.URL.revokeObjectURL === 'undefined') {
+    Object.defineProperty(window.URL, 'revokeObjectURL', {
+      value: vi.fn(),
+    });
+  }
 
-// Mock URL.createObjectURL and revokeObjectURL
-global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
-global.URL.revokeObjectURL = vi.fn();
+  // Mock atob for base64 decoding
+  if (typeof window.atob === 'undefined') {
+    global.atob = (str) => Buffer.from(str, 'base64').toString('binary');
+  }
 
-// Mock atob for base64 decoding
-if (!global.atob) {
-  global.atob = (str) => Buffer.from(str, 'base64').toString('binary');
-}
+  // Mock Blob if not available
+  if (typeof window.Blob === 'undefined') {
+    global.Blob = class Blob {
+      constructor(parts, options) {
+        this.parts = parts;
+        this.options = options;
+        this.size = parts.reduce((acc, part) => acc + (part.length || 0), 0);
+        this.type = options?.type || '';
+      }
+    };
+  }
 
-// Mock Blob
-if (!global.Blob) {
-  global.Blob = class Blob {
-    constructor(parts, options) {
-      this.parts = parts;
-      this.options = options || {};
-      this.type = this.options.type || '';
+  // Mock AudioContext
+  global.AudioContext = vi.fn(() => ({
+    createBufferSource: vi.fn(() => ({
+      connect: vi.fn(),
+      start: vi.fn(),
+    })),
+    createGain: vi.fn(() => ({
+      connect: vi.fn(),
+      gain: { value: 1 },
+    })),
+    destination: {},
+  }));
+
+  // Mock WebGL context
+  HTMLCanvasElement.prototype.getContext = vi.fn((contextType) => {
+    if (contextType === '2d') {
+      return {
+        fillStyle: '',
+        strokeStyle: '',
+        lineWidth: 1,
+        fillRect: vi.fn(),
+        strokeRect: vi.fn(),
+        clearRect: vi.fn(),
+        beginPath: vi.fn(),
+        closePath: vi.fn(),
+        moveTo: vi.fn(),
+        lineTo: vi.fn(),
+        arc: vi.fn(),
+        fill: vi.fn(),
+        stroke: vi.fn(),
+        save: vi.fn(),
+        restore: vi.fn(),
+        translate: vi.fn(),
+        rotate: vi.fn(),
+        scale: vi.fn(),
+        drawImage: vi.fn(),
+        getImageData: vi.fn(() => ({
+          data: new Uint8ClampedArray(4),
+        })),
+        putImageData: vi.fn(),
+        createImageData: vi.fn(),
+        measureText: vi.fn(() => ({ width: 0 })),
+        canvas: {},
+      };
     }
-  };
-}
+    if (contextType === 'webgl' || contextType === 'webgl2') {
+      return {
+        canvas: {},
+        drawingBufferWidth: 800,
+        drawingBufferHeight: 600,
+        getParameter: vi.fn(),
+        getExtension: vi.fn(),
+        createTexture: vi.fn(),
+        bindTexture: vi.fn(),
+        texImage2D: vi.fn(),
+        texParameteri: vi.fn(),
+      };
+    }
+    return null;
+  });
 
-// Mock Canvas and WebGL context for Phaser
-HTMLCanvasElement.prototype.getContext = vi.fn((type) => {
-  if (type === '2d') {
-    return {
-      fillStyle: '',
-      strokeStyle: '',
-      lineWidth: 1,
-      fillRect: vi.fn(),
-      strokeRect: vi.fn(),
-      clearRect: vi.fn(),
-      beginPath: vi.fn(),
-      closePath: vi.fn(),
-      moveTo: vi.fn(),
-      lineTo: vi.fn(),
-      arc: vi.fn(),
-      fill: vi.fn(),
-      stroke: vi.fn(),
-      save: vi.fn(),
-      restore: vi.fn(),
-      translate: vi.fn(),
-      rotate: vi.fn(),
-      scale: vi.fn(),
-      drawImage: vi.fn(),
-      getImageData: vi.fn(() => ({ data: new Uint8ClampedArray(4) })),
-      putImageData: vi.fn(),
-      createImageData: vi.fn(() => ({ data: new Uint8ClampedArray(4) })),
-      measureText: vi.fn(() => ({ width: 0 })),
-    };
-  }
-  if (type === 'webgl' || type === 'webgl2') {
-    return {
-      getExtension: vi.fn(),
-      getParameter: vi.fn(),
-      createShader: vi.fn(),
-      shaderSource: vi.fn(),
-      compileShader: vi.fn(),
-      createProgram: vi.fn(),
-      attachShader: vi.fn(),
-      linkProgram: vi.fn(),
-      useProgram: vi.fn(),
-      createBuffer: vi.fn(),
-      bindBuffer: vi.fn(),
-      bufferData: vi.fn(),
-      enable: vi.fn(),
-      disable: vi.fn(),
-      clear: vi.fn(),
-      clearColor: vi.fn(),
-      viewport: vi.fn(),
-      drawArrays: vi.fn(),
-      drawElements: vi.fn(),
-    };
-  }
-  return null;
+  // Mock requestAnimationFrame
+  global.requestAnimationFrame = vi.fn((cb) => setTimeout(cb, 16));
+  global.cancelAnimationFrame = vi.fn((id) => clearTimeout(id));
 });
 
-// Mock window.addEventListener for custom events
-const originalAddEventListener = window.addEventListener;
-window.addEventListener = vi.fn((event, handler, options) => {
-  if (event === 'ZOOM_IN' || event === 'ZOOM_OUT') {
-    // Store the handler for testing
-    window[`_${event}_handler`] = handler;
-  }
-  originalAddEventListener.call(window, event, handler, options);
-});
-
-// Mock window.removeEventListener
-const originalRemoveEventListener = window.removeEventListener;
-window.removeEventListener = vi.fn((event, handler, options) => {
-  if (event === 'ZOOM_IN' || event === 'ZOOM_OUT') {
-    delete window[`_${event}_handler`];
-  }
-  originalRemoveEventListener.call(window, event, handler, options);
+// Cleanup after each test
+afterEach(() => {
+  vi.clearAllMocks();
 });

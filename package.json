@@ -8,9 +8,9 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "vitest",
     "test:ui": "vitest --ui",
+    "test:run": "vitest run",
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
@@ -24,10 +24,13 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "@vitest/ui": "^4.0.18",
+    "canvas": "^3.2.1",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
@@ -36,7 +39,6 @@
     "globals": "^16.5.0",
     "happy-dom": "^20.4.0",
     "jsdom": "^27.4.0",
-    "phaser3spectorjs": "^0.0.8",
     "prettier": "^3.8.1",
     "vite": "^7.2.4",
     "vitest": "^4.0.18"
