@@ -46,24 +46,22 @@ vi.mock('../SoundManager', () => ({
 }));
 
 vi.mock('../sprites/WorkerSprite', () => ({
-  default: class {
-    constructor(scene, x, y, role, id) {
-      this.scene = scene;
-      this.x = x;
-      this.y = y;
-      this.role = role;
-      this.id = id;
-      this.energy = 100;
-      this.destroy = vi.fn();
-      this.setDepth = vi.fn();
-      this.setTint = vi.fn();
-      this.showFeedback = vi.fn();
-      this.startPath = vi.fn();
-      this.getBounds = vi.fn(() => ({
-        contains: vi.fn(() => false),
-      }));
-    }
-  },
+  default: vi.fn((scene, x, y, role, id) => ({
+    scene,
+    x,
+    y,
+    role,
+    id,
+    energy: 100,
+    destroy: vi.fn(),
+    setDepth: vi.fn(),
+    setTint: vi.fn(),
+    showFeedback: vi.fn(),
+    startPath: vi.fn(),
+    getBounds: vi.fn(() => ({
+      contains: vi.fn(() => false),
+    })),
+  })),
 }));
 
 describe('MainScene', () => {

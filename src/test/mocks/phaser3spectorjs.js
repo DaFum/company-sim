@@ -231,7 +231,9 @@ class MockFollower extends MockSprite {
 class MockGroup {
   constructor() {
     this.children = {
-      iterate: (cb) => this._children.forEach(cb),
+      iterate: (cb) => {
+        this._children.forEach(cb);
+      },
     };
     this._children = new Set();
     this.runChildUpdate = true;
@@ -249,7 +251,9 @@ class MockGroup {
 
   clear(removeChildren = true, destroyChildren = false) {
     if (destroyChildren) {
-      this._children.forEach((child) => child.destroy?.());
+      this._children.forEach((child) => {
+        child.destroy?.();
+      });
     }
     this._children.clear();
     return this;

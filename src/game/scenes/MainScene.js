@@ -241,15 +241,16 @@ export default class MainScene extends Phaser.Scene {
 
         if (newZoom !== camera.zoom) {
           // Zoom-to-Point: Keep the world point under the pinch center stable
-          const worldPoint = camera.getWorldPoint(midX, midY);
-          const wx = worldPoint.x;
-          const wy = worldPoint.y;
+          const worldPointBefore = camera.getWorldPoint(midX, midY);
 
           camera.setZoom(newZoom);
+          camera.preRender(); // Update matrices for accurate calculation
 
-          // Re-calculate scroll to match world point to screen point
-          camera.scrollX = wx - midX / newZoom;
-          camera.scrollY = wy - midY / newZoom;
+          const worldPointAfter = camera.getWorldPoint(midX, midY);
+
+          // Adjust scroll to compensate for the drift
+          camera.scrollX += worldPointBefore.x - worldPointAfter.x;
+          camera.scrollY += worldPointBefore.y - worldPointAfter.y;
         }
       }
 
