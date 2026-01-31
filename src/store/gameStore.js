@@ -409,6 +409,7 @@ export const useGameStore = create(
 
             let newEmployees = [...state.employees];
             const candidates = newEmployees.filter((e) => e.role === actualRole);
+            let fired = 0;
 
             // Trait targeting? Assuming simple FIFO for now, or random
             // If params.trait exists, filter by that?
@@ -417,11 +418,12 @@ export const useGameStore = create(
               if (candidates.length > i) {
                 const victim = candidates[i];
                 newEmployees = newEmployees.filter((e) => e.id !== victim.id);
+                fired++;
               }
             }
 
             updates.employees = newEmployees;
-            updates.cash = state.cash - count * 200; // Approximation
+            updates.cash = state.cash - fired * 200;
             updates.mood = Math.max(0, state.mood - 20);
           } else {
             state.addTerminalLog(`> ERROR: CANNOT AFFORD SEVERANCE.`);

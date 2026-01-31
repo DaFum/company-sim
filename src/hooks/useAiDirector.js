@@ -88,6 +88,7 @@ export const useAiDirector = () => {
   const processingRef = useRef(false);
 
   useEffect(() => {
+    const timers = [];
     // TRIGGER AT TICK 50
     if (tick === 50 && !processingRef.current) {
       processingRef.current = true;
@@ -98,9 +99,9 @@ export const useAiDirector = () => {
 
       const runAiLoop = async () => {
         // Mock Logs Sequence
-        setTimeout(() => addTerminalLog('> ANALYZING CASHFLOW...'), 1000);
-        setTimeout(() => addTerminalLog('> CHECKING MORALE...'), 2500);
-        setTimeout(() => addTerminalLog('> CALCULATING SCENARIOS...'), 4000);
+        timers.push(setTimeout(() => addTerminalLog('> ANALYZING CASHFLOW...'), 1000));
+        timers.push(setTimeout(() => addTerminalLog('> CHECKING MORALE...'), 2500));
+        timers.push(setTimeout(() => addTerminalLog('> CALCULATING SCENARIOS...'), 4000));
 
         try {
           // 1. Collect Context
@@ -167,5 +168,6 @@ export const useAiDirector = () => {
 
       runAiLoop();
     }
+    return () => timers.forEach((t) => clearTimeout(t));
   }, [tick, apiKey, addTerminalLog, aiProvider, setPendingDecision]);
 };

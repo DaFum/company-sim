@@ -51,6 +51,8 @@ export default class MainScene extends Phaser.Scene {
     // Path batching
     this._pendingPathRequests = 0;
     this._maxPathCalculationsPerTick = 4;
+
+    this._chaosTweens = [];
   }
 
   /**
@@ -386,6 +388,8 @@ export default class MainScene extends Phaser.Scene {
     this.easystar = null;
     this._grid = null;
     this._pendingPathRequests = 0;
+
+    this._chaosTweens = [];
   }
 
   /**
@@ -1041,7 +1045,10 @@ export default class MainScene extends Phaser.Scene {
    * @param {GameEvent[]} events - List of active events.
    */
   syncChaosVisuals(events) {
-    this.tweens.killAll();
+    if (this._chaosTweens?.length) {
+      this._chaosTweens.forEach((t) => t.stop());
+    }
+    this._chaosTweens = [];
     this.overlayGroup?.clear(true, true);
 
     for (const e of events) {
@@ -1056,7 +1063,14 @@ export default class MainScene extends Phaser.Scene {
         const skull = this.add.text(400, 300, '💀', { fontSize: '200px' }).setOrigin(0.5);
         this.overlayGroup.add(skull);
 
-        this.tweens.add({ targets: skull, alpha: 0.5, yoyo: true, repeat: -1, duration: 500 });
+        const tween = this.tweens.add({
+          targets: skull,
+          alpha: 0.5,
+          yoyo: true,
+          repeat: -1,
+          duration: 500,
+        });
+        this._chaosTweens.push(tween);
         skull.once(Phaser.GameObjects.Events.DESTROY, () => this.tweens.killTweensOf(skull));
 
         this.addOverlayText('RANSOMWARE: PAY UP', '#ff0000');
