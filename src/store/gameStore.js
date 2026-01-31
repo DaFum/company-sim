@@ -451,23 +451,20 @@ export const useGameStore = create(
 
           if (fireCount === 0) {
             state.addTerminalLog('> ERROR: NO MATCHING WORKERS TO FIRE.');
+            set({ pendingDecision: null });
             return;
           }
 
           if (state.cash >= cost) {
-            let fired = 0;
             // Simplified: Fire first match
             for (let i = 0; i < fireCount; i++) {
-              if (candidates.length > i) {
-                const victim = candidates[i];
-                newEmployees = newEmployees.filter((e) => e.id !== victim.id);
-                fired++;
-              }
+              const victim = candidates[i];
+              newEmployees = newEmployees.filter((e) => e.id !== victim.id);
             }
 
             updates.employees = newEmployees;
             updates.cash = state.cash - cost;
-            updates.mood = Math.max(0, state.mood - fired * 20);
+            updates.mood = Math.max(0, state.mood - fireCount * 20);
           } else {
             state.addTerminalLog(`> ERROR: CANNOT AFFORD SEVERANCE.`);
           }
@@ -678,25 +675,25 @@ export const useGameStore = create(
     /**
      * Manually hires a worker (for debugging or testing).
      */
-    hireWorker: () =>
-      set((state) => {
-        const cost = 500;
-        if (state.cash < cost) {
-          state.addTerminalLog('> ERROR: INSUFFICIENT FUNDS TO HIRE');
-          return {};
-        }
+    hireWorker: () => {
+      const state = get();
+      const cost = 500;
+      if (state.cash < cost) {
+        state.addTerminalLog('> ERROR: INSUFFICIENT FUNDS TO HIRE');
+        return;
+      }
 
-        const newEmployees = [...state.employees, createEmployee('dev', Date.now())];
-        return {
-          employees: newEmployees,
-          // Recalculate stats? The UI reads workers/roster which are updated next tick or we update them here?
-          // Ideally update them here for instant feedback.
-          // Simplified for manual action:
-          workers: newEmployees.length,
-          roster: { ...state.roster, dev: state.roster.dev + 1 }, // Approximation
-          cash: state.cash - cost,
-        };
-      }),
+      const newEmployees = [...state.employees, createEmployee('dev', Date.now())];
+      set({
+        employees: newEmployees,
+        // Recalculate stats? The UI reads workers/roster which are updated next tick or we update them here?
+        // Ideally update them here for instant feedback.
+        // Simplified for manual action:
+        workers: newEmployees.length,
+        roster: { ...state.roster, dev: state.roster.dev + 1 }, // Approximation
+        cash: state.cash - cost,
+      });
+    },
 
     /**
      * Manually fires a worker (for debugging or testing).
