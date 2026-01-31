@@ -49,8 +49,8 @@ export default class MainScene extends Phaser.Scene {
 
     // 3) Initial Setup
     this.createFloor(1);
-    this.createWalls();
     this.spawnObjects();
+    this.createWalls();
     this.applyObstaclesToGrid();
 
     // Camera

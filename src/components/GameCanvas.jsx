@@ -5,7 +5,6 @@ import { gameConfig } from '../game/config';
 import { useGameStore } from '../store/gameStore';
 
 export const GameCanvas = React.memo(() => {
-  console.log("GameCanvas render"); // Debug log
   const gameRef = useRef(null);
   const isMuted = useGameStore((state) => state.isMuted);
 
