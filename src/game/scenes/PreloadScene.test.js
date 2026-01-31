@@ -688,12 +688,11 @@ describe('PreloadScene', () => {
     });
 
     it('should not create duplicate textures', () => {
-      // First create ensures the texture exists
-      scene.genTexture('duplicate_test', 32, 32, () => {});
+      // Mock exists to return true
+      vi.spyOn(scene.textures, 'exists').mockReturnValue(true);
 
       const makeGraphicsSpy = vi.spyOn(scene.make, 'graphics');
 
-      // Second call should skip creation
       scene.genTexture('duplicate_test', 32, 32, () => {});
 
       expect(makeGraphicsSpy).not.toHaveBeenCalled();

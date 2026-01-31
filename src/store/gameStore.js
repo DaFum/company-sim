@@ -3,10 +3,20 @@ import { subscribeWithSelector } from 'zustand/middleware';
 
 // Helpers
 const PERSONAS = ['Visionary', 'Accountant', 'Benevolent'];
+
+/**
+ * Returns a random CEO persona.
+ * @returns {string} Persona name.
+ */
 const getRandomPersona = () => PERSONAS[Math.floor(Math.random() * PERSONAS.length)];
 
 // Trait Generators
 const TRAITS = ['10x_ENGINEER', 'JUNIOR', 'TOXIC', 'NORMAL'];
+
+/**
+ * Returns a random worker trait based on probabilities.
+ * @returns {string} Trait name.
+ */
 const getRandomTrait = () => {
   const roll = Math.random();
   if (roll < 0.1) return '10x_ENGINEER';
@@ -15,6 +25,12 @@ const getRandomTrait = () => {
   return 'NORMAL';
 };
 
+/**
+ * Creates a new employee object.
+ * @param {string} role - Employee role.
+ * @param {number|string} id - Unique ID.
+ * @returns {Object} Employee object.
+ */
 const createEmployee = (role, id) => ({
   id,
   role,
@@ -23,6 +39,10 @@ const createEmployee = (role, id) => ({
   outputMod: 1.0,
 });
 
+/**
+ * Global game state store using Zustand.
+ * Manages economics, employees, time, and game phase.
+ */
 export const useGameStore = create(
   subscribeWithSelector((set, get) => ({
     // --- STATE ---
@@ -73,6 +93,10 @@ export const useGameStore = create(
     lastEventDay: 0,
 
     // --- COMPUTED PROPERTIES HELPERS ---
+    /**
+     * Calculates current roster counts and burn rate.
+     * @returns {{roster: Object, totalBurn: number, count: number}} Stats object.
+     */
     getStats: () => {
       const state = get();
       const roster = { dev: 0, sales: 0, support: 0 };
@@ -95,44 +119,90 @@ export const useGameStore = create(
     },
 
     // --- ACTIONS ---
+    /**
+     * Sets the OpenAI API key.
+     * @param {string} key - API Key.
+     */
     setApiKey: (key) => {
       sessionStorage.setItem('openai_api_key', key);
       set({ apiKey: key });
     },
 
+    /**
+     * Sets the AI provider.
+     * @param {string} provider - Provider name.
+     */
     setAiProvider: (provider) => {
       sessionStorage.setItem('ai_provider', provider);
       set({ aiProvider: provider });
     },
 
+    /**
+     * Sets the AI model.
+     * @param {string} model - Model name.
+     */
     setAiModel: (model) => {
       sessionStorage.setItem('ai_model', model);
       set({ aiModel: model });
     },
 
+    /**
+     * Toggles the game pause state.
+     */
     togglePause: () => set((state) => ({ isPlaying: !state.isPlaying })),
+
+    /**
+     * Toggles sound mute.
+     */
     toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+
+    /**
+     * Toggles game speed between normal and fast.
+     */
     toggleSpeed: () => set((state) => ({ gameSpeed: state.gameSpeed === 1000 ? 500 : 1000 })),
 
+    /**
+     * Adds a message to the terminal logs.
+     * @param {string} msg - Log message.
+     */
     addTerminalLog: (msg) =>
       set((state) => ({
         terminalLogs: [...state.terminalLogs.slice(-50), msg],
       })),
 
+    /**
+     * Clears all terminal logs.
+     */
     clearTerminalLogs: () => set({ terminalLogs: [] }),
 
+    /**
+     * Sets the pending AI decision.
+     * @param {Object} decision - Decision object.
+     */
     setPendingDecision: (decision) => set({ pendingDecision: decision }),
 
+    /**
+     * Spawns a visitor of a specific type.
+     * @param {string} type - Visitor type.
+     */
     spawnVisitor: (type) =>
       set((state) => ({
         activeVisitors: [...state.activeVisitors, type],
       })),
 
+    /**
+     * Despawns a visitor of a specific type.
+     * @param {string} type - Visitor type.
+     */
     despawnVisitor: (type) =>
       set((state) => ({
         activeVisitors: state.activeVisitors.filter((v) => v !== type),
       })),
 
+    /**
+     * Triggers a chaos event.
+     * @param {string} type - Event type.
+     */
     triggerEvent: (type) => {
       const state = get();
       let duration = 30;
@@ -188,11 +258,18 @@ export const useGameStore = create(
       });
     },
 
+    /**
+     * Resolves an active event manually or automatically.
+     * @param {string} type - Event type.
+     */
     resolveEvent: (type) =>
       set((state) => ({
         activeEvents: state.activeEvents.filter((e) => e.type !== type),
       })),
 
+    /**
+     * Vetoes the pending decision and triggers a morale booster.
+     */
     vetoDecision: () => {
       const state = get();
       if (!state.pendingDecision) return;
@@ -210,6 +287,9 @@ export const useGameStore = create(
       setTimeout(() => get().despawnVisitor('pizza_guy'), 10000);
     },
 
+    /**
+     * Applies the pending decision and executes its effects.
+     */
     applyPendingDecision: () => {
       const state = get();
       const decision = state.pendingDecision;
@@ -317,6 +397,10 @@ export const useGameStore = create(
       }
     },
 
+    /**
+     * Advances the game simulation by one tick.
+     * Handles economics, event timers, and game phases.
+     */
     advanceTick: () => {
       const state = get();
       if (!state.isPlaying) return;
@@ -456,6 +540,9 @@ export const useGameStore = create(
       }
     },
 
+    /**
+     * Starts a new game day, resetting daily stats.
+     */
     startNewDay: () => {
       set((state) => {
         const stats = state.getStats();
@@ -487,6 +574,9 @@ export const useGameStore = create(
       });
     },
 
+    /**
+     * Manually hires a worker (for debugging or testing).
+     */
     hireWorker: () =>
       set((state) => {
         const cost = 500;
@@ -507,6 +597,9 @@ export const useGameStore = create(
         };
       }),
 
+    /**
+     * Manually fires a worker (for debugging or testing).
+     */
     fireWorker: () =>
       set((state) => {
         const cost = 200;

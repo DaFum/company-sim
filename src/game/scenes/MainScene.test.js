@@ -741,12 +741,7 @@ describe('MainScene', () => {
     });
 
     it('should filter workers by role', () => {
-      const workers = [
-        { role: 'dev' },
-        { role: 'sales' },
-        { role: 'dev' },
-        { role: 'support' },
-      ];
+      const workers = [{ role: 'dev' }, { role: 'sales' }, { role: 'dev' }, { role: 'support' }];
       scene.workersGroup.getChildren = vi.fn(() => workers);
 
       const devs = scene.getWorkersByRole('dev');

@@ -3,6 +3,13 @@ import { useGameStore } from '../store/gameStore';
 import { callAI } from '../services/aiService';
 import { generateSystemPrompt } from '../services/prompts';
 
+/**
+ * Formats the raw AI decision into a UI-friendly object.
+ * @param {string} action - The action key (e.g. HIRE_WORKER).
+ * @param {Object} params - The action parameters.
+ * @param {string} reason - The AI's reasoning.
+ * @returns {Object} Formatted decision object.
+ */
 const formatDecision = (action, params, reason) => {
   const safeParams = params && typeof params === 'object' ? params : {};
   const count = safeParams.count ?? 1;
@@ -50,6 +57,10 @@ const formatDecision = (action, params, reason) => {
   };
 };
 
+/**
+ * Hook that manages the AI Director logic.
+ * Triggers at a specific tick to analyze game state and propose decisions.
+ */
 export const useAiDirector = () => {
   const tick = useGameStore((state) => state.tick);
   const apiKey = useGameStore((state) => state.apiKey);

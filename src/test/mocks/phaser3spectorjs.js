@@ -450,7 +450,9 @@ class MockScene {
       image: vi.fn((x, y, texture) => new MockImage(this, x, y, texture)),
       sprite: vi.fn((x, y, texture) => new MockSprite(this, x, y, texture)),
       text: vi.fn((x, y, text, style) => new MockText(this, x, y, text, style)),
-      rectangle: vi.fn((x, y, w, h, color, alpha) => new MockRectangle(this, x, y, w, h, color, alpha)),
+      rectangle: vi.fn(
+        (x, y, w, h, color, alpha) => new MockRectangle(this, x, y, w, h, color, alpha)
+      ),
       renderTexture: vi.fn((x, y, w, h) => new MockRenderTexture(this, x, y, w, h)),
       particles: vi.fn((x, y, texture, config) => new MockParticleEmitter()),
       follower: vi.fn((path, x, y, texture) => new MockFollower(path, x, y, texture)),
