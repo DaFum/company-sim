@@ -537,12 +537,15 @@ export default class MainScene extends Phaser.Scene {
     }
 
     // 1. Perimeter Walls
-    for (let y = 0; y < this.rows; y++) {
-      for (let x = 0; x < this.cols; x++) {
-        if (x === 0 || x === this.cols - 1 || y === 0 || y === this.rows - 1) {
-          this._grid[y][x] = 1;
-        }
-      }
+    // Top & Bottom walls
+    for (let x = 0; x < this.cols; x++) {
+      this._grid[0][x] = 1;
+      this._grid[this.rows - 1][x] = 1;
+    }
+    // Left & Right walls (excluding corners)
+    for (let y = 1; y < this.rows - 1; y++) {
+      this._grid[y][0] = 1;
+      this._grid[y][this.cols - 1] = 1;
     }
 
     // 2. Hardcoded obstacles

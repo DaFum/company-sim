@@ -411,6 +411,15 @@ export default class PreloadScene extends Phaser.Scene {
     );
 
     // --- WALL ---
+    const brickRects = [
+      // Row 1
+      [0, 0, 15, 10], [17, 0, 15, 10],
+      // Row 2
+      [0, 12, 6, 10], [8, 12, 16, 10], [26, 12, 6, 10],
+      // Row 3
+      [0, 24, 15, 8], [17, 24, 15, 8],
+    ];
+
     this.genSpriteWithNormal('wall', 32, 32,
       // Diffuse
       (g) => {
@@ -419,19 +428,10 @@ export default class PreloadScene extends Phaser.Scene {
 
         // Bricks
         g.fillStyle(0x555566, 1);
-        // Row 1
-        g.fillRect(0, 0, 15, 10);
-        g.fillRect(17, 0, 15, 10);
-        // Row 2
-        g.fillRect(0, 12, 6, 10);
-        g.fillRect(8, 12, 16, 10);
-        g.fillRect(26, 12, 6, 10);
-        // Row 3
-        g.fillRect(0, 24, 15, 8);
-        g.fillRect(17, 24, 15, 8);
+        brickRects.forEach(r => g.fillRect(...r));
 
         g.lineStyle(1, 0x222233, 0.5);
-        g.strokeRect(0,0,32,32);
+        g.strokeRect(0, 0, 32, 32);
       },
       // Normal
       (g) => {
@@ -439,13 +439,7 @@ export default class PreloadScene extends Phaser.Scene {
         g.fillRect(0, 0, 32, 32);
         // Bricks Pop out
         g.fillStyle(0x80ff80, 1);
-        g.fillRect(0, 0, 15, 10);
-        g.fillRect(17, 0, 15, 10);
-        g.fillRect(0, 12, 6, 10);
-        g.fillRect(8, 12, 16, 10);
-        g.fillRect(26, 12, 6, 10);
-        g.fillRect(0, 24, 15, 8);
-        g.fillRect(17, 24, 15, 8);
+        brickRects.forEach(r => g.fillRect(...r));
       }
     );
 
