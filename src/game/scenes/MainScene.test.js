@@ -306,10 +306,18 @@ describe('MainScene', () => {
       expect(() => scene.applyObstaclesToGrid()).not.toThrow();
     });
 
-    it('should reset grid to zeros', () => {
-      scene._grid[0][0] = 1;
+    it('should reset grid to zeros (inner tiles)', () => {
+      scene._grid[1][1] = 1; // Use inner tile as 0,0 is now wall
       scene.applyObstaclesToGrid();
-      expect(scene._grid[0][0]).toBe(0);
+      expect(scene._grid[1][1]).toBe(0);
+    });
+
+    it('should mark perimeter walls', () => {
+      scene.applyObstaclesToGrid();
+      expect(scene._grid[0][0]).toBe(1); // Top Left
+      expect(scene._grid[0][24]).toBe(1); // Top Right
+      expect(scene._grid[19][0]).toBe(1); // Bottom Left
+      expect(scene._grid[19][24]).toBe(1); // Bottom Right
     });
 
     it('should mark hardcoded obstacles', () => {
@@ -615,7 +623,7 @@ describe('MainScene', () => {
 
     it('should spawn animated coffee machine', () => {
       scene.spawnObjects();
-      expect(scene.spawnObject).toHaveBeenCalledWith(23, 2, 'obj_coffee_anim', true);
+      expect(scene.spawnObject).toHaveBeenCalledWith(23, 17, 'obj_coffee_anim', true);
     });
 
     it('should spawn plant object', () => {
@@ -625,22 +633,22 @@ describe('MainScene', () => {
 
     it('should spawn printer object', () => {
       scene.spawnObjects();
-      expect(scene.spawnObject).toHaveBeenCalledWith(5, 5, 'obj_printer');
+      expect(scene.spawnObject).toHaveBeenCalledWith(8, 14, 'obj_printer');
     });
 
     it('should spawn watercooler object', () => {
       scene.spawnObjects();
-      expect(scene.spawnObject).toHaveBeenCalledWith(12, 10, 'obj_watercooler');
+      expect(scene.spawnObject).toHaveBeenCalledWith(19, 17, 'obj_watercooler');
     });
 
     it('should spawn whiteboard object', () => {
       scene.spawnObjects();
-      expect(scene.spawnObject).toHaveBeenCalledWith(3, 15, 'obj_whiteboard');
+      expect(scene.spawnObject).toHaveBeenCalledWith(3, 14, 'obj_whiteboard');
     });
 
     it('should spawn vending machine object', () => {
       scene.spawnObjects();
-      expect(scene.spawnObject).toHaveBeenCalledWith(20, 10, 'obj_vending');
+      expect(scene.spawnObject).toHaveBeenCalledWith(21, 17, 'obj_vending');
     });
   });
 

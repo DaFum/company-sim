@@ -159,6 +159,78 @@ export default class PreloadScene extends Phaser.Scene {
       g.fillStyle(0x111111, 1);
       g.fillRect(8, 24, 16, 4);
     });
+
+    // CHAIR (Office)
+    this.genSpriteWithNormal('obj_chair', 32, 32, (g) => {
+      // Base
+      g.fillStyle(0x333333, 1);
+      g.fillRect(10, 20, 12, 10); // Legs/Base
+      // Seat
+      g.fillStyle(0x4444cc, 1);
+      g.fillRect(8, 16, 16, 8);
+      // Backrest
+      g.fillStyle(0x3333aa, 1);
+      g.fillRect(8, 4, 16, 12);
+      g.lineStyle(1, 0x000000, 0.5);
+      g.strokeRect(8, 4, 16, 12);
+    });
+
+    // CABINET
+    this.genSpriteWithNormal('obj_cabinet', 32, 32, (g) => {
+      g.fillStyle(0x888888, 1);
+      g.fillRect(6, 4, 20, 26);
+      g.lineStyle(1, 0x444444);
+      g.strokeRect(6, 4, 20, 26);
+      // Drawers
+      g.lineStyle(1, 0x555555);
+      g.beginPath();
+      g.moveTo(6, 12); g.lineTo(26, 12);
+      g.moveTo(6, 20); g.lineTo(26, 20);
+      g.strokePath();
+      // Handles
+      g.fillStyle(0xcccccc);
+      g.fillRect(14, 8, 4, 2);
+      g.fillRect(14, 16, 4, 2);
+      g.fillRect(14, 24, 4, 2);
+    });
+
+    // COUCH
+    this.genSpriteWithNormal('obj_couch', 32, 32, (g) => {
+      g.fillStyle(0xaa4444, 1); // Reddish
+      // Back
+      g.fillRect(2, 4, 28, 8);
+      // Seat
+      g.fillRect(2, 12, 28, 16);
+      // Arms
+      g.fillStyle(0x882222, 1);
+      g.fillRect(2, 12, 4, 16);
+      g.fillRect(26, 12, 4, 16);
+      // Cushions divider
+      g.lineStyle(1, 0x660000, 0.5);
+      g.beginPath();
+      g.moveTo(16, 12);
+      g.lineTo(16, 28);
+      g.strokePath();
+    });
+
+    // MEETING TABLE
+    this.genSpriteWithNormal('obj_table_meeting', 64, 32, (g) => {
+      // 2 tiles wide
+      g.fillStyle(0x5d4037, 1); // Dark Wood
+      g.fillRoundedRect(4, 4, 56, 24, 4);
+      g.lineStyle(2, 0x3e2723);
+      g.strokeRoundedRect(4, 4, 56, 24, 4);
+    });
+
+    // RUG
+    this.genSpriteWithNormal('obj_rug', 64, 64, (g) => {
+      g.fillStyle(0x550000, 0.8);
+      g.fillCircle(32, 32, 28);
+      g.lineStyle(2, 0xaa5500);
+      g.strokeCircle(32, 32, 28);
+      g.lineStyle(2, 0xaa5500, 0.5);
+      g.strokeCircle(32, 32, 20);
+    });
   }
 
   createHighQualityAssets() {
@@ -335,6 +407,39 @@ export default class PreloadScene extends Phaser.Scene {
         // Topf als Erhebung
         g.fillStyle(0x80ff80, 1);
         g.fillRect(10, 22, 12, 8);
+      }
+    );
+
+    // --- WALL ---
+    const brickRects = [
+      // Row 1
+      [0, 0, 15, 10], [17, 0, 15, 10],
+      // Row 2
+      [0, 12, 6, 10], [8, 12, 16, 10], [26, 12, 6, 10],
+      // Row 3
+      [0, 24, 15, 8], [17, 24, 15, 8],
+    ];
+
+    this.genSpriteWithNormal('wall', 32, 32,
+      // Diffuse
+      (g) => {
+        g.fillStyle(0x444455, 1); // Dark Blue-Grey Base
+        g.fillRect(0, 0, 32, 32);
+
+        // Bricks
+        g.fillStyle(0x555566, 1);
+        brickRects.forEach(r => g.fillRect(...r));
+
+        g.lineStyle(1, 0x222233, 0.5);
+        g.strokeRect(0, 0, 32, 32);
+      },
+      // Normal
+      (g) => {
+        g.fillStyle(0x8080ff, 1);
+        g.fillRect(0, 0, 32, 32);
+        // Bricks Pop out
+        g.fillStyle(0x80ff80, 1);
+        brickRects.forEach(r => g.fillRect(...r));
       }
     );
 

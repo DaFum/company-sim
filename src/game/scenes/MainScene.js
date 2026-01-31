@@ -50,6 +50,7 @@ export default class MainScene extends Phaser.Scene {
     // 3) Initial Setup
     this.createFloor(1);
     this.spawnObjects();
+    this.createWalls();
     this.applyObstaclesToGrid();
 
     // Camera
@@ -535,7 +536,19 @@ export default class MainScene extends Phaser.Scene {
       for (let x = 0; x < this.cols; x++) this._grid[y][x] = 0;
     }
 
-    // Hardcoded obstacles
+    // 1. Perimeter Walls
+    // Top & Bottom walls
+    for (let x = 0; x < this.cols; x++) {
+      this._grid[0][x] = 1;
+      this._grid[this.rows - 1][x] = 1;
+    }
+    // Left & Right walls (excluding corners)
+    for (let y = 1; y < this.rows - 1; y++) {
+      this._grid[y][0] = 1;
+      this._grid[y][this.cols - 1] = 1;
+    }
+
+    // 2. Hardcoded obstacles
     const blocked = [
       { x: 2, y: 2 },
       { x: 23, y: 2 },
@@ -549,6 +562,40 @@ export default class MainScene extends Phaser.Scene {
 
     this.easystar.setGrid(this._grid);
     this.easystar.setAcceptableTiles([0]);
+  }
+
+  createWalls() {
+    // Add walls to object group or a dedicated group
+    // Top & Bottom
+    for (let x = 0; x < this.cols; x++) {
+      this.spawnWall(x, 0);
+      this.spawnWall(x, this.rows - 1);
+    }
+    // Left & Right (skip corners as they are covered)
+    for (let y = 1; y < this.rows - 1; y++) {
+      this.spawnWall(0, y);
+      this.spawnWall(this.cols - 1, y);
+    }
+  }
+
+  spawnWall(x, y) {
+    const wall = this.add.image(
+      x * this.tileSize + this.tileSize / 2,
+      y * this.tileSize + this.tileSize / 2,
+      'wall'
+    );
+
+    // Enable Lighting
+    if (this.game.renderer.pipelines && this.game.renderer.pipelines.has('Light2D')) {
+      wall.setPipeline('Light2D');
+    }
+
+    // Depth: Walls at the top (y=0) should be behind everything?
+    // Walls at the bottom (y=rows-1) should be in front.
+    // Standard setDepth(y) works fine for isometric/top-down logic.
+    wall.setDepth(wall.y);
+
+    this.objectGroup.add(wall);
   }
 
   requestMove(worker, x, y) {
@@ -573,6 +620,7 @@ export default class MainScene extends Phaser.Scene {
     // Double size to cover edges, but grid size is enough here
     this.floorTexture = this.add
       .renderTexture(0, 0, this.cols * this.tileSize, this.rows * this.tileSize)
+      .setOrigin(0, 0)
       .setDepth(0);
 
     const textureKey = `floor_${level}`;
@@ -602,27 +650,80 @@ export default class MainScene extends Phaser.Scene {
   // --- OBJECTS ---
   spawnObjects() {
     this.objectGroup?.clear(true, true);
+
+    // --- ZONE: SERVER ROOM (Top Left) ---
     this.spawnObject(2, 2, 'obj_server');
-    this.spawnObject(23, 2, 'obj_coffee_anim', true); // Animated coffee
+    this.spawnObject(3, 2, 'obj_server');
+    this.spawnObject(4, 2, 'obj_server');
+    this.spawnObject(2, 3, 'obj_server');
+
+    // --- ZONE: DEV AREA (Left/Mid) ---
+    // Rows of desks
+    for (let row = 6; row <= 12; row += 3) {
+      for (let col = 3; col <= 8; col += 2) {
+        this.spawnObject(col, row, 'obj_desk');
+        this.spawnObject(col, row - 1, 'obj_chair');
+      }
+    }
+    this.spawnObject(3, 14, 'obj_whiteboard');
+    this.spawnObject(8, 14, 'obj_printer');
+
+    // --- ZONE: MEETING ROOM (Top Right) ---
+    // Table is 2 tiles wide, spawn at x,y (x is left tile)
+    // We handle custom sprites carefully, but spawnObject centers them on x,y
+    // Let's spawn two separate "halves" or just place it and block tiles.
+    // For simplicity, we used a 64px texture. spawnObject logic assumes 32px grid centers.
+    // We'll spawn it at x=18, y=4. 18*32=576. +16=592.
+    // 64px wide means it covers x=18 and x=19.
+    this.spawnObject(18, 4, 'obj_table_meeting');
+    // Adjust position if needed, or just let it overlap.
+    // Since it's 64 wide, center is at +32. spawnObject puts center at tile center +16.
+    // So visual x is (18*32)+16 = 592. Real width 64 -> left 560, right 624.
+    // Tile 18 starts 576. So it overhangs left? No.
+    // Phaser Image Origin 0.5. Center 592. Extent 560-624.
+    // Tile 17: 544-576. Tile 18: 576-608. Tile 19: 608-640.
+    // So it covers half of 18 and half of 19?
+    // Let's just place it and see.
+
+    // Chairs around table
+    this.spawnObject(18, 3, 'obj_chair');
+    this.spawnObject(19, 3, 'obj_chair');
+    this.spawnObject(18, 5, 'obj_chair');
+    this.spawnObject(19, 5, 'obj_chair');
+
+    // --- ZONE: SALES/SUPPORT (Bottom Right) ---
+    for (let row = 10; row <= 16; row += 3) {
+      for (let col = 16; col <= 21; col += 3) {
+        this.spawnObject(col, row, 'obj_desk');
+        this.spawnObject(col, row - 1, 'obj_chair');
+      }
+    }
+    this.spawnObject(22, 12, 'obj_cabinet');
+    this.spawnObject(22, 13, 'obj_cabinet');
+
+    // --- ZONE: LOUNGE (Bottom Left/Center) ---
+    this.spawnObject(12, 16, 'obj_rug'); // Decoration, walkable?
+    this.spawnObject(11, 16, 'obj_couch');
+    this.spawnObject(13, 16, 'obj_couch');
+
+    this.spawnObject(23, 17, 'obj_coffee_anim', true);
+    this.spawnObject(21, 17, 'obj_vending');
+    this.spawnObject(19, 17, 'obj_watercooler');
+
+    // Plants
     this.spawnObject(2, 17, 'obj_plant');
-
-    // NEW: Printer near support
-    this.spawnObject(5, 5, 'obj_printer');
-
-    // NEW: Watercooler central
-    this.spawnObject(12, 10, 'obj_watercooler');
-
-    // NEW: Whiteboard in Dev area
-    this.spawnObject(3, 15, 'obj_whiteboard');
-
-    // NEW: Vending Machine
-    this.spawnObject(20, 10, 'obj_vending');
+    this.spawnObject(23, 1, 'obj_plant');
+    this.spawnObject(10, 10, 'obj_plant');
   }
 
   spawnObject(x, y, texture, isAnimated = false) {
     let obj;
     if (isAnimated) {
-      obj = this.add.sprite(x * this.tileSize + 16, y * this.tileSize + 16, texture);
+      obj = this.add.sprite(
+        x * this.tileSize + this.tileSize / 2,
+        y * this.tileSize + this.tileSize / 2,
+        texture
+      );
       if (texture === 'obj_coffee_anim') {
         obj.play('coffee_drain');
         obj.setInteractive();
@@ -632,7 +733,11 @@ export default class MainScene extends Phaser.Scene {
         });
       }
     } else {
-      obj = this.add.image(x * this.tileSize + 16, y * this.tileSize + 16, texture);
+      obj = this.add.image(
+        x * this.tileSize + this.tileSize / 2,
+        y * this.tileSize + this.tileSize / 2,
+        texture
+      );
     }
 
     // Enable Normal Map Lighting for all objects if supported
@@ -688,8 +793,8 @@ export default class MainScene extends Phaser.Scene {
     const y = Phaser.Math.Between(1, this.rows - 2);
     const worker = new WorkerSprite(
       this,
-      x * this.tileSize + 16,
-      y * this.tileSize + 16,
+      x * this.tileSize + this.tileSize / 2,
+      y * this.tileSize + this.tileSize / 2,
       role,
       Date.now()
     );
