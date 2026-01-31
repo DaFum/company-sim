@@ -613,6 +613,7 @@ export default class MainScene extends Phaser.Scene {
     // Double size to cover edges, but grid size is enough here
     this.floorTexture = this.add
       .renderTexture(0, 0, this.cols * this.tileSize, this.rows * this.tileSize)
+      .setOrigin(0, 0)
       .setDepth(0);
 
     const textureKey = `floor_${level}`;
