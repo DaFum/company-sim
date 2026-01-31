@@ -439,22 +439,25 @@ export const useGameStore = create(
           }
         } else if (action === 'FIRE_WORKER') {
           const count = params.count || 1;
-          const cost = count * 200;
+          const role = (params.role || 'dev').toLowerCase();
+          let actualRole = 'dev';
+          if (role.includes('sale')) actualRole = 'sales';
+          else if (role.includes('support')) actualRole = 'support';
+
+          let newEmployees = [...state.employees];
+          const candidates = newEmployees.filter((e) => e.role === actualRole);
+          const fireCount = Math.min(count, candidates.length);
+          const cost = fireCount * 200;
+
+          if (fireCount === 0) {
+            state.addTerminalLog('> ERROR: NO MATCHING WORKERS TO FIRE.');
+            return;
+          }
 
           if (state.cash >= cost) {
-            const role = (params.role || 'dev').toLowerCase();
-            let actualRole = 'dev';
-            if (role.includes('sale')) actualRole = 'sales';
-            else if (role.includes('support')) actualRole = 'support';
-
-            let newEmployees = [...state.employees];
-            const candidates = newEmployees.filter((e) => e.role === actualRole);
             let fired = 0;
-
-            // Trait targeting? Assuming simple FIFO for now, or random
-            // If params.trait exists, filter by that?
             // Simplified: Fire first match
-            for (let i = 0; i < count; i++) {
+            for (let i = 0; i < fireCount; i++) {
               if (candidates.length > i) {
                 const victim = candidates[i];
                 newEmployees = newEmployees.filter((e) => e.id !== victim.id);
@@ -463,8 +466,8 @@ export const useGameStore = create(
             }
 
             updates.employees = newEmployees;
-            updates.cash = state.cash - fired * 200;
-            updates.mood = Math.max(0, state.mood - 20);
+            updates.cash = state.cash - cost;
+            updates.mood = Math.max(0, state.mood - fired * 20);
           } else {
             state.addTerminalLog(`> ERROR: CANNOT AFFORD SEVERANCE.`);
           }

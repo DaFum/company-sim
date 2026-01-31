@@ -443,7 +443,9 @@ export default class PreloadScene extends Phaser.Scene {
 
         // Bricks
         g.fillStyle(0x555566, 1);
-        brickRects.forEach((r) => g.fillRect(...r));
+        brickRects.forEach((r) => {
+          g.fillRect(...r);
+        });
 
         g.lineStyle(1, 0x222233, 0.5);
         g.strokeRect(0, 0, 32, 32);
@@ -454,7 +456,9 @@ export default class PreloadScene extends Phaser.Scene {
         g.fillRect(0, 0, 32, 32);
         // Bricks Pop out
         g.fillStyle(0x80ff80, 1);
-        brickRects.forEach((r) => g.fillRect(...r));
+        brickRects.forEach((r) => {
+          g.fillRect(...r);
+        });
       }
     );
 
