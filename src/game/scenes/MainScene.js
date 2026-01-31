@@ -4,6 +4,10 @@ import EasyStar from 'easystarjs';
 import SoundManager from '../SoundManager';
 import WorkerSprite from '../sprites/WorkerSprite';
 
+const DRAG_FRICTION = 0.95;
+const ZOOM_SENSITIVITY = 0.002;
+const MIN_INERTIA_VELOCITY_SQ = 0.1;
+
 export default class MainScene extends Phaser.Scene {
   constructor() {
     super({ key: 'MainScene' });
@@ -62,7 +66,7 @@ export default class MainScene extends Phaser.Scene {
     this.isDragging = false;
     this.dragOrigin = new Phaser.Math.Vector2();
     this.dragVelocity = new Phaser.Math.Vector2(0, 0);
-    this.dragFriction = 0.95;
+    this.dragFriction = DRAG_FRICTION;
 
     // Fullscreen Button for Mobile (optional but recommended)
     this.createFullscreenButton();
@@ -236,7 +240,7 @@ export default class MainScene extends Phaser.Scene {
         const delta = dist - this.pinchDistance;
 
         // Scale zoom factor based on current zoom for uniform feel
-        const zoomFactor = delta * 0.002 * camera.zoom;
+        const zoomFactor = delta * ZOOM_SENSITIVITY * camera.zoom;
         const newZoom = Phaser.Math.Clamp(camera.zoom + zoomFactor, 0.5, 3);
 
         if (newZoom !== camera.zoom) {
@@ -286,7 +290,7 @@ export default class MainScene extends Phaser.Scene {
       this.isDragging = false;
 
       // Apply Inertia
-      if (this.dragVelocity.lengthSq() > 0.1) {
+      if (this.dragVelocity.lengthSq() > MIN_INERTIA_VELOCITY_SQ) {
         camera.scrollX += this.dragVelocity.x;
         camera.scrollY += this.dragVelocity.y;
 
@@ -294,7 +298,7 @@ export default class MainScene extends Phaser.Scene {
         this.dragVelocity.scale(this.dragFriction);
 
         // Stop if too slow
-        if (this.dragVelocity.lengthSq() < 0.1) {
+        if (this.dragVelocity.lengthSq() < MIN_INERTIA_VELOCITY_SQ) {
           this.dragVelocity.reset();
         }
       }
