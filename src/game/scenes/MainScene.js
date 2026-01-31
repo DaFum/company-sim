@@ -8,6 +8,25 @@ const DRAG_FRICTION = 0.95;
 const ZOOM_SENSITIVITY = 0.002;
 const MIN_INERTIA_VELOCITY_SQ = 0.1;
 
+/**
+ * @typedef {Object} Roster
+ * @property {number} dev - Number of developers.
+ * @property {number} sales - Number of sales people.
+ * @property {number} support - Number of support staff.
+ */
+
+/**
+ * @typedef {Object} GameEvent
+ * @property {string} type - The type of event (e.g., 'TECH_OUTAGE').
+ * @property {number} timeLeft - Remaining duration in ticks.
+ * @property {string} severity - Severity level (e.g., 'HIGH').
+ * @property {string} description - Description of the event.
+ */
+
+/**
+ * Main gameplay scene controlling the office simulation.
+ * Handles rendering, input, pathfinding, and syncing with the game store.
+ */
 export default class MainScene extends Phaser.Scene {
   constructor() {
     super({ key: 'MainScene' });
@@ -32,8 +51,13 @@ export default class MainScene extends Phaser.Scene {
     // Path batching
     this._pendingPathRequests = 0;
     this._maxPathCalculationsPerTick = 4;
+
+    this._chaosTweens = [];
   }
 
+  /**
+   * Initializes the scene, sets up groups, grid, inputs, and subscriptions.
+   */
   create() {
     this.soundManager = new SoundManager(this);
 
@@ -195,6 +219,9 @@ export default class MainScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.DESTROY, this.onDestroy, this);
   }
 
+  /**
+   * Main update loop. Handles pathfinding batching, depth sorting, and mobile controls.
+   */
   update() {
     // Batch EasyStar calculations
     if (this.easystar && this._pendingPathRequests > 0) {
@@ -221,6 +248,9 @@ export default class MainScene extends Phaser.Scene {
     this.handleMobileControls();
   }
 
+  /**
+   * Handles touch input for panning and pinching to zoom.
+   */
   handleMobileControls() {
     const input = this.input;
     const camera = this.cameras.main;
@@ -308,6 +338,9 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Cleans up resources when the scene shuts down.
+   */
   onShutdown() {
     console.log('[MainScene] Shutting down. Cleaning up...');
 
@@ -355,8 +388,13 @@ export default class MainScene extends Phaser.Scene {
     this.easystar = null;
     this._grid = null;
     this._pendingPathRequests = 0;
+
+    this._chaosTweens = [];
   }
 
+  /**
+   * Called when the scene is destroyed.
+   */
   onDestroy() {
     // Clean up plugins or managers if necessary
     if (this.soundManager) {
@@ -365,6 +403,9 @@ export default class MainScene extends Phaser.Scene {
   }
 
   // --- CAMERA & INPUT ---
+  /**
+   * Sets up mouse wheel zoom control.
+   */
   setupCameraControls() {
     // Zoom (Wheel)
     this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
@@ -375,10 +416,17 @@ export default class MainScene extends Phaser.Scene {
     // Legacy Pan Removed - Handled in update() via handleMobileControls
   }
 
+  /**
+   * Adjusts camera zoom by a delta.
+   * @param {number} delta - Amount to change zoom level.
+   */
   handleZoom(delta) {
     this.cameras.main.setZoom(Phaser.Math.Clamp(this.cameras.main.zoom + delta, 0.5, 3));
   }
 
+  /**
+   * Sets up touch interactions for selecting workers.
+   */
   setupTouchInteractions() {
     // Tap on Worker with Drag Tolerance
     this.input.on('gameobjectdown', (pointer, gameObject) => {
@@ -416,6 +464,9 @@ export default class MainScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Creates an on-screen button to toggle fullscreen mode.
+   */
   createFullscreenButton() {
     // Simple button top right (Relative)
     const btn = this.add
@@ -439,6 +490,11 @@ export default class MainScene extends Phaser.Scene {
   }
 
   // --- VISUALS: PARTICLES ---
+  /**
+   * Spawns smoke particles at a location.
+   * @param {number} x - X position.
+   * @param {number} y - Y position.
+   */
   createSmoke(x, y) {
     const emitter = this.add.particles(x, y, 'particle_pixel', {
       speed: { min: 10, max: 30 },
@@ -453,6 +509,11 @@ export default class MainScene extends Phaser.Scene {
     this.time.delayedCall(2000, () => emitter.destroy());
   }
 
+  /**
+   * Spawns code bit particles (green matrix style).
+   * @param {number} x - X position.
+   * @param {number} y - Y position.
+   */
   createCodeBits(x, y) {
     const emitter = this.add.particles(x, y, 'particle_pixel', {
       speed: { min: 5, max: 15 },
@@ -467,6 +528,9 @@ export default class MainScene extends Phaser.Scene {
   }
 
   // --- VISUALS: TOOLTIPS ---
+  /**
+   * Initializes the shared tooltip text object.
+   */
   setupTooltip() {
     this.tooltip = this.add
       .text(0, 0, '', {
@@ -486,6 +550,12 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Shows a tooltip at the specified position.
+   * @param {number} x - X position.
+   * @param {number} y - Y position.
+   * @param {string} text - Tooltip content.
+   */
   showTooltip(x, y, text) {
     this.tooltip.setScrollFactor(1);
     this.tooltip.setPosition(x, y);
@@ -493,11 +563,17 @@ export default class MainScene extends Phaser.Scene {
     this.tooltip.setVisible(true);
   }
 
+  /**
+   * Hides the tooltip.
+   */
   hideTooltip() {
     this.tooltip.setVisible(false);
   }
 
   // --- VISUALS: DAY/NIGHT ---
+  /**
+   * Creates the day/night overlay rectangle.
+   */
   setupDayNightCycle() {
     this.dayNightOverlay = this.add
       .rectangle(0, 0, 8000, 6000, 0x000033)
@@ -506,6 +582,10 @@ export default class MainScene extends Phaser.Scene {
       .setOrigin(0.5, 0.5); // Center large overlay
   }
 
+  /**
+   * Updates the day/night overlay alpha based on the current tick.
+   * @param {number} tick - Current game tick (0-60).
+   */
   updateDayNight(tick) {
     if (tick > 40) {
       const darkness = (tick - 40) / 20; // 0.0 to 1.0
@@ -516,6 +596,9 @@ export default class MainScene extends Phaser.Scene {
   }
 
   // --- GRID / PATHFINDING ---
+  /**
+   * Initializes EasyStar pathfinding and the grid.
+   */
   setupGrid() {
     this.easystar = new EasyStar.js();
     this.cols = 25;
@@ -528,6 +611,9 @@ export default class MainScene extends Phaser.Scene {
     this.easystar.setIterationsPerCalculation(200);
   }
 
+  /**
+   * Marks static obstacles on the grid (walls, furniture).
+   */
   applyObstaclesToGrid() {
     if (!this._grid) return;
 
@@ -564,6 +650,9 @@ export default class MainScene extends Phaser.Scene {
     this.easystar.setAcceptableTiles([0]);
   }
 
+  /**
+   * Spawns wall sprites around the perimeter.
+   */
   createWalls() {
     // Add walls to object group or a dedicated group
     // Top & Bottom
@@ -578,6 +667,11 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Spawns a single wall sprite at the grid coordinates.
+   * @param {number} x - Grid X.
+   * @param {number} y - Grid Y.
+   */
   spawnWall(x, y) {
     const wall = this.add.image(
       x * this.tileSize + this.tileSize / 2,
@@ -598,6 +692,12 @@ export default class MainScene extends Phaser.Scene {
     this.objectGroup.add(wall);
   }
 
+  /**
+   * Requests a path for a worker using EasyStar.
+   * @param {WorkerSprite} worker - The worker requesting movement.
+   * @param {number} x - Target grid X.
+   * @param {number} y - Target grid Y.
+   */
   requestMove(worker, x, y) {
     const startX = Math.floor(worker.x / this.tileSize);
     const startY = Math.floor(worker.y / this.tileSize);
@@ -613,6 +713,10 @@ export default class MainScene extends Phaser.Scene {
   }
 
   // --- FLOOR (RenderTexture) ---
+  /**
+   * Creates the floor texture using a RenderTexture.
+   * @param {number} level - Office level (determines floor style).
+   */
   createFloor(level) {
     // Instead of a Group, we use a RenderTexture for maximum performance
     if (this.floorTexture) this.floorTexture.destroy();
@@ -635,6 +739,11 @@ export default class MainScene extends Phaser.Scene {
     // Enable pipeline for floor? Optional. Standard for now.
   }
 
+  /**
+   * Adds a temporary footprint decal to the floor.
+   * @param {number} x - X position.
+   * @param {number} y - Y position.
+   */
   addFootprint(x, y) {
     if (this.floorTexture) {
       // Optimize: Reuse a shared Graphics object or create once
@@ -648,6 +757,9 @@ export default class MainScene extends Phaser.Scene {
   }
 
   // --- OBJECTS ---
+  /**
+   * Spawns all static objects (furniture, plants) in the office.
+   */
   spawnObjects() {
     this.objectGroup?.clear(true, true);
 
@@ -716,6 +828,13 @@ export default class MainScene extends Phaser.Scene {
     this.spawnObject(10, 10, 'obj_plant');
   }
 
+  /**
+   * Spawns a single object at the given grid coordinates.
+   * @param {number} x - Grid X.
+   * @param {number} y - Grid Y.
+   * @param {string} texture - Texture key.
+   * @param {boolean} [isAnimated=false] - Whether the object is an animated sprite.
+   */
   spawnObject(x, y, texture, isAnimated = false) {
     let obj;
     if (isAnimated) {
@@ -765,6 +884,10 @@ export default class MainScene extends Phaser.Scene {
   }
 
   // --- WORKERS ---
+  /**
+   * Syncs the visual worker count with the store roster.
+   * @param {Roster} roster - Roster object containing role counts.
+   */
   syncRoster(roster) {
     const currentDevs = this.getWorkersByRole('dev');
     const currentSales = this.getWorkersByRole('sales');
@@ -775,10 +898,21 @@ export default class MainScene extends Phaser.Scene {
     this.adjustRoleCount('support', currentSupport.length, roster.support);
   }
 
+  /**
+   * Gets all workers of a specific role.
+   * @param {string} role - Worker role (dev, sales, support).
+   * @returns {WorkerSprite[]} Array of workers.
+   */
   getWorkersByRole(role) {
     return this.workersGroup.getChildren().filter((w) => w.role === role);
   }
 
+  /**
+   * Spawns or removes workers to match the target count.
+   * @param {string} role - Worker role.
+   * @param {number} current - Current count.
+   * @param {number} target - Target count.
+   */
   adjustRoleCount(role, current, target) {
     if (current < target) {
       for (let i = 0; i < target - current; i++) this.spawnWorker(role);
@@ -788,6 +922,10 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Spawns a new worker of the given role.
+   * @param {string} role - Worker role.
+   */
   spawnWorker(role) {
     const x = Phaser.Math.Between(1, this.cols - 2);
     const y = Phaser.Math.Between(1, this.rows - 2);
@@ -803,6 +941,10 @@ export default class MainScene extends Phaser.Scene {
   }
 
   // --- VISITORS ---
+  /**
+   * Syncs visitor visuals based on active visitors in the store.
+   * @param {string[]} activeVisitors - List of active visitor keys.
+   */
   syncVisitors(activeVisitors) {
     this.manageVisitor('visitor_pizza', activeVisitors.includes('pizza_guy'), 0, 300, 400, 300);
     this.manageVisitor(
@@ -816,6 +958,16 @@ export default class MainScene extends Phaser.Scene {
     );
   }
 
+  /**
+   * Spawns or removes visitor sprites.
+   * @param {string} key - Visitor sprite key.
+   * @param {boolean} isActive - Whether the visitor should be present.
+   * @param {number} startX - Spawn X.
+   * @param {number} startY - Spawn Y.
+   * @param {number} endX - Target X.
+   * @param {number} endY - Target Y.
+   * @param {number} [count=1] - Number of visitors to spawn.
+   */
   manageVisitor(key, isActive, startX, startY, endX, endY, count = 1) {
     const sprites = this.visitorGroup.getChildren().filter((v) => v.texture?.key === key);
 
@@ -845,6 +997,9 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Spawns the pizza guy with an orbiting path.
+   */
   spawnPizzaGuyOrbit() {
     // 1. Define start point (e.g. room center)
     const centerX = 400;
@@ -876,13 +1031,24 @@ export default class MainScene extends Phaser.Scene {
   }
 
   // --- VISUALS ---
+  /**
+   * Updates worker tints based on the mood.
+   * @param {number} mood - Current mood value (0-100).
+   */
   updateMoodVisuals(mood) {
     const tint = mood > 80 ? 0xffffff : mood > 40 ? 0xccccff : 0x8888ff;
     this.workersGroup.children.iterate((w) => w?.setTint?.(tint));
   }
 
+  /**
+   * Triggers visual effects for chaos events.
+   * @param {GameEvent[]} events - List of active events.
+   */
   syncChaosVisuals(events) {
-    this.tweens.killAll();
+    if (this._chaosTweens?.length) {
+      this._chaosTweens.forEach((t) => t.stop());
+    }
+    this._chaosTweens = [];
     this.overlayGroup?.clear(true, true);
 
     for (const e of events) {
@@ -897,7 +1063,14 @@ export default class MainScene extends Phaser.Scene {
         const skull = this.add.text(400, 300, '💀', { fontSize: '200px' }).setOrigin(0.5);
         this.overlayGroup.add(skull);
 
-        this.tweens.add({ targets: skull, alpha: 0.5, yoyo: true, repeat: -1, duration: 500 });
+        const tween = this.tweens.add({
+          targets: skull,
+          alpha: 0.5,
+          yoyo: true,
+          repeat: -1,
+          duration: 500,
+        });
+        this._chaosTweens.push(tween);
         skull.once(Phaser.GameObjects.Events.DESTROY, () => this.tweens.killTweensOf(skull));
 
         this.addOverlayText('RANSOMWARE: PAY UP', '#ff0000');
@@ -908,6 +1081,11 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Adds text to the overlay group.
+   * @param {string} msg - Text message.
+   * @param {string} color - Background color hex string.
+   */
   addOverlayText(msg, color) {
     const t = this.add
       .text(400, 100, msg, {

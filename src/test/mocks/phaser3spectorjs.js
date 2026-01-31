@@ -450,7 +450,9 @@ class MockScene {
       image: vi.fn((x, y, texture) => new MockImage(this, x, y, texture)),
       sprite: vi.fn((x, y, texture) => new MockSprite(this, x, y, texture)),
       text: vi.fn((x, y, text, style) => new MockText(this, x, y, text, style)),
-      rectangle: vi.fn((x, y, w, h, color, alpha) => new MockRectangle(this, x, y, w, h, color, alpha)),
+      rectangle: vi.fn(
+        (x, y, w, h, color, alpha) => new MockRectangle(this, x, y, w, h, color, alpha)
+      ),
       renderTexture: vi.fn((x, y, w, h) => new MockRenderTexture(this, x, y, w, h)),
       particles: vi.fn((x, y, texture, config) => new MockParticleEmitter()),
       follower: vi.fn((path, x, y, texture) => new MockFollower(path, x, y, texture)),
@@ -511,6 +513,9 @@ const Phaser = {
   Math: {
     Vector2: MockVector2,
     Between: vi.fn((min, max) => Math.floor(Math.random() * (max - min + 1)) + min),
+    RND: {
+      frac: vi.fn(() => Math.random()),
+    },
     Distance: {
       Between: vi.fn((x1, y1, x2, y2) => Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)),
     },

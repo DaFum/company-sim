@@ -13,9 +13,7 @@ const loadEruda = () => {
     // localStorage may be unavailable (e.g., in private mode or disabled); ignore and fall back to URL param only
   }
 
-  const erudaEnabled =
-    urlParams.get('eruda') === 'true' ||
-    erudaFromStorage === 'true';
+  const erudaEnabled = urlParams.get('eruda') === 'true' || erudaFromStorage === 'true';
 
   if (erudaEnabled) {
     import('eruda').then((eruda) => eruda.default.init());
