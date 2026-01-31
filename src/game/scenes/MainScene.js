@@ -132,16 +132,16 @@ export default class MainScene extends Phaser.Scene {
 
     // --- PUSH THE LIMITS: POST-PROCESSING STACK ---
     // Only apply postFX if supported (WebGL)
-    if (this.game.renderer.type === Phaser.WEBGL) {
-      // 1. Tilt Shift (Bokeh)
-      this.cameras.main.postFX.addTiltShift(0.5, 2.0, 0.4, true);
+    // if (this.game.renderer.type === Phaser.WEBGL) {
+    //   // 1. Tilt Shift (Bokeh)
+    //   this.cameras.main.postFX.addTiltShift(0.5, 2.0, 0.4, true);
 
-      // 2. Vignette
-      this.cameras.main.postFX.addVignette(0.5, 0.5, 0.8, 0.4);
+    //   // 2. Vignette
+    //   this.cameras.main.postFX.addVignette(0.5, 0.5, 0.8, 0.4);
 
-      // 3. Bloom
-      this.cameras.main.postFX.addBloom(0xffffff, 1, 1, 0.5, 1.0);
-    }
+    //   // 3. Bloom
+    //   this.cameras.main.postFX.addBloom(0xffffff, 1, 1, 0.5, 1.0);
+    // }
 
     // --- ATMOSPHERE: DYNAMIC LIGHTING ---
     // 1. ENABLE LIGHTS
