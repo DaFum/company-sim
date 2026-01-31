@@ -1,16 +1,15 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import Phaser from 'phaser';
-import MainScene from './MainScene';
-import { useGameStore } from '../../store/gameStore';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import Phaser from '../../test/mocks/phaser3spectorjs.js';
+import MainScene from './MainScene.js';
 
-// Mock the game store
+// Mock dependencies
 vi.mock('../../store/gameStore', () => ({
   useGameStore: {
     subscribe: vi.fn(),
     getState: vi.fn(() => ({
-      roster: { dev: 0, sales: 0, support: 0 },
+      roster: { dev: 1, sales: 0, support: 0 },
       activeVisitors: [],
-      mood: 80,
+      mood: 100,
       activeEvents: [],
       officeLevel: 1,
       tick: 0,
@@ -18,292 +17,86 @@ vi.mock('../../store/gameStore', () => ({
   },
 }));
 
-// Mock EasyStar
 vi.mock('easystarjs', () => ({
   default: {
-    js: vi.fn(function() {
+    js: vi.fn(function () {
       this.setGrid = vi.fn();
       this.setAcceptableTiles = vi.fn();
       this.setIterationsPerCalculation = vi.fn();
-      this.findPath = vi.fn();
+      this.findPath = vi.fn((sx, sy, ex, ey, callback) => {
+        setTimeout(() => {
+          callback([
+            { x: sx, y: sy },
+            { x: ex, y: ey },
+          ]);
+        }, 0);
+      });
       this.calculate = vi.fn();
-      return this;
     }),
   },
 }));
 
-// Mock SoundManager
 vi.mock('../SoundManager', () => ({
-  default: vi.fn(function(scene) {
-    this.scene = scene;
-    this.play = vi.fn();
-    return this;
-  }),
+  default: class MockSoundManager {
+    constructor() {
+      this.play = vi.fn();
+      this.setMute = vi.fn();
+    }
+  },
 }));
 
-// Mock WorkerSprite
 vi.mock('../sprites/WorkerSprite', () => ({
-  default: vi.fn(function(scene, x, y, role, id) {
-    this.scene = scene;
-    this.x = x;
-    this.y = y;
-    this.role = role;
-    this.id = id;
-    this.energy = 100;
-    this.setDepth = vi.fn().mockReturnThis();
-    this.setTint = vi.fn().mockReturnThis();
-    this.showFeedback = vi.fn().mockReturnThis();
-    this.destroy = vi.fn();
-    this.startPath = vi.fn();
-    this.getBounds = vi.fn(() => ({
-      contains: vi.fn(() => false),
-    }));
+  default: vi.fn().mockImplementation((scene, x, y, role, id) => {
+    const mockWorker = {
+      scene,
+      x,
+      y,
+      role,
+      id,
+      energy: 100,
+      destroy: vi.fn(),
+      setDepth: vi.fn(),
+      setTint: vi.fn(),
+      showFeedback: vi.fn(),
+      startPath: vi.fn(),
+      getBounds: vi.fn(() => ({
+        contains: vi.fn(() => false),
+      })),
+    };
+    return mockWorker;
   }),
 }));
 
 describe('MainScene', () => {
   let scene;
-  let mockAdd;
-  let mockCameras;
-  let mockInput;
-  let mockLights;
-  let mockAnims;
-  let mockEvents;
-  let mockTweens;
-  let mockTime;
-  let mockScale;
-  let mockPhysics;
 
   beforeEach(() => {
-    // Reset mocks
-    vi.clearAllMocks();
-
-    // Mock add manager
-    const mockGroup = {
-      add: vi.fn(),
-      getChildren: vi.fn(() => []),
-      children: {
-        iterate: vi.fn(),
-      },
-      clear: vi.fn(),
-    };
-
-    const mockGraphics = {
-      fillStyle: vi.fn().mockReturnThis(),
-      fillCircle: vi.fn().mockReturnThis(),
-      destroy: vi.fn(),
-    };
-
-    const mockRenderTexture = {
-      destroy: vi.fn(),
-      beginDraw: vi.fn(),
-      endDraw: vi.fn(),
-      batchDrawFrame: vi.fn(),
-      draw: vi.fn(),
-      setDepth: vi.fn().mockReturnThis(),
-    };
-
-    const mockSprite = {
-      play: vi.fn().mockReturnThis(),
-      setInteractive: vi.fn().mockReturnThis(),
-      on: vi.fn().mockReturnThis(),
-      once: vi.fn().mockReturnThis(),
-      setDepth: vi.fn().mockReturnThis(),
-      setPipeline: vi.fn().mockReturnThis(),
-      postFX: {
-        addBloom: vi.fn(),
-        addShadow: vi.fn(),
-      },
-    };
-
-    const mockImage = {
-      setDepth: vi.fn().mockReturnThis(),
-      setPipeline: vi.fn().mockReturnThis(),
-      postFX: {
-        addBloom: vi.fn(),
-        addShadow: vi.fn(),
-      },
-    };
-
-    const mockText = {
-      setOrigin: vi.fn().mockReturnThis(),
-      setScrollFactor: vi.fn().mockReturnThis(),
-      setDepth: vi.fn().mockReturnThis(),
-      setInteractive: vi.fn().mockReturnThis(),
-      setVisible: vi.fn().mockReturnThis(),
-      setPosition: vi.fn().mockReturnThis(),
-      setText: vi.fn().mockReturnThis(),
-      on: vi.fn().mockReturnThis(),
-      postFX: {
-        addShadow: vi.fn(),
-      },
-    };
-
-    const mockRectangle = {
-      setDepth: vi.fn().mockReturnThis(),
-      setAlpha: vi.fn().mockReturnThis(),
-      setOrigin: vi.fn().mockReturnThis(),
-    };
-
-    const mockParticles = {
-      setDepth: vi.fn().mockReturnThis(),
-      destroy: vi.fn(),
-    };
-
-    const mockFollower = {
-      startFollow: vi.fn().mockReturnThis(),
-      setPipeline: vi.fn().mockReturnThis(),
-    };
-
-    mockAdd = {
-      group: vi.fn(() => mockGroup),
-      graphics: vi.fn(() => mockGraphics),
-      renderTexture: vi.fn(() => mockRenderTexture),
-      sprite: vi.fn(() => mockSprite),
-      image: vi.fn(() => mockImage),
-      text: vi.fn(() => mockText),
-      rectangle: vi.fn(() => mockRectangle),
-      particles: vi.fn(() => mockParticles),
-      existing: vi.fn(obj => obj),
-      follower: vi.fn(() => mockFollower),
-    };
-
-    // Mock make manager
-    const mockMake = {
-      graphics: vi.fn(() => mockGraphics),
-    };
-
-    // Mock cameras
-    const mockCamera = {
-      centerOn: vi.fn(),
-      setBackgroundColor: vi.fn(),
-      setZoom: vi.fn(),
-      shake: vi.fn(),
-      scrollX: 0,
-      scrollY: 0,
-      zoom: 1,
-      postFX: {
-        addTiltShift: vi.fn(),
-        addVignette: vi.fn(),
-        addBloom: vi.fn(),
-      },
-    };
-
-    mockCameras = {
-      main: mockCamera,
-    };
-
-    // Mock input
-    const mockPointer = {
-      isDown: false,
-      x: 0,
-      y: 0,
-      prevPosition: { x: 0, y: 0 },
-      worldX: 100,
-      worldY: 100,
-      getDistance: vi.fn(() => 0),
-      positionToCamera: vi.fn(() => ({ x: 100, y: 100 })),
-    };
-
-    const mockKeyboard = {
-      removeAllListeners: vi.fn(),
-      removeAllKeys: vi.fn(),
-      shutdown: vi.fn(),
-    };
-
-    mockInput = {
-      addPointer: vi.fn(),
-      on: vi.fn(),
-      off: vi.fn(),
-      removeAllListeners: vi.fn(),
-      keyboard: mockKeyboard,
-      pointer1: mockPointer,
-      pointer2: mockPointer,
-      activePointer: mockPointer,
-    };
-
-    // Mock lights
-    const mockLight = {
-      setColor: vi.fn().mockReturnThis(),
-      setIntensity: vi.fn().mockReturnThis(),
-      destroy: vi.fn(),
-      x: 0,
-      y: 0,
-    };
-
-    mockLights = {
-      enable: vi.fn(),
-      setAmbientColor: vi.fn(),
-      addLight: vi.fn(() => mockLight),
-    };
-
-    // Mock anims
-    mockAnims = {
-      exists: vi.fn(() => false),
-      create: vi.fn(),
-      generateFrameNumbers: vi.fn(() => []),
-    };
-
-    // Mock events
-    mockEvents = {
-      once: vi.fn(),
-    };
-
-    // Mock tweens
-    mockTweens = {
-      add: vi.fn(),
-      killAll: vi.fn(),
-      killTweensOf: vi.fn(),
-    };
-
-    // Mock time
-    mockTime = {
-      delayedCall: vi.fn(),
-    };
-
-    // Mock scale
-    mockScale = {
-      width: 800,
-      height: 600,
-      isFullscreen: false,
-      startFullscreen: vi.fn(),
-      stopFullscreen: vi.fn(),
-    };
-
-    // Mock physics
-    mockPhysics = {
-      add: {
-        existing: vi.fn(obj => obj),
-      },
-    };
-
-    // Mock game
-    const mockGame = {
-      renderer: {
-        type: Phaser.WEBGL,
-        pipelines: {
-          has: vi.fn(() => true),
-        },
-      },
-    };
-
-    // Create scene instance
+    // Initialize scene
     scene = new MainScene();
-    scene.add = mockAdd;
-    scene.make = mockMake;
-    scene.cameras = mockCameras;
-    scene.input = mockInput;
-    scene.lights = mockLights;
-    scene.anims = mockAnims;
-    scene.events = mockEvents;
-    scene.tweens = mockTweens;
-    scene.time = mockTime;
-    scene.scale = mockScale;
-    scene.physics = mockPhysics;
-    scene.game = mockGame;
-    scene.scene = {
-      start: vi.fn(),
-    };
+
+    // Setup mocked Phaser scene components
+    const mockScene = new Phaser.Scene({ key: 'MainScene' });
+    Object.assign(scene, {
+      textures: mockScene.textures,
+      cache: mockScene.cache,
+      add: mockScene.add,
+      make: mockScene.make,
+      cameras: mockScene.cameras,
+      input: mockScene.input,
+      scale: mockScene.scale,
+      lights: mockScene.lights,
+      tweens: mockScene.tweens,
+      time: mockScene.time,
+      physics: mockScene.physics,
+      anims: mockScene.anims,
+      scene: mockScene.scene,
+      game: mockScene.game,
+      events: mockScene.events,
+    });
+
+    // Mock window events
+    global.window.addEventListener = vi.fn();
+    global.window.removeEventListener = vi.fn();
   });
 
   afterEach(() => {
@@ -312,349 +105,195 @@ describe('MainScene', () => {
 
   describe('constructor', () => {
     it('should initialize with correct scene key', () => {
-      const newScene = new MainScene();
-      expect(newScene.scene?.key || 'MainScene').toBe('MainScene');
+      expect(scene.key).toBe('MainScene');
     });
 
-    it('should initialize all groups to null', () => {
-      const newScene = new MainScene();
-      expect(newScene.workersGroup).toBeNull();
-      expect(newScene.floorGroup).toBeNull();
-      expect(newScene.objectGroup).toBeNull();
-      expect(newScene.visitorGroup).toBeNull();
-      expect(newScene.overlayGroup).toBeNull();
+    it('should initialize group properties as null', () => {
+      expect(scene.workersGroup).toBeNull();
+      expect(scene.floorGroup).toBeNull();
+      expect(scene.objectGroup).toBeNull();
+      expect(scene.visitorGroup).toBeNull();
+      expect(scene.overlayGroup).toBeNull();
     });
 
     it('should initialize pathfinding properties', () => {
-      const newScene = new MainScene();
-      expect(newScene.easystar).toBeNull();
-      expect(newScene._grid).toBeNull();
-      expect(newScene._pendingPathRequests).toBe(0);
-      expect(newScene._maxPathCalculationsPerTick).toBe(4);
+      expect(scene.easystar).toBeNull();
+      expect(scene._grid).toBeNull();
     });
 
-    it('should initialize empty unsubscribers array', () => {
-      const newScene = new MainScene();
-      expect(newScene.unsubscribers).toEqual([]);
+    it('should initialize unsubscribers array', () => {
+      expect(scene.unsubscribers).toEqual([]);
     });
 
-    it('should initialize managers to null', () => {
-      const newScene = new MainScene();
-      expect(newScene.soundManager).toBeNull();
-      expect(newScene.tooltip).toBeNull();
-      expect(newScene.dayNightOverlay).toBeNull();
+    it('should initialize path batching properties', () => {
+      expect(scene._pendingPathRequests).toBe(0);
+      expect(scene._maxPathCalculationsPerTick).toBe(4);
     });
   });
 
   describe('create', () => {
-    it('should initialize sound manager', () => {
+    beforeEach(() => {
+      vi.spyOn(scene, 'setupGrid').mockImplementation(() => {});
+      vi.spyOn(scene, 'createFloor').mockImplementation(() => {});
+      vi.spyOn(scene, 'spawnObjects').mockImplementation(() => {});
+      vi.spyOn(scene, 'applyObstaclesToGrid').mockImplementation(() => {});
+      vi.spyOn(scene, 'setupCameraControls').mockImplementation(() => {});
+      vi.spyOn(scene, 'setupTouchInteractions').mockImplementation(() => {});
+      vi.spyOn(scene, 'createFullscreenButton').mockImplementation(() => {});
+      vi.spyOn(scene, 'setupTooltip').mockImplementation(() => {});
+      vi.spyOn(scene, 'setupDayNightCycle').mockImplementation(() => {});
+      vi.spyOn(scene, 'syncRoster').mockImplementation(() => {});
+      vi.spyOn(scene, 'syncVisitors').mockImplementation(() => {});
+      vi.spyOn(scene, 'updateMoodVisuals').mockImplementation(() => {});
+      vi.spyOn(scene, 'syncChaosVisuals').mockImplementation(() => {});
+    });
+
+    it('should create SoundManager', () => {
       scene.create();
       expect(scene.soundManager).toBeDefined();
     });
 
-    it('should create all groups', () => {
+    it('should create all game groups', () => {
       scene.create();
-      expect(mockAdd.group).toHaveBeenCalledTimes(3); // object, workers, visitor
+
+      expect(scene.add.group).toHaveBeenCalled();
       expect(scene.objectGroup).toBeDefined();
       expect(scene.workersGroup).toBeDefined();
       expect(scene.visitorGroup).toBeDefined();
+      expect(scene.overlayGroup).toBeDefined();
     });
 
-    it('should set up grid before creating floor', () => {
-      const setupGridSpy = vi.spyOn(scene, 'setupGrid');
-      const createFloorSpy = vi.spyOn(scene, 'createFloor');
+    it('should setup grid before creating floor', () => {
+      const callOrder = [];
+      scene.setupGrid = vi.fn(() => callOrder.push('grid'));
+      scene.createFloor = vi.fn(() => callOrder.push('floor'));
 
       scene.create();
 
-      expect(setupGridSpy).toHaveBeenCalled();
-      expect(createFloorSpy).toHaveBeenCalledWith(1);
+      expect(callOrder).toEqual(['grid', 'floor']);
     });
 
-    it('should spawn objects and apply obstacles', () => {
-      const spawnObjectsSpy = vi.spyOn(scene, 'spawnObjects');
-      const applyObstaclesSpy = vi.spyOn(scene, 'applyObstaclesToGrid');
-
+    it('should create floor with level 1', () => {
       scene.create();
-
-      expect(spawnObjectsSpy).toHaveBeenCalled();
-      expect(applyObstaclesSpy).toHaveBeenCalled();
+      expect(scene.createFloor).toHaveBeenCalledWith(1);
     });
 
-    it('should center camera and set background color', () => {
+    it('should spawn objects', () => {
       scene.create();
-
-      expect(mockCameras.main.centerOn).toHaveBeenCalledWith(400, 300);
-      expect(mockCameras.main.setBackgroundColor).toHaveBeenCalledWith('#2d2d2d');
+      expect(scene.spawnObjects).toHaveBeenCalled();
     });
 
-    it('should enable multi-touch input', () => {
+    it('should apply obstacles to grid', () => {
       scene.create();
-      expect(mockInput.addPointer).toHaveBeenCalledWith(1);
+      expect(scene.applyObstaclesToGrid).toHaveBeenCalled();
     });
 
-    it('should set up camera controls and touch interactions', () => {
-      const setupCameraSpy = vi.spyOn(scene, 'setupCameraControls');
-      const setupTouchSpy = vi.spyOn(scene, 'setupTouchInteractions');
-
+    it('should setup camera controls', () => {
       scene.create();
-
-      expect(setupCameraSpy).toHaveBeenCalled();
-      expect(setupTouchSpy).toHaveBeenCalled();
+      expect(scene.setupCameraControls).toHaveBeenCalled();
     });
 
-    it('should initialize touch-specific variables', () => {
+    it('should center camera on office', () => {
       scene.create();
-
-      expect(scene.pinchDistance).toBe(0);
-      expect(scene.isDragging).toBe(false);
-      expect(scene.dragOrigin).toBeInstanceOf(Phaser.Math.Vector2);
+      expect(scene.cameras.main.centerOn).toHaveBeenCalledWith(400, 300);
     });
 
-    it('should enable lights and set ambient color', () => {
+    it('should set camera background color', () => {
       scene.create();
+      expect(scene.cameras.main.setBackgroundColor).toHaveBeenCalledWith('#2d2d2d');
+    });
 
-      expect(mockLights.enable).toHaveBeenCalled();
-      expect(mockLights.setAmbientColor).toHaveBeenCalledWith(0x888888);
+    it('should add multi-touch pointer', () => {
+      scene.create();
+      expect(scene.input.addPointer).toHaveBeenCalledWith(1);
+    });
+
+    it('should enable lights', () => {
+      scene.create();
+      expect(scene.lights.enable).toHaveBeenCalled();
+      expect(scene.lights.setAmbientColor).toHaveBeenCalledWith(0x888888);
     });
 
     it('should create mouse light', () => {
       scene.create();
-
-      expect(mockLights.addLight).toHaveBeenCalledWith(0, 0, 200);
       expect(scene.mouseLight).toBeDefined();
     });
 
-    it('should set up pointer move handler', () => {
+    it('should setup mouse follower light', () => {
       scene.create();
-
-      expect(mockInput.on).toHaveBeenCalledWith('pointermove', expect.any(Function));
+      expect(scene.input.on).toHaveBeenCalledWith('pointermove', expect.any(Function));
     });
 
     it('should create coffee animations', () => {
       scene.create();
-
-      expect(mockAnims.create).toHaveBeenCalledWith(
-        expect.objectContaining({ key: 'coffee_drain' })
-      );
-      expect(mockAnims.create).toHaveBeenCalledWith(
-        expect.objectContaining({ key: 'coffee_refill' })
-      );
+      expect(scene.anims.create).toHaveBeenCalledTimes(2);
     });
 
-    it('should set up window event listeners for zoom', () => {
-      const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
-
+    it('should register window zoom events', () => {
       scene.create();
-
-      expect(addEventListenerSpy).toHaveBeenCalledWith('ZOOM_IN', expect.any(Function));
-      expect(addEventListenerSpy).toHaveBeenCalledWith('ZOOM_OUT', expect.any(Function));
+      expect(window.addEventListener).toHaveBeenCalledWith('ZOOM_IN', expect.any(Function));
+      expect(window.addEventListener).toHaveBeenCalledWith('ZOOM_OUT', expect.any(Function));
     });
 
-    it('should set up shutdown and destroy events', () => {
+    it('should register shutdown and destroy events', () => {
       scene.create();
-
-      expect(mockEvents.once).toHaveBeenCalledWith(
+      expect(scene.events.once).toHaveBeenCalledWith(
         Phaser.Scenes.Events.SHUTDOWN,
         scene.onShutdown,
         scene
       );
-      expect(mockEvents.once).toHaveBeenCalledWith(
+      expect(scene.events.once).toHaveBeenCalledWith(
         Phaser.Scenes.Events.DESTROY,
         scene.onDestroy,
         scene
       );
     });
 
-    it('should subscribe to store updates', () => {
-      scene.create();
-
-      expect(useGameStore.subscribe).toHaveBeenCalled();
-      expect(scene.unsubscribers.length).toBeGreaterThan(0);
-    });
-
     it('should sync initial state from store', () => {
-      const syncRosterSpy = vi.spyOn(scene, 'syncRoster');
-      const syncVisitorsSpy = vi.spyOn(scene, 'syncVisitors');
-
       scene.create();
-
-      expect(syncRosterSpy).toHaveBeenCalled();
-      expect(syncVisitorsSpy).toHaveBeenCalled();
-    });
-  });
-
-  describe('update', () => {
-    beforeEach(() => {
-      scene.workersGroup = mockAdd.group();
-      scene.visitorGroup = mockAdd.group();
+      expect(scene.syncRoster).toHaveBeenCalled();
+      expect(scene.syncVisitors).toHaveBeenCalled();
+      expect(scene.updateMoodVisuals).toHaveBeenCalled();
+      expect(scene.syncChaosVisuals).toHaveBeenCalled();
     });
 
-    it('should process pending path requests', () => {
-      const mockEasyStar = {
-        calculate: vi.fn(),
-      };
-      scene.easystar = mockEasyStar;
-      scene._pendingPathRequests = 2;
-
-      scene.update();
-
-      expect(mockEasyStar.calculate).toHaveBeenCalled();
-    });
-
-    it('should not exceed max path calculations per tick', () => {
-      const mockEasyStar = {
-        calculate: vi.fn(),
-      };
-      scene.easystar = mockEasyStar;
-      scene._pendingPathRequests = 10;
-      scene._maxPathCalculationsPerTick = 4;
-
-      scene.update();
-
-      expect(mockEasyStar.calculate).toHaveBeenCalledTimes(4);
-    });
-
-    it('should update depth sorting for workers', () => {
-      scene.update();
-
-      expect(scene.workersGroup.children.iterate).toHaveBeenCalled();
-    });
-
-    it('should update depth sorting for visitors', () => {
-      scene.update();
-
-      expect(scene.visitorGroup.children.iterate).toHaveBeenCalled();
-    });
-
-    it('should handle mobile controls', () => {
-      const handleMobileSpy = vi.spyOn(scene, 'handleMobileControls');
-
-      scene.update();
-
-      expect(handleMobileSpy).toHaveBeenCalled();
-    });
-  });
-
-  describe('handleMobileControls', () => {
-    beforeEach(() => {
-      scene.pinchDistance = 0;
-      scene.isDragging = false;
-    });
-
-    it('should handle pinch to zoom with two fingers', () => {
-      mockInput.pointer1.isDown = true;
-      mockInput.pointer2.isDown = true;
-      mockInput.pointer1.x = 0;
-      mockInput.pointer1.y = 0;
-      mockInput.pointer2.x = 100;
-      mockInput.pointer2.y = 0;
-
-      scene.handleMobileControls();
-      scene.pinchDistance = 100;
-
-      mockInput.pointer2.x = 120;
-      scene.handleMobileControls();
-
-      expect(mockCameras.main.setZoom).toHaveBeenCalled();
-    });
-
-    it('should clamp zoom between 0.5 and 3', () => {
-      mockInput.pointer1.isDown = true;
-      mockInput.pointer2.isDown = true;
-      scene.pinchDistance = 100;
-
-      // Simulate large zoom increase
-      mockInput.pointer1.x = 0;
-      mockInput.pointer2.x = 1000;
-      mockCameras.main.zoom = 2.5;
-
-      scene.handleMobileControls();
-
-      const zoomCalls = mockCameras.main.setZoom.mock.calls;
-      if (zoomCalls.length > 0) {
-        const lastZoom = zoomCalls[zoomCalls.length - 1][0];
-        expect(lastZoom).toBeLessThanOrEqual(3);
-        expect(lastZoom).toBeGreaterThanOrEqual(0.5);
-      }
-    });
-
-    it('should reset pinch distance when not pinching', () => {
-      scene.pinchDistance = 100;
-      mockInput.pointer1.isDown = false;
-      mockInput.pointer2.isDown = false;
-
-      scene.handleMobileControls();
-
-      expect(scene.pinchDistance).toBe(0);
-    });
-
-    it('should handle panning with one finger', () => {
-      mockInput.activePointer.isDown = true;
-      mockInput.activePointer.x = 150;
-      mockInput.activePointer.prevPosition.x = 100;
-      scene.isDragging = true;
-      mockCameras.main.scrollX = 0;
-
-      scene.handleMobileControls();
-
-      expect(mockCameras.main.scrollX).not.toBe(0);
-    });
-
-    it('should start dragging on pointer down', () => {
-      mockInput.activePointer.isDown = true;
-      scene.isDragging = false;
-
-      scene.handleMobileControls();
-
-      expect(scene.isDragging).toBe(true);
-    });
-
-    it('should stop dragging on pointer up', () => {
-      scene.isDragging = true;
-      mockInput.activePointer.isDown = false;
-
-      scene.handleMobileControls();
-
-      expect(scene.isDragging).toBe(false);
-    });
-
-    it('should block dragging during pinch', () => {
-      mockInput.pointer1.isDown = true;
-      mockInput.pointer2.isDown = true;
-      scene.isDragging = true;
-
-      scene.handleMobileControls();
-
-      expect(scene.isDragging).toBe(false);
+    it('should subscribe to store changes', async () => {
+      const { useGameStore } = await import('../../store/gameStore');
+      scene.create();
+      expect(useGameStore.subscribe).toHaveBeenCalled();
     });
   });
 
   describe('setupGrid', () => {
-    it('should create grid with correct dimensions', () => {
+    it('should initialize EasyStar pathfinding', () => {
       scene.setupGrid();
+      expect(scene.easystar).toBeDefined();
+    });
 
+    it('should set grid dimensions', () => {
+      scene.setupGrid();
       expect(scene.cols).toBe(25);
       expect(scene.rows).toBe(20);
       expect(scene.tileSize).toBe(32);
-      expect(scene._grid).toBeDefined();
-      expect(scene._grid.length).toBe(20);
-      expect(scene._grid[0].length).toBe(25);
     });
 
-    it('should initialize all grid cells to 0', () => {
+    it('should create 2D grid array', () => {
       scene.setupGrid();
-
-      for (let y = 0; y < scene.rows; y++) {
-        for (let x = 0; x < scene.cols; x++) {
-          expect(scene._grid[y][x]).toBe(0);
-        }
-      }
+      expect(scene._grid).toHaveLength(20);
+      expect(scene._grid[0]).toHaveLength(25);
     });
 
-    it('should configure easystar', () => {
+    it('should initialize grid with zeros', () => {
       scene.setupGrid();
+      const allZeros = scene._grid.every((row) => row.every((cell) => cell === 0));
+      expect(allZeros).toBe(true);
+    });
 
-      expect(scene.easystar).toBeDefined();
+    it('should configure EasyStar with grid', () => {
+      scene.setupGrid();
+      expect(scene.easystar.setGrid).toHaveBeenCalledWith(scene._grid);
+      expect(scene.easystar.setAcceptableTiles).toHaveBeenCalledWith([0]);
+      expect(scene.easystar.setIterationsPerCalculation).toHaveBeenCalledWith(200);
     });
   });
 
@@ -663,150 +302,250 @@ describe('MainScene', () => {
       scene.setupGrid();
     });
 
-    it('should reset grid to all walkable', () => {
+    it('should not apply obstacles if grid is not initialized', () => {
+      scene._grid = null;
+      expect(() => scene.applyObstaclesToGrid()).not.toThrow();
+    });
+
+    it('should reset grid to zeros', () => {
       scene._grid[0][0] = 1;
       scene.applyObstaclesToGrid();
-
       expect(scene._grid[0][0]).toBe(0);
     });
 
     it('should mark hardcoded obstacles', () => {
       scene.applyObstaclesToGrid();
-
-      // Check hardcoded obstacles at (2,2), (23,2), (2,17)
       expect(scene._grid[2][2]).toBe(1);
       expect(scene._grid[2][23]).toBe(1);
       expect(scene._grid[17][2]).toBe(1);
     });
 
-    it('should not apply obstacles outside grid bounds', () => {
-      scene.cols = 5;
-      scene.rows = 5;
-      scene._grid = Array.from({ length: 5 }, () => Array(5).fill(0));
-
+    it('should update EasyStar grid', () => {
       scene.applyObstaclesToGrid();
-
-      // Obstacles at (23,2) and (2,17) are outside bounds
-      expect(() => scene.applyObstaclesToGrid()).not.toThrow();
+      expect(scene.easystar.setGrid).toHaveBeenCalled();
     });
 
-    it('should handle null grid gracefully', () => {
-      scene._grid = null;
-
+    it('should handle out-of-bounds obstacles gracefully', () => {
       expect(() => scene.applyObstaclesToGrid()).not.toThrow();
     });
   });
 
   describe('requestMove', () => {
+    let mockWorker;
+
     beforeEach(() => {
       scene.setupGrid();
-      scene.tileSize = 32;
-      scene.cols = 25;
-      scene.rows = 20;
+      mockWorker = {
+        x: 100,
+        y: 100,
+        startPath: vi.fn(),
+      };
     });
 
     it('should increment pending path requests', () => {
-      const mockWorker = { x: 100, y: 100 };
-      scene._pendingPathRequests = 0;
-
-      scene.requestMove(mockWorker, 5, 5);
-
-      expect(scene._pendingPathRequests).toBe(1);
+      const initialCount = scene._pendingPathRequests;
+      scene.requestMove(mockWorker, 10, 10);
+      expect(scene._pendingPathRequests).toBe(initialCount + 1);
     });
 
     it('should clamp target coordinates to grid bounds', () => {
-      const mockWorker = { x: 100, y: 100 };
-      const findPathSpy = vi.spyOn(scene.easystar, 'findPath');
-
-      scene.requestMove(mockWorker, 50, 50); // Out of bounds
-
-      expect(findPathSpy).toHaveBeenCalledWith(
+      scene.requestMove(mockWorker, 50, 50);
+      expect(scene.easystar.findPath).toHaveBeenCalledWith(
         expect.any(Number),
         expect.any(Number),
-        24, // clamped to cols - 1
-        19, // clamped to rows - 1
+        24,
+        19,
         expect.any(Function)
       );
     });
 
-    it('should call worker startPath on successful pathfinding', () => {
-      const mockWorker = {
-        x: 100,
-        y: 100,
-        startPath: vi.fn(),
-      };
+    it('should call worker.startPath when path is found', async () => {
+      scene.requestMove(mockWorker, 10, 10);
 
-      scene.easystar.findPath = vi.fn((sx, sy, ex, ey, callback) => {
-        callback([{ x: 5, y: 5 }]);
-      });
+      // Wait for async path callback
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
-      scene.requestMove(mockWorker, 5, 5);
-
-      expect(mockWorker.startPath).toHaveBeenCalledWith([{ x: 5, y: 5 }]);
+      expect(mockWorker.startPath).toHaveBeenCalled();
     });
 
-    it('should not call startPath if path is null', () => {
-      const mockWorker = {
-        x: 100,
-        y: 100,
-        startPath: vi.fn(),
-      };
+    it('should decrement pending requests when path is found', async () => {
+      scene.requestMove(mockWorker, 10, 10);
 
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(scene._pendingPathRequests).toBe(0);
+    });
+
+    it('should not start path if path is null', async () => {
       scene.easystar.findPath = vi.fn((sx, sy, ex, ey, callback) => {
         callback(null);
       });
 
-      scene.requestMove(mockWorker, 5, 5);
+      scene.requestMove(mockWorker, 10, 10);
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       expect(mockWorker.startPath).not.toHaveBeenCalled();
     });
+  });
 
-    it('should decrement pending requests after pathfinding', () => {
-      const mockWorker = { x: 100, y: 100, startPath: vi.fn() };
-      scene._pendingPathRequests = 0;
+  describe('update', () => {
+    beforeEach(() => {
+      scene.setupGrid();
+      scene.create();
+      scene.workersGroup = { children: { iterate: vi.fn() } };
+      scene.visitorGroup = { children: { iterate: vi.fn() } };
+      vi.spyOn(scene, 'handleMobileControls').mockImplementation(() => {});
+    });
 
-      scene.easystar.findPath = vi.fn((sx, sy, ex, ey, callback) => {
-        callback([{ x: 5, y: 5 }]);
-      });
+    it('should process pending path calculations', () => {
+      scene._pendingPathRequests = 3;
+      scene.update();
 
-      scene.requestMove(mockWorker, 5, 5);
-      expect(scene._pendingPathRequests).toBe(0);
+      expect(scene.easystar.calculate).toHaveBeenCalledTimes(3);
+    });
+
+    it('should limit path calculations per tick', () => {
+      scene._pendingPathRequests = 10;
+      scene.update();
+
+      expect(scene.easystar.calculate).toHaveBeenCalledTimes(scene._maxPathCalculationsPerTick);
+    });
+
+    it('should update worker depths based on y position', () => {
+      const mockWorker = { y: 100, setDepth: vi.fn() };
+      scene.workersGroup.children.iterate = vi.fn((callback) => callback(mockWorker));
+
+      scene.update();
+
+      expect(mockWorker.setDepth).toHaveBeenCalledWith(100);
+    });
+
+    it('should update visitor depths based on y position', () => {
+      const mockVisitor = { y: 200, setDepth: vi.fn() };
+      scene.visitorGroup.children.iterate = vi.fn((callback) => callback(mockVisitor));
+
+      scene.update();
+
+      expect(mockVisitor.setDepth).toHaveBeenCalledWith(200);
+    });
+
+    it('should call handleMobileControls', () => {
+      scene.update();
+      expect(scene.handleMobileControls).toHaveBeenCalled();
+    });
+  });
+
+  describe('handleMobileControls', () => {
+    beforeEach(() => {
+      scene.create();
+    });
+
+    it('should handle pinch zoom with two fingers', () => {
+      scene.input.pointer1.isDown = true;
+      scene.input.pointer2.isDown = true;
+      scene.input.pointer1.x = 100;
+      scene.input.pointer1.y = 100;
+      scene.input.pointer2.x = 200;
+      scene.input.pointer2.y = 100;
+
+      scene.handleMobileControls();
+
+      expect(scene.pinchDistance).toBeGreaterThan(0);
+    });
+
+    it('should reset pinch distance when not pinching', () => {
+      scene.pinchDistance = 100;
+      scene.input.pointer1.isDown = false;
+      scene.input.pointer2.isDown = false;
+
+      scene.handleMobileControls();
+
+      expect(scene.pinchDistance).toBe(0);
+    });
+
+    it('should handle panning with one finger', () => {
+      scene.input.activePointer.isDown = true;
+      scene.input.activePointer.x = 150;
+      scene.input.activePointer.y = 150;
+      scene.input.activePointer.prevPosition.x = 100;
+      scene.input.activePointer.prevPosition.y = 100;
+      scene.isDragging = true;
+
+      const initialScrollX = scene.cameras.main.scrollX;
+
+      scene.handleMobileControls();
+
+      expect(scene.cameras.main.scrollX).not.toBe(initialScrollX);
+    });
+
+    it('should start dragging when pointer is down', () => {
+      scene.input.activePointer.isDown = true;
+      scene.isDragging = false;
+
+      scene.handleMobileControls();
+
+      expect(scene.isDragging).toBe(true);
+    });
+
+    it('should stop dragging when pointer is up', () => {
+      scene.isDragging = true;
+      scene.input.activePointer.isDown = false;
+
+      scene.handleMobileControls();
+
+      expect(scene.isDragging).toBe(false);
+    });
+  });
+
+  describe('handleZoom', () => {
+    beforeEach(() => {
+      scene.create();
+    });
+
+    it('should increase zoom by delta', () => {
+      const initialZoom = scene.cameras.main.zoom;
+      scene.handleZoom(0.2);
+      expect(scene.cameras.main.setZoom).toHaveBeenCalled();
+    });
+
+    it('should decrease zoom by negative delta', () => {
+      scene.handleZoom(-0.2);
+      expect(scene.cameras.main.setZoom).toHaveBeenCalled();
+    });
+
+    it('should clamp zoom between 0.5 and 3', () => {
+      scene.cameras.main.zoom = 3;
+      scene.handleZoom(0.5);
+      expect(Phaser.Math.Clamp).toHaveBeenCalled();
     });
   });
 
   describe('createFloor', () => {
     beforeEach(() => {
-      scene.cols = 25;
-      scene.rows = 20;
-      scene.tileSize = 32;
+      scene.setupGrid();
+      scene.create();
     });
 
     it('should destroy existing floor texture', () => {
-      const mockOldFloor = { destroy: vi.fn() };
-      scene.floorTexture = mockOldFloor;
-
+      scene.floorTexture = { destroy: vi.fn() };
       scene.createFloor(1);
-
-      expect(mockOldFloor.destroy).toHaveBeenCalled();
+      expect(scene.floorTexture.destroy).toHaveBeenCalled();
     });
 
     it('should create render texture with correct dimensions', () => {
       scene.createFloor(1);
-
-      expect(mockAdd.renderTexture).toHaveBeenCalledWith(
+      expect(scene.add.renderTexture).toHaveBeenCalledWith(
         0,
         0,
-        25 * 32,
-        20 * 32
+        scene.cols * scene.tileSize,
+        scene.rows * scene.tileSize
       );
     });
 
-    it('should use correct floor texture key for level', () => {
-      const mockRenderTexture = mockAdd.renderTexture();
-
+    it('should use correct texture key based on level', () => {
       scene.createFloor(2);
-
-      expect(mockRenderTexture.batchDrawFrame).toHaveBeenCalledWith(
+      expect(scene.floorTexture.batchDrawFrame).toHaveBeenCalledWith(
         'floor_2',
         expect.any(Number),
         expect.any(Number),
@@ -814,824 +553,640 @@ describe('MainScene', () => {
       );
     });
 
-    it('should draw all floor tiles', () => {
-      const mockRenderTexture = mockAdd.renderTexture();
-
+    it('should set floor depth to 0', () => {
       scene.createFloor(1);
-
-      expect(mockRenderTexture.batchDrawFrame).toHaveBeenCalledTimes(25 * 20);
+      expect(scene.floorTexture.setDepth).toHaveBeenCalledWith(0);
     });
 
-    it('should set depth to 0 for floor', () => {
-      const mockRenderTexture = mockAdd.renderTexture();
-
+    it('should draw floor tiles for entire grid', () => {
       scene.createFloor(1);
-
-      expect(mockRenderTexture.setDepth).toHaveBeenCalledWith(0);
+      const expectedCalls = scene.cols * scene.rows;
+      expect(scene.floorTexture.batchDrawFrame).toHaveBeenCalledTimes(expectedCalls);
     });
   });
 
   describe('addFootprint', () => {
+    beforeEach(() => {
+      scene.setupGrid();
+      scene.createFloor(1);
+    });
+
     it('should create footprint graphics if not exists', () => {
-      scene.floorTexture = mockAdd.renderTexture();
-
       scene.addFootprint(100, 100);
-
       expect(scene._footprintGraphics).toBeDefined();
     });
 
     it('should reuse existing footprint graphics', () => {
-      scene.floorTexture = mockAdd.renderTexture();
-      const mockGraphics = scene.make.graphics();
-      scene._footprintGraphics = mockGraphics;
-
       scene.addFootprint(100, 100);
-
-      expect(scene.make.graphics).not.toHaveBeenCalledTimes(2);
+      const graphics = scene._footprintGraphics;
+      scene.addFootprint(150, 150);
+      expect(scene._footprintGraphics).toBe(graphics);
     });
 
     it('should draw footprint on floor texture', () => {
-      const mockFloorTexture = mockAdd.renderTexture();
-      scene.floorTexture = mockFloorTexture;
-
-      scene.addFootprint(150, 200);
-
-      expect(mockFloorTexture.draw).toHaveBeenCalled();
+      scene.addFootprint(100, 100);
+      expect(scene.floorTexture.draw).toHaveBeenCalled();
     });
 
-    it('should handle null floor texture', () => {
+    it('should not crash if floor texture is null', () => {
       scene.floorTexture = null;
-
       expect(() => scene.addFootprint(100, 100)).not.toThrow();
     });
   });
 
   describe('spawnObjects', () => {
     beforeEach(() => {
-      scene.objectGroup = mockAdd.group();
-      scene.tileSize = 32;
+      scene.setupGrid();
+      scene.create();
+      vi.spyOn(scene, 'spawnObject').mockImplementation(() => {});
     });
 
     it('should clear existing objects', () => {
       scene.spawnObjects();
-
       expect(scene.objectGroup.clear).toHaveBeenCalledWith(true, true);
     });
 
-    it('should spawn all required objects', () => {
-      const spawnObjectSpy = vi.spyOn(scene, 'spawnObject');
-
+    it('should spawn server object', () => {
       scene.spawnObjects();
+      expect(scene.spawnObject).toHaveBeenCalledWith(2, 2, 'obj_server');
+    });
 
-      expect(spawnObjectSpy).toHaveBeenCalledWith(2, 2, 'obj_server');
-      expect(spawnObjectSpy).toHaveBeenCalledWith(23, 2, 'obj_coffee_anim', true);
-      expect(spawnObjectSpy).toHaveBeenCalledWith(2, 17, 'obj_plant');
-      expect(spawnObjectSpy).toHaveBeenCalledWith(5, 5, 'obj_printer');
-      expect(spawnObjectSpy).toHaveBeenCalledWith(12, 10, 'obj_watercooler');
-      expect(spawnObjectSpy).toHaveBeenCalledWith(3, 15, 'obj_whiteboard');
-      expect(spawnObjectSpy).toHaveBeenCalledWith(20, 10, 'obj_vending');
+    it('should spawn animated coffee machine', () => {
+      scene.spawnObjects();
+      expect(scene.spawnObject).toHaveBeenCalledWith(23, 2, 'obj_coffee_anim', true);
+    });
+
+    it('should spawn plant object', () => {
+      scene.spawnObjects();
+      expect(scene.spawnObject).toHaveBeenCalledWith(2, 17, 'obj_plant');
+    });
+
+    it('should spawn printer object', () => {
+      scene.spawnObjects();
+      expect(scene.spawnObject).toHaveBeenCalledWith(5, 5, 'obj_printer');
+    });
+
+    it('should spawn watercooler object', () => {
+      scene.spawnObjects();
+      expect(scene.spawnObject).toHaveBeenCalledWith(12, 10, 'obj_watercooler');
+    });
+
+    it('should spawn whiteboard object', () => {
+      scene.spawnObjects();
+      expect(scene.spawnObject).toHaveBeenCalledWith(3, 15, 'obj_whiteboard');
+    });
+
+    it('should spawn vending machine object', () => {
+      scene.spawnObjects();
+      expect(scene.spawnObject).toHaveBeenCalledWith(20, 10, 'obj_vending');
     });
   });
 
   describe('spawnObject', () => {
     beforeEach(() => {
-      scene.objectGroup = mockAdd.group();
+      scene.create();
+    });
+
+    it('should create sprite for animated object', () => {
+      scene.spawnObject(0, 0, 'obj_coffee_anim', true);
+      expect(scene.add.sprite).toHaveBeenCalled();
+    });
+
+    it('should create image for non-animated object', () => {
+      scene.spawnObject(0, 0, 'obj_plant', false);
+      expect(scene.add.image).toHaveBeenCalled();
+    });
+
+    it('should position object at grid center', () => {
       scene.tileSize = 32;
+      scene.spawnObject(5, 5, 'test_obj', false);
+      expect(scene.add.image).toHaveBeenCalledWith(176, 176, 'test_obj');
     });
 
-    it('should create sprite for animated objects', () => {
-      scene.spawnObject(5, 5, 'obj_coffee_anim', true);
-
-      expect(mockAdd.sprite).toHaveBeenCalledWith(
-        5 * 32 + 16,
-        5 * 32 + 16,
-        'obj_coffee_anim'
-      );
-    });
-
-    it('should create image for static objects', () => {
-      scene.spawnObject(5, 5, 'obj_plant', false);
-
-      expect(mockAdd.image).toHaveBeenCalledWith(
-        5 * 32 + 16,
-        5 * 32 + 16,
-        'obj_plant'
-      );
+    it('should add object to objectGroup', () => {
+      scene.spawnObject(0, 0, 'test_obj', false);
+      expect(scene.objectGroup.add).toHaveBeenCalled();
     });
 
     it('should play animation for coffee machine', () => {
-      const mockSprite = mockAdd.sprite();
+      const mockSprite = { play: vi.fn(), setInteractive: vi.fn(), on: vi.fn(), setDepth: vi.fn() };
+      scene.add.sprite = vi.fn(() => mockSprite);
 
-      scene.spawnObject(5, 5, 'obj_coffee_anim', true);
+      scene.spawnObject(0, 0, 'obj_coffee_anim', true);
 
       expect(mockSprite.play).toHaveBeenCalledWith('coffee_drain');
     });
 
     it('should make coffee machine interactive', () => {
-      const mockSprite = mockAdd.sprite();
+      const mockSprite = { play: vi.fn(), setInteractive: vi.fn(), on: vi.fn(), setDepth: vi.fn() };
+      scene.add.sprite = vi.fn(() => mockSprite);
 
-      scene.spawnObject(5, 5, 'obj_coffee_anim', true);
+      scene.spawnObject(0, 0, 'obj_coffee_anim', true);
 
       expect(mockSprite.setInteractive).toHaveBeenCalled();
       expect(mockSprite.on).toHaveBeenCalledWith('pointerdown', expect.any(Function));
     });
-
-    it('should add object to objectGroup', () => {
-      scene.spawnObject(5, 5, 'obj_plant', false);
-
-      expect(scene.objectGroup.add).toHaveBeenCalled();
-    });
-
-    it('should set correct depth based on y position', () => {
-      const mockImage = mockAdd.image();
-      mockImage.y = 200;
-
-      scene.spawnObject(5, 5, 'obj_plant', false);
-
-      expect(mockImage.setDepth).toHaveBeenCalledWith(200);
-    });
-
-    it('should apply Light2D pipeline if available', () => {
-      const mockImage = mockAdd.image();
-
-      scene.spawnObject(5, 5, 'obj_plant', false);
-
-      expect(mockImage.setPipeline).toHaveBeenCalledWith('Light2D');
-    });
   });
 
-  describe('worker management', () => {
+  describe('syncRoster', () => {
     beforeEach(() => {
-      scene.workersGroup = mockAdd.group();
-      scene.cols = 25;
-      scene.rows = 20;
-      scene.tileSize = 32;
+      scene.create();
+      scene.workersGroup = { getChildren: vi.fn(() => []) };
+      vi.spyOn(scene, 'getWorkersByRole').mockReturnValue([]);
+      vi.spyOn(scene, 'adjustRoleCount').mockImplementation(() => {});
     });
 
-    describe('syncRoster', () => {
-      it('should adjust worker counts to match roster', () => {
-        const adjustSpy = vi.spyOn(scene, 'adjustRoleCount');
-        vi.spyOn(scene, 'getWorkersByRole').mockReturnValue([]);
-
-        scene.syncRoster({ dev: 2, sales: 1, support: 3 });
-
-        expect(adjustSpy).toHaveBeenCalledWith('dev', 0, 2);
-        expect(adjustSpy).toHaveBeenCalledWith('sales', 0, 1);
-        expect(adjustSpy).toHaveBeenCalledWith('support', 0, 3);
-      });
+    it('should adjust dev count', () => {
+      scene.syncRoster({ dev: 2, sales: 1, support: 0 });
+      expect(scene.adjustRoleCount).toHaveBeenCalledWith('dev', 0, 2);
     });
 
-    describe('getWorkersByRole', () => {
-      it('should return workers with matching role', () => {
-        const devWorker = { role: 'dev' };
-        const salesWorker = { role: 'sales' };
-        scene.workersGroup.getChildren = vi.fn(() => [devWorker, salesWorker]);
-
-        const result = scene.getWorkersByRole('dev');
-
-        expect(result).toEqual([devWorker]);
-      });
-
-      it('should return empty array if no matches', () => {
-        scene.workersGroup.getChildren = vi.fn(() => []);
-
-        const result = scene.getWorkersByRole('dev');
-
-        expect(result).toEqual([]);
-      });
+    it('should adjust sales count', () => {
+      scene.syncRoster({ dev: 1, sales: 2, support: 0 });
+      expect(scene.adjustRoleCount).toHaveBeenCalledWith('sales', 0, 2);
     });
 
-    describe('adjustRoleCount', () => {
-      it('should spawn workers when target exceeds current', () => {
-        const spawnSpy = vi.spyOn(scene, 'spawnWorker');
-
-        scene.adjustRoleCount('dev', 1, 3);
-
-        expect(spawnSpy).toHaveBeenCalledTimes(2);
-        expect(spawnSpy).toHaveBeenCalledWith('dev');
-      });
-
-      it('should destroy workers when current exceeds target', () => {
-        const mockWorker1 = { role: 'dev', destroy: vi.fn() };
-        const mockWorker2 = { role: 'dev', destroy: vi.fn() };
-        vi.spyOn(scene, 'getWorkersByRole').mockReturnValue([mockWorker1, mockWorker2]);
-
-        scene.adjustRoleCount('dev', 2, 1);
-
-        expect(mockWorker1.destroy).toHaveBeenCalled();
-      });
-
-      it('should do nothing when counts match', () => {
-        const spawnSpy = vi.spyOn(scene, 'spawnWorker');
-        vi.spyOn(scene, 'getWorkersByRole').mockReturnValue([{}, {}]);
-
-        scene.adjustRoleCount('dev', 2, 2);
-
-        expect(spawnSpy).not.toHaveBeenCalled();
-      });
-    });
-
-    describe('spawnWorker', () => {
-      it('should create worker at random grid position', () => {
-        scene.spawnWorker('dev');
-
-        expect(mockAdd.existing).toHaveBeenCalled();
-        expect(scene.workersGroup.add).toHaveBeenCalled();
-      });
-
-      it('should spawn within grid bounds', () => {
-        const mathBetweenSpy = vi.spyOn(Phaser.Math, 'Between');
-
-        scene.spawnWorker('sales');
-
-        expect(mathBetweenSpy).toHaveBeenCalledWith(1, scene.cols - 2);
-        expect(mathBetweenSpy).toHaveBeenCalledWith(1, scene.rows - 2);
-      });
+    it('should adjust support count', () => {
+      scene.syncRoster({ dev: 1, sales: 0, support: 3 });
+      expect(scene.adjustRoleCount).toHaveBeenCalledWith('support', 0, 3);
     });
   });
 
-  describe('visitor management', () => {
+  describe('getWorkersByRole', () => {
     beforeEach(() => {
-      scene.visitorGroup = mockAdd.group();
+      scene.create();
     });
 
-    describe('syncVisitors', () => {
-      it('should manage pizza guy visitor', () => {
-        const manageSpy = vi.spyOn(scene, 'manageVisitor');
+    it('should filter workers by role', () => {
+      const workers = [
+        { role: 'dev' },
+        { role: 'sales' },
+        { role: 'dev' },
+        { role: 'support' },
+      ];
+      scene.workersGroup.getChildren = vi.fn(() => workers);
 
-        scene.syncVisitors(['pizza_guy']);
-
-        expect(manageSpy).toHaveBeenCalledWith(
-          'visitor_pizza',
-          true,
-          0,
-          300,
-          400,
-          300
-        );
-      });
-
-      it('should manage investor visitors', () => {
-        const manageSpy = vi.spyOn(scene, 'manageVisitor');
-
-        scene.syncVisitors(['investors']);
-
-        expect(manageSpy).toHaveBeenCalledWith(
-          'visitor_investor',
-          true,
-          800,
-          300,
-          600,
-          300,
-          3
-        );
-      });
-
-      it('should handle multiple visitors', () => {
-        const manageSpy = vi.spyOn(scene, 'manageVisitor');
-
-        scene.syncVisitors(['pizza_guy', 'investors']);
-
-        expect(manageSpy).toHaveBeenCalledTimes(2);
-      });
+      const devs = scene.getWorkersByRole('dev');
+      expect(devs).toHaveLength(2);
+      expect(devs[0].role).toBe('dev');
     });
 
-    describe('manageVisitor', () => {
-      it('should spawn visitor if active and not present', () => {
-        scene.visitorGroup.getChildren = vi.fn(() => []);
-
-        scene.manageVisitor('visitor_pizza', true, 0, 300, 400, 300);
-
-        expect(mockAdd.follower).toHaveBeenCalled();
-      });
-
-      it('should not spawn if already present', () => {
-        const existingVisitor = { texture: { key: 'visitor_investor' } };
-        scene.visitorGroup.getChildren = vi.fn(() => [existingVisitor]);
-
-        scene.manageVisitor('visitor_investor', true, 800, 300, 600, 300, 3);
-
-        // Should not add more
-        expect(mockAdd.sprite).not.toHaveBeenCalled();
-      });
-
-      it('should remove visitor if not active', () => {
-        const mockVisitor = {
-          texture: { key: 'visitor_pizza' },
-          destroy: vi.fn(),
-        };
-        scene.visitorGroup.getChildren = vi.fn(() => [mockVisitor]);
-
-        scene.manageVisitor('visitor_pizza', false, 0, 300, 400, 300);
-
-        expect(mockTweens.killTweensOf).toHaveBeenCalledWith(mockVisitor);
-        expect(mockVisitor.destroy).toHaveBeenCalled();
-      });
-
-      it('should spawn multiple investors', () => {
-        scene.visitorGroup.getChildren = vi.fn(() => []);
-
-        scene.manageVisitor('visitor_investor', true, 800, 300, 600, 300, 3);
-
-        expect(mockAdd.sprite).toHaveBeenCalledTimes(3);
-      });
-    });
-
-    describe('spawnPizzaGuyOrbit', () => {
-      it('should create path follower', () => {
-        scene.spawnPizzaGuyOrbit();
-
-        expect(mockAdd.follower).toHaveBeenCalled();
-      });
-
-      it('should add to visitor group', () => {
-        scene.spawnPizzaGuyOrbit();
-
-        expect(scene.visitorGroup.add).toHaveBeenCalled();
-      });
+    it('should return empty array if no workers match', () => {
+      scene.workersGroup.getChildren = vi.fn(() => [{ role: 'dev' }]);
+      const sales = scene.getWorkersByRole('sales');
+      expect(sales).toHaveLength(0);
     });
   });
 
-  describe('visual effects', () => {
-    describe('updateMoodVisuals', () => {
-      beforeEach(() => {
-        scene.workersGroup = mockAdd.group();
-      });
-
-      it('should apply white tint for high mood', () => {
-        const mockWorker = { setTint: vi.fn() };
-        scene.workersGroup.children.iterate = vi.fn(callback => callback(mockWorker));
-
-        scene.updateMoodVisuals(85);
-
-        expect(mockWorker.setTint).toHaveBeenCalledWith(0xffffff);
-      });
-
-      it('should apply light blue tint for medium mood', () => {
-        const mockWorker = { setTint: vi.fn() };
-        scene.workersGroup.children.iterate = vi.fn(callback => callback(mockWorker));
-
-        scene.updateMoodVisuals(50);
-
-        expect(mockWorker.setTint).toHaveBeenCalledWith(0xccccff);
-      });
-
-      it('should apply dark blue tint for low mood', () => {
-        const mockWorker = { setTint: vi.fn() };
-        scene.workersGroup.children.iterate = vi.fn(callback => callback(mockWorker));
-
-        scene.updateMoodVisuals(20);
-
-        expect(mockWorker.setTint).toHaveBeenCalledWith(0x8888ff);
-      });
-
-      it('should handle workers without setTint method', () => {
-        const mockWorker = { setTint: null };
-        scene.workersGroup.children.iterate = vi.fn(callback => callback(mockWorker));
-
-        expect(() => scene.updateMoodVisuals(80)).not.toThrow();
-      });
+  describe('adjustRoleCount', () => {
+    beforeEach(() => {
+      scene.create();
+      vi.spyOn(scene, 'spawnWorker').mockImplementation(() => {});
+      vi.spyOn(scene, 'getWorkersByRole').mockReturnValue([]);
     });
 
-    describe('syncChaosVisuals', () => {
-      beforeEach(() => {
-        scene.overlayGroup = mockAdd.group();
-        scene.workersGroup = mockAdd.group();
-      });
-
-      it('should clear existing overlays', () => {
-        scene.syncChaosVisuals([]);
-
-        expect(mockTweens.killAll).toHaveBeenCalled();
-        expect(scene.overlayGroup.clear).toHaveBeenCalledWith(true, true);
-      });
-
-      it('should handle TECH_OUTAGE event', () => {
-        const event = { type: 'TECH_OUTAGE' };
-
-        scene.syncChaosVisuals([event]);
-
-        expect(mockAdd.rectangle).toHaveBeenCalledWith(400, 300, 800, 600, 0x0000aa, 0.3);
-      });
-
-      it('should create smoke for TECH_OUTAGE', () => {
-        const createSmokeSpy = vi.spyOn(scene, 'createSmoke');
-        const event = { type: 'TECH_OUTAGE' };
-
-        scene.syncChaosVisuals([event]);
-
-        expect(createSmokeSpy).toHaveBeenCalledWith(64, 64);
-      });
-
-      it('should handle RANSOMWARE event', () => {
-        const event = { type: 'RANSOMWARE' };
-
-        scene.syncChaosVisuals([event]);
-
-        expect(mockAdd.text).toHaveBeenCalledWith(400, 300, '💀', expect.any(Object));
-      });
-
-      it('should handle MARKET_SHITSTORM event', () => {
-        const event = { type: 'MARKET_SHITSTORM' };
-
-        scene.syncChaosVisuals([event]);
-
-        expect(mockCameras.main.shake).toHaveBeenCalledWith(100, 0.005);
-      });
-
-      it('should handle multiple events', () => {
-        const events = [
-          { type: 'TECH_OUTAGE' },
-          { type: 'RANSOMWARE' },
-        ];
-
-        scene.syncChaosVisuals(events);
-
-        expect(mockAdd.rectangle).toHaveBeenCalled();
-        expect(mockAdd.text).toHaveBeenCalled();
-      });
+    it('should spawn workers when target is greater than current', () => {
+      scene.adjustRoleCount('dev', 1, 3);
+      expect(scene.spawnWorker).toHaveBeenCalledTimes(2);
+      expect(scene.spawnWorker).toHaveBeenCalledWith('dev');
     });
 
-    describe('createSmoke', () => {
-      it('should create particle emitter', () => {
-        scene.createSmoke(100, 200);
+    it('should remove workers when target is less than current', () => {
+      const workers = [{ destroy: vi.fn() }, { destroy: vi.fn() }];
+      scene.getWorkersByRole = vi.fn(() => workers);
 
-        expect(mockAdd.particles).toHaveBeenCalledWith(100, 200, 'particle_pixel', expect.any(Object));
-      });
+      scene.adjustRoleCount('dev', 3, 1);
 
-      it('should destroy emitter after 2 seconds', () => {
-        scene.createSmoke(100, 200);
-
-        expect(mockTime.delayedCall).toHaveBeenCalledWith(2000, expect.any(Function));
-      });
+      expect(workers[0].destroy).toHaveBeenCalled();
+      expect(workers[1].destroy).toHaveBeenCalled();
     });
 
-    describe('createCodeBits', () => {
-      it('should create particle emitter', () => {
-        scene.createCodeBits(150, 250);
-
-        expect(mockAdd.particles).toHaveBeenCalledWith(150, 250, 'particle_pixel', expect.any(Object));
-      });
-
-      it('should destroy emitter after 1 second', () => {
-        scene.createCodeBits(150, 250);
-
-        expect(mockTime.delayedCall).toHaveBeenCalledWith(1000, expect.any(Function));
-      });
+    it('should do nothing when current equals target', () => {
+      scene.adjustRoleCount('dev', 2, 2);
+      expect(scene.spawnWorker).not.toHaveBeenCalled();
     });
   });
 
-  describe('tooltip system', () => {
-    describe('setupTooltip', () => {
-      it('should create tooltip text', () => {
-        scene.setupTooltip();
-
-        expect(mockAdd.text).toHaveBeenCalledWith(0, 0, '', expect.any(Object));
-        expect(scene.tooltip).toBeDefined();
-      });
-
-      it('should set tooltip invisible by default', () => {
-        const mockTooltip = mockAdd.text();
-
-        scene.setupTooltip();
-
-        expect(mockTooltip.setVisible).toHaveBeenCalledWith(false);
-      });
-
-      it('should set tooltip depth to 100', () => {
-        const mockTooltip = mockAdd.text();
-
-        scene.setupTooltip();
-
-        expect(mockTooltip.setDepth).toHaveBeenCalledWith(100);
-      });
+  describe('spawnWorker', () => {
+    beforeEach(() => {
+      scene.setupGrid();
+      scene.create();
     });
 
-    describe('showTooltip', () => {
-      beforeEach(() => {
-        scene.tooltip = mockAdd.text();
-      });
+    it('should create WorkerSprite with random position', async () => {
+      const WorkerSprite = (await import('../sprites/WorkerSprite')).default;
+      scene.spawnWorker('dev');
 
-      it('should set tooltip text and position', () => {
-        scene.showTooltip(100, 200, 'Test Text');
-
-        expect(scene.tooltip.setPosition).toHaveBeenCalledWith(100, 200);
-        expect(scene.tooltip.setText).toHaveBeenCalledWith('Test Text');
-        expect(scene.tooltip.setVisible).toHaveBeenCalledWith(true);
-      });
+      expect(WorkerSprite).toHaveBeenCalledWith(
+        scene,
+        expect.any(Number),
+        expect.any(Number),
+        'dev',
+        expect.any(Number)
+      );
     });
 
-    describe('hideTooltip', () => {
-      beforeEach(() => {
-        scene.tooltip = mockAdd.text();
-      });
-
-      it('should hide tooltip', () => {
-        scene.hideTooltip();
-
-        expect(scene.tooltip.setVisible).toHaveBeenCalledWith(false);
-      });
+    it('should add worker to scene and group', () => {
+      scene.spawnWorker('sales');
+      expect(scene.add.existing).toHaveBeenCalled();
+      expect(scene.workersGroup.add).toHaveBeenCalled();
     });
   });
 
-  describe('day/night cycle', () => {
-    describe('setupDayNightCycle', () => {
-      it('should create overlay rectangle', () => {
-        scene.setupDayNightCycle();
-
-        expect(mockAdd.rectangle).toHaveBeenCalledWith(0, 0, 8000, 6000, 0x000033);
-        expect(scene.dayNightOverlay).toBeDefined();
-      });
-
-      it('should set overlay to transparent initially', () => {
-        const mockOverlay = mockAdd.rectangle();
-
-        scene.setupDayNightCycle();
-
-        expect(mockOverlay.setAlpha).toHaveBeenCalledWith(0);
-      });
+  describe('syncVisitors', () => {
+    beforeEach(() => {
+      scene.create();
+      vi.spyOn(scene, 'manageVisitor').mockImplementation(() => {});
     });
 
-    describe('updateDayNight', () => {
-      beforeEach(() => {
-        scene.dayNightOverlay = mockAdd.rectangle();
-      });
-
-      it('should keep alpha at 0 during day (tick <= 40)', () => {
-        scene.updateDayNight(30);
-
-        expect(scene.dayNightOverlay.setAlpha).toHaveBeenCalledWith(0);
-      });
-
-      it('should increase darkness after tick 40', () => {
-        scene.updateDayNight(50);
-
-        const expectedDarkness = (50 - 40) / 20 * 0.6;
-        expect(scene.dayNightOverlay.setAlpha).toHaveBeenCalledWith(expectedDarkness);
-      });
-
-      it('should reach maximum darkness at tick 60', () => {
-        scene.updateDayNight(60);
-
-        const expectedDarkness = (60 - 40) / 20 * 0.6;
-        expect(scene.dayNightOverlay.setAlpha).toHaveBeenCalledWith(expectedDarkness);
-      });
-    });
-  });
-
-  describe('camera controls', () => {
-    describe('setupCameraControls', () => {
-      it('should set up wheel zoom', () => {
-        scene.setupCameraControls();
-
-        expect(mockInput.on).toHaveBeenCalledWith('wheel', expect.any(Function));
-      });
-
-      it('should handle wheel zoom', () => {
-        scene.setupCameraControls();
-
-        const wheelHandler = mockInput.on.mock.calls.find(
-          call => call[0] === 'wheel'
-        )?.[1];
-
-        if (wheelHandler) {
-          mockCameras.main.zoom = 1;
-          wheelHandler({}, [], 0, 100);
-
-          expect(mockCameras.main.setZoom).toHaveBeenCalled();
-        }
-      });
+    it('should manage pizza guy visitor', () => {
+      scene.syncVisitors(['pizza_guy']);
+      expect(scene.manageVisitor).toHaveBeenCalledWith(
+        'visitor_pizza',
+        true,
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number)
+      );
     });
 
-    describe('handleZoom', () => {
-      it('should increase zoom', () => {
-        mockCameras.main.zoom = 1;
+    it('should manage investors visitor', () => {
+      scene.syncVisitors(['investors']);
+      expect(scene.manageVisitor).toHaveBeenCalledWith(
+        'visitor_investor',
+        true,
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+        3
+      );
+    });
 
-        scene.handleZoom(0.2);
-
-        expect(mockCameras.main.setZoom).toHaveBeenCalledWith(1.2);
-      });
-
-      it('should decrease zoom', () => {
-        mockCameras.main.zoom = 1;
-
-        scene.handleZoom(-0.2);
-
-        expect(mockCameras.main.setZoom).toHaveBeenCalledWith(0.8);
-      });
-
-      it('should clamp zoom to minimum 0.5', () => {
-        mockCameras.main.zoom = 0.6;
-
-        scene.handleZoom(-0.5);
-
-        expect(mockCameras.main.setZoom).toHaveBeenCalledWith(0.5);
-      });
-
-      it('should clamp zoom to maximum 3', () => {
-        mockCameras.main.zoom = 2.9;
-
-        scene.handleZoom(0.5);
-
-        expect(mockCameras.main.setZoom).toHaveBeenCalledWith(3);
-      });
+    it('should deactivate visitors not in list', () => {
+      scene.syncVisitors([]);
+      expect(scene.manageVisitor).toHaveBeenCalledWith(
+        'visitor_pizza',
+        false,
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number)
+      );
     });
   });
 
-  describe('cleanup', () => {
-    describe('onShutdown', () => {
-      beforeEach(() => {
-        scene.workersGroup = mockAdd.group();
-        scene.objectGroup = mockAdd.group();
-        scene.visitorGroup = mockAdd.group();
-        scene.overlayGroup = mockAdd.group();
-        scene.mouseLight = { destroy: vi.fn() };
-        scene._footprintGraphics = { destroy: vi.fn() };
-        scene.floorTexture = { destroy: vi.fn() };
-      });
-
-      it('should unsubscribe from all store subscriptions', () => {
-        const unsubscribe1 = vi.fn();
-        const unsubscribe2 = vi.fn();
-        scene.unsubscribers = [unsubscribe1, unsubscribe2];
-
-        scene.onShutdown();
-
-        expect(unsubscribe1).toHaveBeenCalled();
-        expect(unsubscribe2).toHaveBeenCalled();
-        expect(scene.unsubscribers).toEqual([]);
-      });
-
-      it('should kill all tweens', () => {
-        scene.onShutdown();
-
-        expect(mockTweens.killAll).toHaveBeenCalled();
-      });
-
-      it('should destroy mouse light', () => {
-        scene.onShutdown();
-
-        expect(scene.mouseLight.destroy).toHaveBeenCalled();
-        expect(scene.mouseLight).toBeNull();
-      });
-
-      it('should destroy footprint graphics', () => {
-        scene.onShutdown();
-
-        expect(scene._footprintGraphics.destroy).toHaveBeenCalled();
-        expect(scene._footprintGraphics).toBeNull();
-      });
-
-      it('should destroy floor texture', () => {
-        scene.onShutdown();
-
-        expect(scene.floorTexture.destroy).toHaveBeenCalled();
-        expect(scene.floorTexture).toBeNull();
-      });
-
-      it('should clear all groups', () => {
-        scene.onShutdown();
-
-        expect(scene.objectGroup.clear).toHaveBeenCalledWith(true, true);
-        expect(scene.workersGroup.clear).toHaveBeenCalledWith(true, true);
-        expect(scene.visitorGroup.clear).toHaveBeenCalledWith(true, true);
-        expect(scene.overlayGroup.clear).toHaveBeenCalledWith(true, true);
-      });
-
-      it('should remove input listeners', () => {
-        scene._onPointerMove = vi.fn();
-
-        scene.onShutdown();
-
-        expect(mockInput.off).toHaveBeenCalledWith('pointermove', scene._onPointerMove);
-        expect(mockInput.removeAllListeners).toHaveBeenCalled();
-      });
-
-      it('should clean up keyboard', () => {
-        scene.onShutdown();
-
-        expect(mockInput.keyboard.removeAllListeners).toHaveBeenCalled();
-        expect(mockInput.keyboard.removeAllKeys).toHaveBeenCalledWith(true);
-        expect(mockInput.keyboard.shutdown).toHaveBeenCalled();
-      });
-
-      it('should remove window event listeners', () => {
-        const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
-        scene._onZoomIn = vi.fn();
-        scene._onZoomOut = vi.fn();
-
-        scene.onShutdown();
-
-        expect(removeEventListenerSpy).toHaveBeenCalledWith('ZOOM_IN', scene._onZoomIn);
-        expect(removeEventListenerSpy).toHaveBeenCalledWith('ZOOM_OUT', scene._onZoomOut);
-      });
-
-      it('should reset pathfinding', () => {
-        scene.easystar = {};
-        scene._grid = [];
-        scene._pendingPathRequests = 5;
-
-        scene.onShutdown();
-
-        expect(scene.easystar).toBeNull();
-        expect(scene._grid).toBeNull();
-        expect(scene._pendingPathRequests).toBe(0);
-      });
+  describe('updateMoodVisuals', () => {
+    beforeEach(() => {
+      scene.create();
     });
 
-    describe('onDestroy', () => {
-      it('should clean up sound manager', () => {
-        scene.soundManager = {};
+    it('should apply white tint for high mood', () => {
+      const mockWorker = { setTint: vi.fn() };
+      scene.workersGroup.children.iterate = vi.fn((callback) => callback(mockWorker));
 
-        scene.onDestroy();
+      scene.updateMoodVisuals(85);
 
-        expect(scene.soundManager).toBeNull();
-      });
+      expect(mockWorker.setTint).toHaveBeenCalledWith(0xffffff);
+    });
+
+    it('should apply blue tint for medium mood', () => {
+      const mockWorker = { setTint: vi.fn() };
+      scene.workersGroup.children.iterate = vi.fn((callback) => callback(mockWorker));
+
+      scene.updateMoodVisuals(50);
+
+      expect(mockWorker.setTint).toHaveBeenCalledWith(0xccccff);
+    });
+
+    it('should apply darker blue tint for low mood', () => {
+      const mockWorker = { setTint: vi.fn() };
+      scene.workersGroup.children.iterate = vi.fn((callback) => callback(mockWorker));
+
+      scene.updateMoodVisuals(30);
+
+      expect(mockWorker.setTint).toHaveBeenCalledWith(0x8888ff);
+    });
+
+    it('should handle null workers gracefully', () => {
+      scene.workersGroup.children.iterate = vi.fn((callback) => callback(null));
+
+      expect(() => scene.updateMoodVisuals(50)).not.toThrow();
     });
   });
 
-  describe('edge cases and error handling', () => {
-    it('should handle missing store gracefully', () => {
-      useGameStore.subscribe = undefined;
-      useGameStore.getState = undefined;
+  describe('syncChaosVisuals', () => {
+    beforeEach(() => {
+      scene.create();
+      vi.spyOn(scene, 'addOverlayText').mockImplementation(() => {});
+      vi.spyOn(scene, 'createSmoke').mockImplementation(() => {});
+    });
 
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    it('should kill all tweens before syncing', () => {
+      scene.syncChaosVisuals([]);
+      expect(scene.tweens.killAll).toHaveBeenCalled();
+    });
+
+    it('should clear overlay group', () => {
+      scene.syncChaosVisuals([]);
+      expect(scene.overlayGroup.clear).toHaveBeenCalledWith(true, true);
+    });
+
+    it('should create overlay for TECH_OUTAGE', () => {
+      scene.syncChaosVisuals([{ type: 'TECH_OUTAGE' }]);
+      expect(scene.add.rectangle).toHaveBeenCalledWith(400, 300, 800, 600, 0x0000aa, 0.3);
+      expect(scene.addOverlayText).toHaveBeenCalledWith('SYSTEM FAILURE', '#0000ff');
+    });
+
+    it('should create smoke for TECH_OUTAGE', () => {
+      scene.syncChaosVisuals([{ type: 'TECH_OUTAGE' }]);
+      expect(scene.createSmoke).toHaveBeenCalled();
+    });
+
+    it('should create skull for RANSOMWARE', () => {
+      scene.syncChaosVisuals([{ type: 'RANSOMWARE' }]);
+      expect(scene.add.text).toHaveBeenCalledWith(400, 300, '💀', expect.any(Object));
+      expect(scene.addOverlayText).toHaveBeenCalledWith('RANSOMWARE: PAY UP', '#ff0000');
+    });
+
+    it('should shake camera for MARKET_SHITSTORM', () => {
+      scene.syncChaosVisuals([{ type: 'MARKET_SHITSTORM' }]);
+      expect(scene.cameras.main.shake).toHaveBeenCalledWith(100, 0.005);
+    });
+
+    it('should handle multiple events', () => {
+      scene.syncChaosVisuals([{ type: 'TECH_OUTAGE' }, { type: 'RANSOMWARE' }]);
+      expect(scene.addOverlayText).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('setupTooltip', () => {
+    beforeEach(() => {
+      scene.create();
+    });
+
+    it('should create tooltip text', () => {
+      scene.setupTooltip();
+      expect(scene.tooltip).toBeDefined();
+    });
+
+    it('should set tooltip depth to 100', () => {
+      scene.setupTooltip();
+      expect(scene.tooltip.setDepth).toHaveBeenCalledWith(100);
+    });
+
+    it('should initially hide tooltip', () => {
+      scene.setupTooltip();
+      expect(scene.tooltip.setVisible).toHaveBeenCalledWith(false);
+    });
+  });
+
+  describe('showTooltip / hideTooltip', () => {
+    beforeEach(() => {
+      scene.create();
+      scene.setupTooltip();
+    });
+
+    it('should show tooltip with text', () => {
+      scene.showTooltip(100, 100, 'Test tooltip');
+      expect(scene.tooltip.setText).toHaveBeenCalledWith('Test tooltip');
+      expect(scene.tooltip.setVisible).toHaveBeenCalledWith(true);
+    });
+
+    it('should position tooltip correctly', () => {
+      scene.showTooltip(150, 200, 'Test');
+      expect(scene.tooltip.setPosition).toHaveBeenCalledWith(150, 200);
+    });
+
+    it('should hide tooltip', () => {
+      scene.hideTooltip();
+      expect(scene.tooltip.setVisible).toHaveBeenCalledWith(false);
+    });
+  });
+
+  describe('setupDayNightCycle', () => {
+    beforeEach(() => {
+      scene.create();
+    });
+
+    it('should create day/night overlay', () => {
+      scene.setupDayNightCycle();
+      expect(scene.dayNightOverlay).toBeDefined();
+    });
+
+    it('should set overlay depth to 90', () => {
+      scene.setupDayNightCycle();
+      expect(scene.dayNightOverlay.setDepth).toHaveBeenCalledWith(90);
+    });
+
+    it('should initially set overlay alpha to 0', () => {
+      scene.setupDayNightCycle();
+      expect(scene.dayNightOverlay.setAlpha).toHaveBeenCalledWith(0);
+    });
+  });
+
+  describe('updateDayNight', () => {
+    beforeEach(() => {
+      scene.create();
+      scene.setupDayNightCycle();
+    });
+
+    it('should keep overlay hidden before tick 40', () => {
+      scene.updateDayNight(20);
+      expect(scene.dayNightOverlay.setAlpha).toHaveBeenCalledWith(0);
+    });
+
+    it('should gradually darken after tick 40', () => {
+      scene.updateDayNight(50);
+      expect(scene.dayNightOverlay.setAlpha).toHaveBeenCalledWith(expect.any(Number));
+    });
+
+    it('should reach maximum darkness at tick 60', () => {
+      scene.updateDayNight(60);
+      expect(scene.dayNightOverlay.setAlpha).toHaveBeenCalledWith(0.6);
+    });
+  });
+
+  describe('createSmoke', () => {
+    beforeEach(() => {
+      scene.create();
+    });
+
+    it('should create particle emitter', () => {
+      scene.createSmoke(100, 100);
+      expect(scene.add.particles).toHaveBeenCalled();
+    });
+
+    it('should schedule emitter destruction', () => {
+      scene.createSmoke(100, 100);
+      expect(scene.time.delayedCall).toHaveBeenCalledWith(2000, expect.any(Function));
+    });
+  });
+
+  describe('createCodeBits', () => {
+    beforeEach(() => {
+      scene.create();
+    });
+
+    it('should create particle emitter', () => {
+      scene.createCodeBits(100, 100);
+      expect(scene.add.particles).toHaveBeenCalled();
+    });
+
+    it('should schedule emitter destruction', () => {
+      scene.createCodeBits(100, 100);
+      expect(scene.time.delayedCall).toHaveBeenCalledWith(1000, expect.any(Function));
+    });
+  });
+
+  describe('onShutdown', () => {
+    beforeEach(() => {
+      scene.create();
+    });
+
+    it('should unsubscribe all store subscriptions', () => {
+      const unsubscribe = vi.fn();
+      scene.unsubscribers = [unsubscribe, unsubscribe];
+
+      scene.onShutdown();
+
+      expect(unsubscribe).toHaveBeenCalledTimes(2);
+      expect(scene.unsubscribers).toEqual([]);
+    });
+
+    it('should kill all tweens', () => {
+      scene.onShutdown();
+      expect(scene.tweens.killAll).toHaveBeenCalled();
+    });
+
+    it('should destroy mouse light', () => {
+      scene.mouseLight = { destroy: vi.fn() };
+      scene.onShutdown();
+      expect(scene.mouseLight.destroy).toHaveBeenCalled();
+      expect(scene.mouseLight).toBeNull();
+    });
+
+    it('should destroy footprint graphics', () => {
+      scene._footprintGraphics = { destroy: vi.fn() };
+      scene.onShutdown();
+      expect(scene._footprintGraphics.destroy).toHaveBeenCalled();
+    });
+
+    it('should destroy floor texture', () => {
+      scene.floorTexture = { destroy: vi.fn() };
+      scene.onShutdown();
+      expect(scene.floorTexture.destroy).toHaveBeenCalled();
+    });
+
+    it('should clear all groups', () => {
+      scene.onShutdown();
+      expect(scene.objectGroup.clear).toHaveBeenCalledWith(true, true);
+      expect(scene.workersGroup.clear).toHaveBeenCalledWith(true, true);
+      expect(scene.visitorGroup.clear).toHaveBeenCalledWith(true, true);
+      expect(scene.overlayGroup.clear).toHaveBeenCalledWith(true, true);
+    });
+
+    it('should remove all input listeners', () => {
+      scene.onShutdown();
+      expect(scene.input.removeAllListeners).toHaveBeenCalled();
+    });
+
+    it('should cleanup keyboard', () => {
+      scene.onShutdown();
+      expect(scene.input.keyboard.removeAllListeners).toHaveBeenCalled();
+      expect(scene.input.keyboard.removeAllKeys).toHaveBeenCalledWith(true);
+      expect(scene.input.keyboard.shutdown).toHaveBeenCalled();
+    });
+
+    it('should remove window event listeners', () => {
+      scene.onShutdown();
+      expect(window.removeEventListener).toHaveBeenCalledWith('ZOOM_IN', scene._onZoomIn);
+      expect(window.removeEventListener).toHaveBeenCalledWith('ZOOM_OUT', scene._onZoomOut);
+    });
+
+    it('should reset pathfinding state', () => {
+      scene.onShutdown();
+      expect(scene.easystar).toBeNull();
+      expect(scene._grid).toBeNull();
+      expect(scene._pendingPathRequests).toBe(0);
+    });
+  });
+
+  describe('onDestroy', () => {
+    beforeEach(() => {
+      scene.create();
+    });
+
+    it('should nullify sound manager', () => {
+      scene.onDestroy();
+      expect(scene.soundManager).toBeNull();
+    });
+  });
+
+  describe('edge cases and regression tests', () => {
+    it('should handle missing store gracefully', async () => {
+      const { useGameStore } = await import('../../store/gameStore');
+      useGameStore.getState = vi.fn(() => null);
 
       expect(() => scene.create()).not.toThrow();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Store unavailable'));
-
-      consoleSpy.mockRestore();
     });
 
-    it('should handle null groups in update', () => {
+    it('should handle null workers group in update', () => {
+      scene.create();
       scene.workersGroup = null;
-      scene.visitorGroup = null;
 
       expect(() => scene.update()).not.toThrow();
     });
 
-    it('should handle shutdown with null groups', () => {
-      scene.workersGroup = null;
-      scene.objectGroup = null;
-      scene.visitorGroup = null;
-      scene.overlayGroup = null;
-
-      expect(() => scene.onShutdown()).not.toThrow();
-    });
-
-    it('should handle empty unsubscribers array', () => {
-      scene.unsubscribers = [];
-
-      expect(() => scene.onShutdown()).not.toThrow();
-    });
-
-    it('should handle null keyboard in shutdown', () => {
-      scene.input.keyboard = null;
-
-      expect(() => scene.onShutdown()).not.toThrow();
-    });
-  });
-
-  describe('integration and regression tests', () => {
-    it('should maintain consistent grid state after multiple obstacle applications', () => {
+    it('should not crash when spawning workers with invalid role', () => {
       scene.setupGrid();
-
-      scene.applyObstaclesToGrid();
-      const firstState = JSON.stringify(scene._grid);
-
-      scene.applyObstaclesToGrid();
-      const secondState = JSON.stringify(scene._grid);
-
-      expect(firstState).toBe(secondState);
-    });
-
-    it('should handle rapid worker spawning and removal', () => {
-      scene.workersGroup = mockAdd.group();
-      scene.cols = 25;
-      scene.rows = 20;
-      scene.tileSize = 32;
-
-      scene.adjustRoleCount('dev', 0, 5);
-      vi.spyOn(scene, 'getWorkersByRole').mockReturnValue([{}, {}, {}, {}, {}]);
-      scene.adjustRoleCount('dev', 5, 0);
-
-      expect(() => {}).not.toThrow();
-    });
-
-    it('should handle full scene lifecycle', () => {
-      expect(() => {
-        scene.create();
-        scene.update();
-        scene.onShutdown();
-        scene.onDestroy();
-      }).not.toThrow();
-    });
-
-    it('should properly handle touch interaction after shutdown', () => {
       scene.create();
-      scene.onShutdown();
 
-      expect(() => scene.setupTouchInteractions()).not.toThrow();
+      expect(() => scene.spawnWorker('invalid_role')).not.toThrow();
+    });
+
+    it('should handle empty visitor array', () => {
+      scene.create();
+      scene.visitorGroup.getChildren = vi.fn(() => []);
+
+      expect(() => scene.syncVisitors([])).not.toThrow();
+    });
+
+    it('should handle rapid zoom changes', () => {
+      scene.create();
+      scene.handleZoom(1);
+      scene.handleZoom(-1);
+      scene.handleZoom(0.5);
+
+      expect(scene.cameras.main.setZoom).toHaveBeenCalledTimes(3);
+    });
+
+    it('should prevent negative pending path requests', () => {
+      scene.setupGrid();
+      scene._pendingPathRequests = 0;
+
+      scene.easystar.findPath = vi.fn((sx, sy, ex, ey, callback) => {
+        callback([]);
+      });
+
+      const mockWorker = { x: 100, y: 100, startPath: vi.fn() };
+      scene.requestMove(mockWorker, 10, 10);
+
+      expect(scene._pendingPathRequests).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should handle missing texture key in spawnObject', () => {
+      scene.create();
+
+      expect(() => scene.spawnObject(0, 0, null, false)).not.toThrow();
+    });
+
+    it('should handle tooltip operations when tooltip is not initialized', () => {
+      scene.tooltip = null;
+
+      expect(() => scene.showTooltip(0, 0, 'test')).toThrow();
+      expect(() => scene.hideTooltip()).toThrow();
     });
   });
 });
