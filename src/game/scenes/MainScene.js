@@ -579,7 +579,11 @@ export default class MainScene extends Phaser.Scene {
   }
 
   spawnWall(x, y) {
-    const wall = this.add.image(x * this.tileSize + 16, y * this.tileSize + 16, 'wall');
+    const wall = this.add.image(
+      x * this.tileSize + this.tileSize / 2,
+      y * this.tileSize + this.tileSize / 2,
+      'wall'
+    );
 
     // Enable Lighting
     if (this.game.renderer.pipelines && this.game.renderer.pipelines.has('Light2D')) {
@@ -715,7 +719,11 @@ export default class MainScene extends Phaser.Scene {
   spawnObject(x, y, texture, isAnimated = false) {
     let obj;
     if (isAnimated) {
-      obj = this.add.sprite(x * this.tileSize + 16, y * this.tileSize + 16, texture);
+      obj = this.add.sprite(
+        x * this.tileSize + this.tileSize / 2,
+        y * this.tileSize + this.tileSize / 2,
+        texture
+      );
       if (texture === 'obj_coffee_anim') {
         obj.play('coffee_drain');
         obj.setInteractive();
@@ -725,7 +733,11 @@ export default class MainScene extends Phaser.Scene {
         });
       }
     } else {
-      obj = this.add.image(x * this.tileSize + 16, y * this.tileSize + 16, texture);
+      obj = this.add.image(
+        x * this.tileSize + this.tileSize / 2,
+        y * this.tileSize + this.tileSize / 2,
+        texture
+      );
     }
 
     // Enable Normal Map Lighting for all objects if supported
@@ -781,8 +793,8 @@ export default class MainScene extends Phaser.Scene {
     const y = Phaser.Math.Between(1, this.rows - 2);
     const worker = new WorkerSprite(
       this,
-      x * this.tileSize + 16,
-      y * this.tileSize + 16,
+      x * this.tileSize + this.tileSize / 2,
+      y * this.tileSize + this.tileSize / 2,
       role,
       Date.now()
     );
