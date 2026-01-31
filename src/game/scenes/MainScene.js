@@ -675,7 +675,7 @@ export default class MainScene extends Phaser.Scene {
     // For simplicity, we used a 64px texture. spawnObject logic assumes 32px grid centers.
     // We'll spawn it at x=18, y=4. 18*32=576. +16=592.
     // 64px wide means it covers x=18 and x=19.
-    const table = this.spawnObject(18, 4, 'obj_table_meeting');
+    this.spawnObject(18, 4, 'obj_table_meeting');
     // Adjust position if needed, or just let it overlap.
     // Since it's 64 wide, center is at +32. spawnObject puts center at tile center +16.
     // So visual x is (18*32)+16 = 592. Real width 64 -> left 560, right 624.
