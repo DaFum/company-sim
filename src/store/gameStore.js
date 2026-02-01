@@ -128,6 +128,7 @@ const calculateEmployeeMetrics = (employees) => {
  * @property {number} marketingLeft - Remaining marketing ticks.
  * @property {string[]} inventory - List of purchased items.
  * @property {number} technicalDebt - Accumulated technical debt.
+ * @property {number[]} timers - List of active timer IDs.
  * @property {Object[]} activeEvents - List of active chaos events.
  * @property {Object[]} eventHistory - History of past events.
  * @property {number} lastEventDay - Day of last event trigger.
@@ -140,6 +141,7 @@ const calculateEmployeeMetrics = (employees) => {
  * @property {() => void} toggleSpeed - Toggles speed.
  * @property {(msg: string) => void} addTerminalLog - Adds log.
  * @property {() => void} clearTerminalLogs - Clears logs.
+ * @property {() => void} clearTimers - Clears active timers.
  * @property {(decision: Object) => void} setPendingDecision - Sets pending decision.
  * @property {(type: string) => void} spawnVisitor - Spawns visitor.
  * @property {(type: string) => void} despawnVisitor - Despawns visitor.
@@ -149,8 +151,8 @@ const calculateEmployeeMetrics = (employees) => {
  * @property {() => void} applyPendingDecision - Applies decision.
  * @property {() => void} advanceTick - Advances game tick.
  * @property {() => void} startNewDay - Starts new day.
- * @property {() => Object} hireWorker - Debug: Hire worker.
- * @property {() => Object} fireWorker - Debug: Fire worker.
+ * @property {() => void} hireWorker - Debug: Hire worker.
+ * @property {() => void} fireWorker - Debug: Fire worker.
  */
 
 /**
@@ -201,6 +203,7 @@ export const useGameStore = create(
     marketingLeft: 0,
     inventory: [],
     technicalDebt: 0,
+    timers: [],
 
     // CHAOS ENGINE
     activeEvents: [],
@@ -289,6 +292,15 @@ export const useGameStore = create(
      * Clears all terminal logs.
      */
     clearTerminalLogs: () => set({ terminalLogs: [] }),
+
+    /**
+     * Clears all active timers to prevent memory leaks.
+     */
+    clearTimers: () => {
+      const state = get();
+      state.timers.forEach((t) => clearTimeout(t));
+      set({ timers: [] });
+    },
 
     /**
      * Sets the pending AI decision.
@@ -392,14 +404,19 @@ export const useGameStore = create(
       state.addTerminalLog(`>> VETO! REJECTED.`);
       state.addTerminalLog(`>> SAFETY PROTOCOL: PIZZA PARTY.`);
 
+      const timerId = setTimeout(() => {
+        get().despawnVisitor('pizza_guy');
+        // Remove self from timers
+        set((s) => ({ timers: s.timers.filter((t) => t !== timerId) }));
+      }, 10000);
+
       set({
         pendingDecision: null,
         cash: state.cash - 200,
         activeVisitors: [...state.activeVisitors, 'pizza_guy'],
         mood: 100,
+        timers: [...state.timers, timerId],
       });
-
-      setTimeout(() => get().despawnVisitor('pizza_guy'), 10000);
     },
 
     /**
