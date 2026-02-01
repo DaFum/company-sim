@@ -431,7 +431,8 @@ export const useGameStore = create(
         const params = decision.parameters || {};
 
         if (action === 'HIRE_WORKER') {
-          const count = params.count || 1;
+          const rawCount = Number(params.count ?? 1);
+          const count = Number.isFinite(rawCount) ? Math.max(1, Math.floor(rawCount)) : 1;
           const cost = count * 500;
 
           if (state.cash >= cost) {
@@ -453,7 +454,8 @@ export const useGameStore = create(
             state.addTerminalLog(`> ERROR: INSUFFICIENT FUNDS TO HIRE.`);
           }
         } else if (action === 'FIRE_WORKER') {
-          const count = params.count || 1;
+          const rawCount = Number(params.count ?? 1);
+          const count = Number.isFinite(rawCount) ? Math.max(1, Math.floor(rawCount)) : 1;
           const role = (params.role || 'dev').toLowerCase();
           let actualRole = 'dev';
           if (role.includes('sale')) actualRole = 'sales';
@@ -699,7 +701,11 @@ export const useGameStore = create(
         return;
       }
 
-      const actualRole = ['dev', 'sales', 'support'].includes(role) ? role : 'dev';
+      const normalizedRole = typeof role === 'string' ? role.trim().toLowerCase() : 'dev';
+      const actualRole = ['dev', 'sales', 'support'].includes(normalizedRole)
+        ? normalizedRole
+        : 'dev';
+
       const newEmployees = [...state.employees, createEmployee(actualRole, Date.now())];
       set({
         employees: newEmployees,
