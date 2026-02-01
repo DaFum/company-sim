@@ -30,8 +30,6 @@ const getRandomTrait = () => {
  * @property {number|string} id - Unique identifier.
  * @property {string} role - Employee role (dev, sales, support).
  * @property {string} trait - Employee trait.
- * @property {number} salary - Daily salary cost.
- * @property {number} outputMod - Output modifier.
  */
 
 /**
@@ -44,8 +42,6 @@ const createEmployee = (role, id) => ({
   id,
   role,
   trait: getRandomTrait(),
-  salary: 50, // Base
-  outputMod: 1.0,
 });
 
 /**
@@ -151,7 +147,7 @@ const calculateEmployeeMetrics = (employees) => {
  * @property {() => void} applyPendingDecision - Applies decision.
  * @property {() => void} advanceTick - Advances game tick.
  * @property {() => void} startNewDay - Starts new day.
- * @property {() => void} hireWorker - Debug: Hire worker.
+ * @property {(role?: string) => void} hireWorker - Debug: Hire worker.
  * @property {() => void} fireWorker - Debug: Fire worker.
  */
 
@@ -298,7 +294,9 @@ export const useGameStore = create(
      */
     clearTimers: () => {
       const state = get();
-      state.timers.forEach((t) => clearTimeout(t));
+      state.timers.forEach((t) => {
+        clearTimeout(t);
+      });
       set({ timers: [] });
     },
 
@@ -691,8 +689,9 @@ export const useGameStore = create(
 
     /**
      * Manually hires a worker (for debugging or testing).
+     * @param {string} [role='dev'] - Employee role.
      */
-    hireWorker: () => {
+    hireWorker: (role = 'dev') => {
       const state = get();
       const cost = 500;
       if (state.cash < cost) {
@@ -700,14 +699,15 @@ export const useGameStore = create(
         return;
       }
 
-      const newEmployees = [...state.employees, createEmployee('dev', Date.now())];
+      const actualRole = ['dev', 'sales', 'support'].includes(role) ? role : 'dev';
+      const newEmployees = [...state.employees, createEmployee(actualRole, Date.now())];
       set({
         employees: newEmployees,
         // Recalculate stats? The UI reads workers/roster which are updated next tick or we update them here?
         // Ideally update them here for instant feedback.
         // Simplified for manual action:
         workers: newEmployees.length,
-        roster: { ...state.roster, dev: state.roster.dev + 1 }, // Approximation
+        roster: { ...state.roster, [actualRole]: state.roster[actualRole] + 1 }, // Approximation
         cash: state.cash - cost,
       });
     },
