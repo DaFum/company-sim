@@ -61,6 +61,22 @@ export default class MainScene extends Phaser.Scene {
   create() {
     this.soundManager = new SoundManager(this);
 
+    // 0) Animations (Must be before spawnObjects)
+    if (!this.anims.exists('coffee_drain')) {
+      this.anims.create({
+        key: 'coffee_drain',
+        frames: this.anims.generateFrameNumbers('obj_coffee_anim', { start: 0, end: 2 }),
+        frameRate: 0.5, // Drain slowly
+        repeat: 0,
+      });
+      this.anims.create({
+        key: 'coffee_refill',
+        frames: this.anims.generateFrameNumbers('obj_coffee_anim', { frames: [3, 0] }),
+        frameRate: 2,
+        repeat: 0,
+      });
+    }
+
     // 1) Groups
     this.floorTexture = null; // Replaces floorGroup
     this.objectGroup = this.add.group();
@@ -190,22 +206,6 @@ export default class MainScene extends Phaser.Scene {
       }
     };
     this.input.on('pointermove', this._onPointerMove);
-
-    // 2. CREATE COFFEE ANIMATION
-    if (!this.anims.exists('coffee_drain')) {
-      this.anims.create({
-        key: 'coffee_drain',
-        frames: this.anims.generateFrameNumbers('obj_coffee_anim', { start: 0, end: 2 }),
-        frameRate: 0.5, // Drain slowly
-        repeat: 0,
-      });
-      this.anims.create({
-        key: 'coffee_refill',
-        frames: this.anims.generateFrameNumbers('obj_coffee_anim', { frames: [3, 0] }),
-        frameRate: 2,
-        repeat: 0,
-      });
-    }
 
     // Store Event Handler references for clean removal
     this._onZoomIn = () => this.handleZoom(0.2);
