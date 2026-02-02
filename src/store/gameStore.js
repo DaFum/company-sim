@@ -432,7 +432,12 @@ export const useGameStore = create(
 
         if (action === 'HIRE_WORKER') {
           const rawCount = Number(params.count ?? 1);
-          const count = Number.isFinite(rawCount) ? Math.max(1, Math.floor(rawCount)) : 1;
+          const count = Number.isFinite(rawCount) ? Math.floor(rawCount) : 0;
+          if (count < 1) {
+            state.addTerminalLog('> ERROR: INVALID WORKER COUNT.');
+            set({ pendingDecision: null });
+            return;
+          }
           const cost = count * 500;
 
           if (state.cash >= cost) {
@@ -455,7 +460,12 @@ export const useGameStore = create(
           }
         } else if (action === 'FIRE_WORKER') {
           const rawCount = Number(params.count ?? 1);
-          const count = Number.isFinite(rawCount) ? Math.max(1, Math.floor(rawCount)) : 1;
+          const count = Number.isFinite(rawCount) ? Math.floor(rawCount) : 0;
+          if (count < 1) {
+            state.addTerminalLog('> ERROR: INVALID WORKER COUNT.');
+            set({ pendingDecision: null });
+            return;
+          }
           const role = (params.role || 'dev').toLowerCase();
           let actualRole = 'dev';
           if (role.includes('sale')) actualRole = 'sales';
@@ -707,13 +717,14 @@ export const useGameStore = create(
         : 'dev';
 
       const newEmployees = [...state.employees, createEmployee(actualRole, Date.now())];
+      const roster = { dev: 0, sales: 0, support: 0 };
+      newEmployees.forEach((e) => {
+        if (roster[e.role] !== undefined) roster[e.role]++;
+      });
       set({
         employees: newEmployees,
-        // Recalculate stats? The UI reads workers/roster which are updated next tick or we update them here?
-        // Ideally update them here for instant feedback.
-        // Simplified for manual action:
         workers: newEmployees.length,
-        roster: { ...state.roster, [actualRole]: state.roster[actualRole] + 1 }, // Approximation
+        roster,
         cash: state.cash - cost,
       });
     },
@@ -735,10 +746,14 @@ export const useGameStore = create(
         const victim = devs[0];
         const newEmployees = state.employees.filter((e) => e.id !== victim.id);
 
+        const roster = { dev: 0, sales: 0, support: 0 };
+        newEmployees.forEach((e) => {
+          if (roster[e.role] !== undefined) roster[e.role]++;
+        });
         return {
           employees: newEmployees,
           workers: newEmployees.length,
-          roster: { ...state.roster, dev: Math.max(0, state.roster.dev - 1) },
+          roster,
           mood: Math.max(0, state.mood - 10),
         };
       }),
