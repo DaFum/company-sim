@@ -476,24 +476,37 @@ describe('MainScene', () => {
       scene.input.activePointer.isDown = true;
       scene.input.activePointer.x = 150;
       scene.input.activePointer.y = 150;
-      scene.input.activePointer.prevPosition.x = 100;
-      scene.input.activePointer.prevPosition.y = 100;
+      // Initialize dragLastPosition to simulate previous frame
+      scene.dragLastPosition.set(100, 100);
       scene.isDragging = true;
+
+      const initialScrollX = scene.cameras.main.scrollX;
+      const expectedDelta = (150 - 100) / scene.cameras.main.zoom;
+
+      scene.handleMobileControls();
+
+      expect(scene.cameras.main.scrollX).toBeCloseTo(initialScrollX - expectedDelta);
+      expect(scene.dragLastPosition.x).toBe(150);
+      expect(scene.dragLastPosition.y).toBe(150);
+    });
+
+    it('should initialize drag position on first frame without jumping', () => {
+      scene.input.activePointer.isDown = true;
+      scene.input.activePointer.x = 200;
+      scene.input.activePointer.y = 200;
+      scene.isDragging = false;
+      // dragLastPosition is default (0,0)
 
       const initialScrollX = scene.cameras.main.scrollX;
 
       scene.handleMobileControls();
 
-      expect(scene.cameras.main.scrollX).not.toBe(initialScrollX);
-    });
-
-    it('should start dragging when pointer is down', () => {
-      scene.input.activePointer.isDown = true;
-      scene.isDragging = false;
-
-      scene.handleMobileControls();
-
       expect(scene.isDragging).toBe(true);
+      // Scroll should NOT change on first frame
+      expect(scene.cameras.main.scrollX).toBe(initialScrollX);
+      // But dragLastPosition should be set to current
+      expect(scene.dragLastPosition.x).toBe(200);
+      expect(scene.dragLastPosition.y).toBe(200);
     });
 
     it('should stop dragging when pointer is up', () => {
