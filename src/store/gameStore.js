@@ -445,7 +445,8 @@ export const useGameStore = create(
           const cost = count * 500;
 
           if (state.cash >= cost) {
-            const role = (params.role || 'dev').toLowerCase();
+            const roleInput = typeof params.role === 'string' ? params.role : 'dev';
+            const role = roleInput.toLowerCase();
             const newEmployees = [...state.employees];
 
             // Map role
@@ -470,7 +471,8 @@ export const useGameStore = create(
             set({ pendingDecision: null });
             return;
           }
-          const role = (params.role || 'dev').toLowerCase();
+          const roleInput = typeof params.role === 'string' ? params.role : 'dev';
+          const role = roleInput.toLowerCase();
           let actualRole = 'dev';
           if (role.includes('sale')) actualRole = 'sales';
           else if (role.includes('support')) actualRole = 'support';
@@ -759,6 +761,7 @@ export const useGameStore = create(
           workers: newEmployees.length,
           roster,
           mood: Math.max(0, state.mood - 10),
+          cash: state.cash - cost,
         };
       }),
   }))
