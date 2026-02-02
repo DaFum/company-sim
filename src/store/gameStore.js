@@ -3,10 +3,20 @@ import { subscribeWithSelector } from 'zustand/middleware';
 
 // Helpers
 const PERSONAS = ['Visionary', 'Accountant', 'Benevolent'];
+
+/**
+ * Returns a random CEO persona.
+ * @returns {string} Persona name.
+ */
 const getRandomPersona = () => PERSONAS[Math.floor(Math.random() * PERSONAS.length)];
 
 // Trait Generators
 const TRAITS = ['10x_ENGINEER', 'JUNIOR', 'TOXIC', 'NORMAL'];
+
+/**
+ * Returns a random worker trait based on probabilities.
+ * @returns {string} Trait name.
+ */
 const getRandomTrait = () => {
   const roll = Math.random();
   if (roll < 0.1) return '10x_ENGINEER';
@@ -15,14 +25,141 @@ const getRandomTrait = () => {
   return 'NORMAL';
 };
 
+/**
+ * @typedef {Object} Employee
+ * @property {number|string} id - Unique identifier.
+ * @property {string} role - Employee role (dev, sales, support).
+ * @property {string} trait - Employee trait.
+ */
+
+/**
+ * Creates a new employee object.
+ * @param {string} role - Employee role.
+ * @param {number|string} id - Unique ID.
+ * @returns {Employee} Employee object.
+ */
 const createEmployee = (role, id) => ({
   id,
   role,
   trait: getRandomTrait(),
-  salary: 50, // Base
-  outputMod: 1.0,
 });
 
+/**
+ * @typedef {Object} EmployeeMetrics
+ * @property {number} totalDevOutput
+ * @property {number} totalSalesOutput
+ * @property {number} debtAcc
+ * @property {number} moodDecay
+ */
+
+/**
+ * Calculates output, debt accumulation, and mood decay based on the current employees.
+ * Note: Support staff are intentionally excluded from revenue/output calculations here.
+ * Their primary impact is on payroll (burn rate), which is calculated in `getStats`
+ * and applied during the `advanceTick` action. This design decision simulates support
+ * as a cost center that maintains stability rather than generating direct revenue.
+ * @param {Employee[]} employees - List of employees.
+ * @returns {EmployeeMetrics} Aggregated metrics.
+ */
+const calculateEmployeeMetrics = (employees) => {
+  let totalDevOutput = 0;
+  let totalSalesOutput = 0;
+  let debtAcc = 0;
+  let moodDecay = 0;
+
+  employees.forEach((e) => {
+    let output = 1.0; // Base mod
+    // Trait Modifiers
+    if (e.trait === '10x_ENGINEER') {
+      output = 4.0;
+      debtAcc += 0.2;
+    }
+    if (e.trait === 'JUNIOR') {
+      output = 0.5;
+    }
+    if (e.trait === 'TOXIC') {
+      moodDecay += 0.01;
+    } // Small tick decay
+
+    if (e.role === 'dev') totalDevOutput += output;
+    if (e.role === 'sales') totalSalesOutput += output;
+  });
+
+  return { totalDevOutput, totalSalesOutput, debtAcc, moodDecay };
+};
+
+/**
+ * @typedef {Object} GameStats
+ * @property {Object} roster - Count of employees by role.
+ * @property {number} totalBurn - Total daily expense.
+ * @property {number} count - Total employee count.
+ */
+
+/**
+ * @typedef {Object} GameStoreState
+ * @property {string} apiKey - OpenAI API Key.
+ * @property {string} aiProvider - AI Provider Name.
+ * @property {string} aiModel - AI Model Name.
+ * @property {number} cash - Current cash amount.
+ * @property {number} startOfDayCash - Cash at start of day.
+ * @property {number} day - Current day number.
+ * @property {number} tick - Current tick (0-60).
+ * @property {string} gamePhase - Current phase (WORK, CRUNCH).
+ * @property {boolean} isPlaying - Is game running.
+ * @property {boolean} isAiThinking - Is AI processing.
+ * @property {boolean} isMuted - Is audio muted.
+ * @property {number} gameSpeed - Game speed in ms.
+ * @property {number} officeLevel - Office upgrade level.
+ * @property {string[]} terminalLogs - Array of terminal messages.
+ * @property {Object|null} pendingDecision - Current AI decision waiting approval.
+ * @property {string[]} activeVisitors - List of active visitor types.
+ * @property {string} ceoPersona - CEO Persona.
+ * @property {Object} roster - Employee counts.
+ * @property {number} workers - Total worker count.
+ * @property {Employee[]} employees - List of employee objects.
+ * @property {number} productivity - Global productivity multiplier.
+ * @property {number} burnRate - Daily burn rate.
+ * @property {number} mood - Global mood (0-100).
+ * @property {number} productLevel - Product quality level.
+ * @property {number} productAge - Product age in ticks.
+ * @property {number} serverHealth - Server health percentage.
+ * @property {number} serverStability - Server stability multiplier.
+ * @property {number} marketingMultiplier - Marketing effect multiplier.
+ * @property {number} marketingLeft - Remaining marketing ticks.
+ * @property {string[]} inventory - List of purchased items.
+ * @property {number} technicalDebt - Accumulated technical debt.
+ * @property {number[]} timers - List of active timer IDs.
+ * @property {Object[]} activeEvents - List of active chaos events.
+ * @property {Object[]} eventHistory - History of past events.
+ * @property {number} lastEventDay - Day of last event trigger.
+ * @property {() => GameStats} getStats - Calculates current stats.
+ * @property {(key: string) => void} setApiKey - Sets API Key.
+ * @property {(provider: string) => void} setAiProvider - Sets AI Provider.
+ * @property {(model: string) => void} setAiModel - Sets AI Model.
+ * @property {() => void} togglePause - Toggles pause.
+ * @property {() => void} toggleMute - Toggles mute.
+ * @property {() => void} toggleSpeed - Toggles speed.
+ * @property {(msg: string) => void} addTerminalLog - Adds log.
+ * @property {() => void} clearTerminalLogs - Clears logs.
+ * @property {() => void} clearTimers - Clears active timers.
+ * @property {(decision: Object) => void} setPendingDecision - Sets pending decision.
+ * @property {(type: string) => void} spawnVisitor - Spawns visitor.
+ * @property {(type: string) => void} despawnVisitor - Despawns visitor.
+ * @property {(type: string) => void} triggerEvent - Triggers event.
+ * @property {(type: string) => void} resolveEvent - Resolves event.
+ * @property {() => void} vetoDecision - Vetoes decision.
+ * @property {() => void} applyPendingDecision - Applies decision.
+ * @property {() => void} advanceTick - Advances game tick.
+ * @property {() => void} startNewDay - Starts new day.
+ * @property {(role?: string) => void} hireWorker - Debug: Hire worker.
+ * @property {() => void} fireWorker - Debug: Fire worker.
+ */
+
+/**
+ * Global game state store using Zustand.
+ * Manages economics, employees, time, and game phase.
+ * @type {import('zustand').UseBoundStore<import('zustand').StoreApi<GameStoreState>>}
+ */
 export const useGameStore = create(
   subscribeWithSelector((set, get) => ({
     // --- STATE ---
@@ -66,6 +203,7 @@ export const useGameStore = create(
     marketingLeft: 0,
     inventory: [],
     technicalDebt: 0,
+    timers: [],
 
     // CHAOS ENGINE
     activeEvents: [],
@@ -73,6 +211,10 @@ export const useGameStore = create(
     lastEventDay: 0,
 
     // --- COMPUTED PROPERTIES HELPERS ---
+    /**
+     * Calculates current roster counts and burn rate.
+     * @returns {GameStats} Stats object.
+     */
     getStats: () => {
       const state = get();
       const roster = { dev: 0, sales: 0, support: 0 };
@@ -95,44 +237,101 @@ export const useGameStore = create(
     },
 
     // --- ACTIONS ---
+    /**
+     * Sets the OpenAI API key.
+     * @param {string} key - API Key.
+     */
     setApiKey: (key) => {
       sessionStorage.setItem('openai_api_key', key);
       set({ apiKey: key });
     },
 
+    /**
+     * Sets the AI provider.
+     * @param {string} provider - Provider name.
+     */
     setAiProvider: (provider) => {
       sessionStorage.setItem('ai_provider', provider);
       set({ aiProvider: provider });
     },
 
+    /**
+     * Sets the AI model.
+     * @param {string} model - Model name.
+     */
     setAiModel: (model) => {
       sessionStorage.setItem('ai_model', model);
       set({ aiModel: model });
     },
 
+    /**
+     * Toggles the game pause state.
+     */
     togglePause: () => set((state) => ({ isPlaying: !state.isPlaying })),
+
+    /**
+     * Toggles sound mute.
+     */
     toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+
+    /**
+     * Toggles game speed between normal and fast.
+     */
     toggleSpeed: () => set((state) => ({ gameSpeed: state.gameSpeed === 1000 ? 500 : 1000 })),
 
+    /**
+     * Adds a message to the terminal logs.
+     * @param {string} msg - Log message.
+     */
     addTerminalLog: (msg) =>
       set((state) => ({
         terminalLogs: [...state.terminalLogs.slice(-50), msg],
       })),
 
+    /**
+     * Clears all terminal logs.
+     */
     clearTerminalLogs: () => set({ terminalLogs: [] }),
 
+    /**
+     * Clears all active timers to prevent memory leaks.
+     */
+    clearTimers: () => {
+      const state = get();
+      state.timers.forEach((t) => {
+        clearTimeout(t);
+      });
+      set({ timers: [] });
+    },
+
+    /**
+     * Sets the pending AI decision.
+     * @param {Object} decision - Decision object.
+     */
     setPendingDecision: (decision) => set({ pendingDecision: decision }),
 
+    /**
+     * Spawns a visitor of a specific type.
+     * @param {string} type - Visitor type.
+     */
     spawnVisitor: (type) =>
       set((state) => ({
         activeVisitors: [...state.activeVisitors, type],
       })),
 
+    /**
+     * Despawns a visitor of a specific type.
+     * @param {string} type - Visitor type.
+     */
     despawnVisitor: (type) =>
       set((state) => ({
         activeVisitors: state.activeVisitors.filter((v) => v !== type),
       })),
 
+    /**
+     * Triggers a chaos event.
+     * @param {string} type - Event type.
+     */
     triggerEvent: (type) => {
       const state = get();
       let duration = 30;
@@ -188,11 +387,18 @@ export const useGameStore = create(
       });
     },
 
+    /**
+     * Resolves an active event manually or automatically.
+     * @param {string} type - Event type.
+     */
     resolveEvent: (type) =>
       set((state) => ({
         activeEvents: state.activeEvents.filter((e) => e.type !== type),
       })),
 
+    /**
+     * Vetoes the pending decision and triggers a morale booster.
+     */
     vetoDecision: () => {
       const state = get();
       if (!state.pendingDecision) return;
@@ -200,16 +406,24 @@ export const useGameStore = create(
       state.addTerminalLog(`>> VETO! REJECTED.`);
       state.addTerminalLog(`>> SAFETY PROTOCOL: PIZZA PARTY.`);
 
+      const timerId = setTimeout(() => {
+        get().despawnVisitor('pizza_guy');
+        // Remove self from timers
+        set((s) => ({ timers: s.timers.filter((t) => t !== timerId) }));
+      }, 10000);
+
       set({
         pendingDecision: null,
         cash: state.cash - 200,
         activeVisitors: [...state.activeVisitors, 'pizza_guy'],
         mood: 100,
+        timers: [...state.timers, timerId],
       });
-
-      setTimeout(() => get().despawnVisitor('pizza_guy'), 10000);
     },
 
+    /**
+     * Applies the pending decision and executes its effects.
+     */
     applyPendingDecision: () => {
       const state = get();
       const decision = state.pendingDecision;
@@ -221,11 +435,18 @@ export const useGameStore = create(
         const params = decision.parameters || {};
 
         if (action === 'HIRE_WORKER') {
-          const count = params.count || 1;
+          const rawCount = Number(params.count ?? 1);
+          const count = Number.isFinite(rawCount) ? Math.floor(rawCount) : 0;
+          if (count < 1) {
+            state.addTerminalLog('> ERROR: INVALID WORKER COUNT.');
+            set({ pendingDecision: null });
+            return;
+          }
           const cost = count * 500;
 
           if (state.cash >= cost) {
-            const role = (params.role || 'dev').toLowerCase();
+            const roleInput = typeof params.role === 'string' ? params.role : 'dev';
+            const role = roleInput.toLowerCase();
             const newEmployees = [...state.employees];
 
             // Map role
@@ -243,31 +464,40 @@ export const useGameStore = create(
             state.addTerminalLog(`> ERROR: INSUFFICIENT FUNDS TO HIRE.`);
           }
         } else if (action === 'FIRE_WORKER') {
-          const count = params.count || 1;
-          const cost = count * 200;
+          const rawCount = Number(params.count ?? 1);
+          const count = Number.isFinite(rawCount) ? Math.floor(rawCount) : 0;
+          if (count < 1) {
+            state.addTerminalLog('> ERROR: INVALID WORKER COUNT.');
+            set({ pendingDecision: null });
+            return;
+          }
+          const roleInput = typeof params.role === 'string' ? params.role : 'dev';
+          const role = roleInput.toLowerCase();
+          let actualRole = 'dev';
+          if (role.includes('sale')) actualRole = 'sales';
+          else if (role.includes('support')) actualRole = 'support';
+
+          let newEmployees = [...state.employees];
+          const candidates = newEmployees.filter((e) => e.role === actualRole);
+          const fireCount = Math.min(count, candidates.length);
+          const cost = fireCount * 200;
+
+          if (fireCount === 0) {
+            state.addTerminalLog('> ERROR: NO MATCHING WORKERS TO FIRE.');
+            set({ pendingDecision: null });
+            return;
+          }
 
           if (state.cash >= cost) {
-            const role = (params.role || 'dev').toLowerCase();
-            let actualRole = 'dev';
-            if (role.includes('sale')) actualRole = 'sales';
-            else if (role.includes('support')) actualRole = 'support';
-
-            let newEmployees = [...state.employees];
-            const candidates = newEmployees.filter((e) => e.role === actualRole);
-
-            // Trait targeting? Assuming simple FIFO for now, or random
-            // If params.trait exists, filter by that?
             // Simplified: Fire first match
-            for (let i = 0; i < count; i++) {
-              if (candidates.length > i) {
-                const victim = candidates[i];
-                newEmployees = newEmployees.filter((e) => e.id !== victim.id);
-              }
+            for (let i = 0; i < fireCount; i++) {
+              const victim = candidates[i];
+              newEmployees = newEmployees.filter((e) => e.id !== victim.id);
             }
 
             updates.employees = newEmployees;
-            updates.cash = state.cash - count * 200; // Approximation
-            updates.mood = Math.max(0, state.mood - 20);
+            updates.cash = state.cash - cost;
+            updates.mood = Math.max(0, state.mood - fireCount * 20);
           } else {
             state.addTerminalLog(`> ERROR: CANNOT AFFORD SEVERANCE.`);
           }
@@ -317,6 +547,10 @@ export const useGameStore = create(
       }
     },
 
+    /**
+     * Advances the game simulation by one tick.
+     * Handles economics, event timers, and game phases.
+     */
     advanceTick: () => {
       const state = get();
       if (!state.isPlaying) return;
@@ -374,31 +608,12 @@ export const useGameStore = create(
         if (isShitstorm) finalMarket *= 0.5;
 
         // Calc Output via Employees
-        let totalDevOutput = 0;
-        let totalSalesOutput = 0;
-        let debtAcc = 0;
-        let moodDecay = 0;
-
-        state.employees.forEach((e) => {
-          let output = 1.0; // Base mod
-          // Trait Modifiers
-          if (e.trait === '10x_ENGINEER') {
-            output = 4.0;
-            debtAcc += 0.2;
-          }
-          if (e.trait === 'JUNIOR') {
-            output = 0.5;
-          }
-          if (e.trait === 'TOXIC') {
-            moodDecay += 0.01;
-          } // Small tick decay
-
-          if (e.role === 'dev') totalDevOutput += output;
-          if (e.role === 'sales') totalSalesOutput += output;
-        });
+        const { totalDevOutput, totalSalesOutput, debtAcc, moodDecay } = calculateEmployeeMetrics(
+          state.employees
+        );
 
         // Add base debt (normal work)
-        debtAcc += stats.roster.dev * 0.05;
+        const totalDebtAcc = debtAcc + stats.roster.dev * 0.05;
 
         // Formula
         const devValue =
@@ -429,7 +644,7 @@ export const useGameStore = create(
           marketingMultiplier: newMarketingMult,
           marketingLeft: newMarketingLeft,
           activeEvents: activeEvents,
-          technicalDebt: state.technicalDebt + debtAcc,
+          technicalDebt: state.technicalDebt + totalDebtAcc,
           productAge: state.productAge + 1,
           mood: Math.max(0, state.mood - moodDecay),
           // Sync UI helpers
@@ -456,6 +671,9 @@ export const useGameStore = create(
       }
     },
 
+    /**
+     * Starts a new game day, resetting daily stats.
+     */
     startNewDay: () => {
       set((state) => {
         const stats = state.getStats();
@@ -487,26 +705,39 @@ export const useGameStore = create(
       });
     },
 
-    hireWorker: () =>
-      set((state) => {
-        const cost = 500;
-        if (state.cash < cost) {
-          state.addTerminalLog('> ERROR: INSUFFICIENT FUNDS TO HIRE');
-          return {};
-        }
+    /**
+     * Manually hires a worker (for debugging or testing).
+     * @param {string} [role='dev'] - Employee role.
+     */
+    hireWorker: (role = 'dev') => {
+      const state = get();
+      const cost = 500;
+      if (state.cash < cost) {
+        state.addTerminalLog('> ERROR: INSUFFICIENT FUNDS TO HIRE');
+        return;
+      }
 
-        const newEmployees = [...state.employees, createEmployee('dev', Date.now())];
-        return {
-          employees: newEmployees,
-          // Recalculate stats? The UI reads workers/roster which are updated next tick or we update them here?
-          // Ideally update them here for instant feedback.
-          // Simplified for manual action:
-          workers: newEmployees.length,
-          roster: { ...state.roster, dev: state.roster.dev + 1 }, // Approximation
-          cash: state.cash - cost,
-        };
-      }),
+      const normalizedRole = typeof role === 'string' ? role.trim().toLowerCase() : 'dev';
+      const actualRole = ['dev', 'sales', 'support'].includes(normalizedRole)
+        ? normalizedRole
+        : 'dev';
 
+      const newEmployees = [...state.employees, createEmployee(actualRole, Date.now())];
+      const roster = { dev: 0, sales: 0, support: 0 };
+      newEmployees.forEach((e) => {
+        if (roster[e.role] !== undefined) roster[e.role]++;
+      });
+      set({
+        employees: newEmployees,
+        workers: newEmployees.length,
+        roster,
+        cash: state.cash - cost,
+      });
+    },
+
+    /**
+     * Manually fires a worker (for debugging or testing).
+     */
     fireWorker: () =>
       set((state) => {
         const cost = 200;
@@ -521,11 +752,16 @@ export const useGameStore = create(
         const victim = devs[0];
         const newEmployees = state.employees.filter((e) => e.id !== victim.id);
 
+        const roster = { dev: 0, sales: 0, support: 0 };
+        newEmployees.forEach((e) => {
+          if (roster[e.role] !== undefined) roster[e.role]++;
+        });
         return {
           employees: newEmployees,
           workers: newEmployees.length,
-          roster: { ...state.roster, dev: Math.max(0, state.roster.dev - 1) },
+          roster,
           mood: Math.max(0, state.mood - 10),
+          cash: state.cash - cost,
         };
       }),
   }))

@@ -741,12 +741,7 @@ describe('MainScene', () => {
     });
 
     it('should filter workers by role', () => {
-      const workers = [
-        { role: 'dev' },
-        { role: 'sales' },
-        { role: 'dev' },
-        { role: 'support' },
-      ];
+      const workers = [{ role: 'dev' }, { role: 'sales' }, { role: 'dev' }, { role: 'support' }];
       scene.workersGroup.getChildren = vi.fn(() => workers);
 
       const devs = scene.getWorkersByRole('dev');
@@ -907,9 +902,14 @@ describe('MainScene', () => {
       vi.spyOn(scene, 'createSmoke').mockImplementation(() => {});
     });
 
-    it('should kill all tweens before syncing', () => {
+    it('should stop chaos tweens before syncing', () => {
+      const mockTween = { stop: vi.fn() };
+      scene._chaosTweens = [mockTween];
+
       scene.syncChaosVisuals([]);
-      expect(scene.tweens.killAll).toHaveBeenCalled();
+
+      expect(mockTween.stop).toHaveBeenCalled();
+      expect(scene._chaosTweens).toHaveLength(0);
     });
 
     it('should clear overlay group', () => {

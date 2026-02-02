@@ -75,11 +75,9 @@ describe('PreloadScene', () => {
 
     it('should handle blob URL revocation errors gracefully', () => {
       scene._blobUrls = ['blob:invalid'];
-      const revokeObjectURLSpy = vi
-        .spyOn(URL, 'revokeObjectURL')
-        .mockImplementation(() => {
-          throw new Error('Revoke failed');
-        });
+      const revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {
+        throw new Error('Revoke failed');
+      });
 
       scene.preload();
 
@@ -213,46 +211,21 @@ describe('PreloadScene', () => {
     it('should create particle pixel texture', () => {
       scene.createHighQualityAssets();
 
-      expect(scene.genTexture).toHaveBeenCalledWith(
-        'particle_pixel',
-        4,
-        4,
-        expect.any(Function)
-      );
+      expect(scene.genTexture).toHaveBeenCalledWith('particle_pixel', 4, 4, expect.any(Function));
     });
 
     it('should create shadow blob texture', () => {
       scene.createHighQualityAssets();
 
-      expect(scene.genTexture).toHaveBeenCalledWith(
-        'shadow_blob',
-        24,
-        12,
-        expect.any(Function)
-      );
+      expect(scene.genTexture).toHaveBeenCalledWith('shadow_blob', 24, 12, expect.any(Function));
     });
 
     it('should create worker sprites for all roles', () => {
       scene.createHighQualityAssets();
 
-      expect(scene.genTexture).toHaveBeenCalledWith(
-        'worker_dev',
-        32,
-        32,
-        expect.any(Function)
-      );
-      expect(scene.genTexture).toHaveBeenCalledWith(
-        'worker_sales',
-        32,
-        32,
-        expect.any(Function)
-      );
-      expect(scene.genTexture).toHaveBeenCalledWith(
-        'worker_support',
-        32,
-        32,
-        expect.any(Function)
-      );
+      expect(scene.genTexture).toHaveBeenCalledWith('worker_dev', 32, 32, expect.any(Function));
+      expect(scene.genTexture).toHaveBeenCalledWith('worker_sales', 32, 32, expect.any(Function));
+      expect(scene.genTexture).toHaveBeenCalledWith('worker_support', 32, 32, expect.any(Function));
     });
 
     it('should create visitor sprites', () => {
@@ -369,12 +342,7 @@ describe('PreloadScene', () => {
       const drawFn = vi.fn();
       scene.genSpriteWithNormal('test_sprite', 32, 32, drawFn);
 
-      expect(scene.genTexture).toHaveBeenCalledWith(
-        'test_sprite_n',
-        32,
-        32,
-        expect.any(Function)
-      );
+      expect(scene.genTexture).toHaveBeenCalledWith('test_sprite_n', 32, 32, expect.any(Function));
     });
 
     it('should use provided normal map function', () => {
@@ -382,7 +350,9 @@ describe('PreloadScene', () => {
       const normalFn = vi.fn();
       scene.genSpriteWithNormal('test_sprite', 32, 32, drawFn, normalFn);
 
-      const normalCallArgs = scene.genTexture.mock.calls.find((call) => call[0] === 'test_sprite_n');
+      const normalCallArgs = scene.genTexture.mock.calls.find(
+        (call) => call[0] === 'test_sprite_n'
+      );
       expect(normalCallArgs).toBeDefined();
 
       // Execute the normal map function
@@ -397,7 +367,9 @@ describe('PreloadScene', () => {
       const drawFn = vi.fn();
       scene.genSpriteWithNormal('test_sprite', 64, 64, drawFn);
 
-      const normalCallArgs = scene.genTexture.mock.calls.find((call) => call[0] === 'test_sprite_n');
+      const normalCallArgs = scene.genTexture.mock.calls.find(
+        (call) => call[0] === 'test_sprite_n'
+      );
       expect(normalCallArgs[1]).toBe(64);
       expect(normalCallArgs[2]).toBe(64);
     });
@@ -620,11 +592,9 @@ describe('PreloadScene', () => {
 
       it('should handle blob creation errors gracefully', () => {
         scene.cache.audio.exists = vi.fn(() => false);
-        const createObjectURLSpy = vi
-          .spyOn(URL, 'createObjectURL')
-          .mockImplementation(() => {
-            throw new Error('Blob error');
-          });
+        const createObjectURLSpy = vi.spyOn(URL, 'createObjectURL').mockImplementation(() => {
+          throw new Error('Blob error');
+        });
         const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
         expect(() => {
@@ -688,12 +658,11 @@ describe('PreloadScene', () => {
     });
 
     it('should not create duplicate textures', () => {
-      // First create ensures the texture exists
-      scene.genTexture('duplicate_test', 32, 32, () => {});
+      // Mock exists to return true
+      vi.spyOn(scene.textures, 'exists').mockReturnValue(true);
 
       const makeGraphicsSpy = vi.spyOn(scene.make, 'graphics');
 
-      // Second call should skip creation
       scene.genTexture('duplicate_test', 32, 32, () => {});
 
       expect(makeGraphicsSpy).not.toHaveBeenCalled();

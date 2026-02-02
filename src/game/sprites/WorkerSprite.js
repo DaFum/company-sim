@@ -7,7 +7,26 @@ const STATE = {
   COFFEE: 'COFFEE',
 };
 
+/**
+ * @typedef {Object} PathNode
+ * @property {number} x - The x coordinate of the node.
+ * @property {number} y - The y coordinate of the node.
+ */
+
+/**
+ * Sprite representing a worker in the office simulation.
+ * Handles state machine, movement, energy, and visual feedback.
+ */
 export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
+  /**
+   * Creates a new WorkerSprite.
+   * @param {Phaser.Scene} scene - The parent scene.
+   * @param {number} x - Initial X position.
+   * @param {number} y - Initial Y position.
+   * @param {string} role - Worker role (dev, sales, support).
+   * @param {number|string} id - Unique identifier.
+   * @param {string} [trait='NORMAL'] - Worker trait (e.g., 10x_ENGINEER, TOXIC).
+   */
   constructor(scene, x, y, role, id, trait = 'NORMAL') {
     super(scene, x, y, `worker_${role}`);
 
@@ -23,7 +42,10 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
 
     // --- VISUAL POLISH: OPTIMIZED SHADOW ---
     // Using a sprite instead of Shader FX for performance
-    this.shadow = scene.add.image(x, y + 10, 'shadow_blob').setDepth(this.depth - 1).setAlpha(0.5);
+    this.shadow = scene.add
+      .image(x, y + 10, 'shadow_blob')
+      .setDepth(this.depth - 1)
+      .setAlpha(0.5);
 
     // --- PUSH THE LIMITS: DYNAMIC LIGHTING ---
     // Every worker emits light. Color based on role.
@@ -109,6 +131,10 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
   }
 
   // --- MEMORY LEAK FIX ---
+  /**
+   * Destroys the sprite and cleans up associated resources (light, shadow, particles).
+   * @param {boolean} fromScene - Whether the destroy call came from the scene.
+   */
   destroy(fromScene) {
     if (this.light) {
       this.light.destroy();
@@ -136,6 +162,11 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     super.destroy(fromScene);
   }
 
+  /**
+   * Pre-update method to sync attached objects (lights, shadows) with sprite position.
+   * @param {number} time - Current time.
+   * @param {number} delta - Time delta.
+   */
   preUpdate(time, delta) {
     super.preUpdate(time, delta);
 
@@ -154,6 +185,9 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  /**
+   * Emits particles to simulate work activity.
+   */
   spawnWorkParticles() {
     if (!this.particleEmitter) return;
 
@@ -162,6 +196,11 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     this.particleEmitter.explode(2);
   }
 
+  /**
+   * Main update loop for the worker. Handles state transitions and icon positioning.
+   * @param {number} time - Current time.
+   * @param {number} delta - Time delta.
+   */
   update(time, delta) {
     this.stateTimer -= delta;
 
@@ -197,6 +236,10 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  /**
+   * Updates the worker in IDLE state.
+   * @param {number} delta - Time delta.
+   */
   updateIdle(delta) {
     this.energy = Math.max(0, this.energy - delta * 0.005);
     if (this.stateTimer <= 0) {
@@ -204,6 +247,10 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  /**
+   * Updates the worker in MOVING state.
+   * @param {number} delta - Time delta.
+   */
   updateMoving(delta) {
     this.energy = Math.max(0, this.energy - delta * 0.005);
 
@@ -215,6 +262,10 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     this.followPath();
   }
 
+  /**
+   * Updates the worker in WORKING state.
+   * @param {number} delta - Time delta.
+   */
   updateWorking(delta) {
     this.energy = Math.max(0, this.energy - delta * 0.005);
 
@@ -234,6 +285,9 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     // Animation is handled by TweenChain (startWorkSequence)
   }
 
+  /**
+   * Starts the animation sequence for working (squash, jiggle, relax).
+   */
   startWorkSequence() {
     // If animation is already running, stop it
     if (this.workTween) {
@@ -278,12 +332,18 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     });
   }
 
+  /**
+   * Completes the current work task and shows feedback.
+   */
   finishTask() {
     this.currentState = STATE.IDLE;
     this.showFeedback('$');
     this.stateTimer = 1500; // Longer pause for feedback animation
   }
 
+  /**
+   * Updates the worker in COFFEE state (refilling energy).
+   */
   updateCoffee() {
     // Regenerate energy
     if (this.stateTimer <= 0) {
@@ -293,6 +353,10 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  /**
+   * Starts moving along a path.
+   * @param {PathNode[]} path - Array of path nodes {x, y}.
+   */
   startPath(path) {
     if (path && path.length > 0) {
       this.path = path;
@@ -302,6 +366,9 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  /**
+   * Advances to the next point in the path.
+   */
   nextPathPoint() {
     if (this.path.length === 0) {
       this.stopMovement();
@@ -316,6 +383,9 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     this.scene.physics.moveTo(this, this.movementTarget.x, this.movementTarget.y, speed);
   }
 
+  /**
+   * Logic to follow the current path using physics velocity.
+   */
   followPath() {
     // [3] Efficient distance calculation
     // Reuse tempVec to avoid garbage collection
@@ -328,6 +398,9 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  /**
+   * Stops movement and transitions to IDLE or COFFEE state.
+   */
   stopMovement() {
     this.body.reset(this.x, this.y); // Stops velocity immediately
 
@@ -341,6 +414,10 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  /**
+   * Shows a feedback icon/text floating above the worker.
+   * @param {string} text - Feedback text/icon.
+   */
   showFeedback(text) {
     const colors = {
       $: '#ffff00',
@@ -377,6 +454,11 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     });
   }
 
+  /**
+   * Displays a trait icon permanently above the worker.
+   * @param {string} text - Icon text/emoji.
+   * @param {string} color - Icon color.
+   */
   showTraitIcon(text, color) {
     this.traitIcon = this.scene.add
       .text(this.x, this.y, text, {
@@ -388,6 +470,9 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
       .setOrigin(0.5);
   }
 
+  /**
+   * AI Logic to decide what to do next based on role and energy.
+   */
   decideNextAction() {
     if (
       this.energy < 30 &&
@@ -419,6 +504,9 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  /**
+   * Requests movement to a random point on the grid.
+   */
   moveToRandomPoint() {
     const gridX = Phaser.Math.Between(1, 23);
     const gridY = Phaser.Math.Between(1, 18);

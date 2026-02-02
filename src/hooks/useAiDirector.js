@@ -3,6 +3,29 @@ import { useGameStore } from '../store/gameStore';
 import { callAI } from '../services/aiService';
 import { generateSystemPrompt } from '../services/prompts';
 
+/**
+ * @typedef {Object} DecisionParams
+ * @property {number} [count] - Number of workers to hire/fire.
+ * @property {string} [role] - Role of worker (Dev, Sales, Support).
+ * @property {string} [item_id] - ID of item to buy.
+ */
+
+/**
+ * @typedef {Object} Decision
+ * @property {string} action - The action key (e.g. HIRE_WORKER).
+ * @property {DecisionParams} parameters - The action parameters.
+ * @property {string} reasoning - The AI's reasoning.
+ * @property {string} decision_title - Human readable title.
+ * @property {number} amount - Cost associated with decision.
+ */
+
+/**
+ * Formats the raw AI decision into a UI-friendly object.
+ * @param {string} action - The action key (e.g. HIRE_WORKER).
+ * @param {DecisionParams} params - The action parameters.
+ * @param {string} reason - The AI's reasoning.
+ * @returns {Decision} Formatted decision object.
+ */
 const formatDecision = (action, params, reason) => {
   const safeParams = params && typeof params === 'object' ? params : {};
   const count = safeParams.count ?? 1;
@@ -50,6 +73,10 @@ const formatDecision = (action, params, reason) => {
   };
 };
 
+/**
+ * Hook that manages the AI Director logic.
+ * Triggers at a specific tick to analyze game state and propose decisions.
+ */
 export const useAiDirector = () => {
   const tick = useGameStore((state) => state.tick);
   const apiKey = useGameStore((state) => state.apiKey);
@@ -61,6 +88,7 @@ export const useAiDirector = () => {
   const processingRef = useRef(false);
 
   useEffect(() => {
+    const timers = [];
     // TRIGGER AT TICK 50
     if (tick === 50 && !processingRef.current) {
       processingRef.current = true;
@@ -71,9 +99,9 @@ export const useAiDirector = () => {
 
       const runAiLoop = async () => {
         // Mock Logs Sequence
-        setTimeout(() => addTerminalLog('> ANALYZING CASHFLOW...'), 1000);
-        setTimeout(() => addTerminalLog('> CHECKING MORALE...'), 2500);
-        setTimeout(() => addTerminalLog('> CALCULATING SCENARIOS...'), 4000);
+        timers.push(setTimeout(() => addTerminalLog('> ANALYZING CASHFLOW...'), 1000));
+        timers.push(setTimeout(() => addTerminalLog('> CHECKING MORALE...'), 2500));
+        timers.push(setTimeout(() => addTerminalLog('> CALCULATING SCENARIOS...'), 4000));
 
         try {
           // 1. Collect Context
@@ -140,5 +168,6 @@ export const useAiDirector = () => {
 
       runAiLoop();
     }
+    return () => timers.forEach((t) => clearTimeout(t));
   }, [tick, apiKey, addTerminalLog, aiProvider, setPendingDecision]);
 };
