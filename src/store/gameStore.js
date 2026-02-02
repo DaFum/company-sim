@@ -54,6 +54,10 @@ const createEmployee = (role, id) => ({
 
 /**
  * Calculates output, debt accumulation, and mood decay based on the current employees.
+ * Note: Support staff are intentionally excluded from revenue/output calculations here.
+ * Their primary impact is on payroll (burn rate), which is calculated in `getStats`
+ * and applied during the `advanceTick` action. This design decision simulates support
+ * as a cost center that maintains stability rather than generating direct revenue.
  * @param {Employee[]} employees - List of employees.
  * @returns {EmployeeMetrics} Aggregated metrics.
  */

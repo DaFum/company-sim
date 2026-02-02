@@ -92,7 +92,8 @@ describe('gameStore', () => {
                 { id: '2', role: 'dev', trait: 'NORMAL' },
                 { id: '3', role: 'dev', trait: 'NORMAL' }
             ],
-            workers: 3
+            workers: 3,
+            cash: 50000
         });
     });
 
@@ -133,7 +134,47 @@ describe('gameStore', () => {
         const state = useGameStore.getState();
         expect(state.employees.length).toBe(3);
         expect(state.terminalLogs).toContain('> ERROR: INVALID WORKER COUNT.');
-      });
+    });
+
+    it('should cap fireCount when requesting more than available', () => {
+        useGameStore.getState().setPendingDecision({
+            action: 'FIRE_WORKER',
+            parameters: { count: 10, role: 'dev' }, // Only 3 devs exist
+        });
+
+        useGameStore.getState().applyPendingDecision();
+
+        const state = useGameStore.getState();
+        expect(state.employees.length).toBe(0); // All 3 fired
+        expect(state.cash).toBe(50000 - 3 * 200); // Cost for 3, not 10
+    });
+
+    it('should handle no matching workers', () => {
+        useGameStore.getState().setPendingDecision({
+            action: 'FIRE_WORKER',
+            parameters: { count: 1, role: 'sales' }, // No sales workers
+        });
+
+        useGameStore.getState().applyPendingDecision();
+
+        const state = useGameStore.getState();
+        expect(state.employees.length).toBe(3);
+        expect(state.terminalLogs).toContain('> ERROR: NO MATCHING WORKERS TO FIRE.');
+    });
+
+    it('should handle insufficient funds for severance', () => {
+        useGameStore.setState({ cash: 100 }); // Not enough for severance (200)
+        useGameStore.getState().setPendingDecision({
+            action: 'FIRE_WORKER',
+            parameters: { count: 1, role: 'dev' },
+        });
+
+        useGameStore.getState().applyPendingDecision();
+
+        const state = useGameStore.getState();
+        expect(state.employees.length).toBe(3);
+        expect(state.terminalLogs).toContain('> ERROR: CANNOT AFFORD SEVERANCE.');
+    });
   });
 
   describe('manual hireWorker (Debug)', () => {
