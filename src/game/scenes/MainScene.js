@@ -105,7 +105,7 @@ export default class MainScene extends Phaser.Scene {
     // Initialize touch-specific variables
     this.pinchDistance = 0;
     this.isDragging = false;
-    this.dragOrigin = new Phaser.Math.Vector2();
+    this.dragLastPosition = new Phaser.Math.Vector2();
     this.dragVelocity = new Phaser.Math.Vector2(0, 0);
     this.dragFriction = DRAG_FRICTION;
 
@@ -306,8 +306,8 @@ export default class MainScene extends Phaser.Scene {
       if (this.isDragging) {
         // Move camera based on delta
         // Divide by zoom for consistent speed
-        const dx = (activePointer.x - activePointer.prevPosition.x) / camera.zoom;
-        const dy = (activePointer.y - activePointer.prevPosition.y) / camera.zoom;
+        const dx = (activePointer.x - this.dragLastPosition.x) / camera.zoom;
+        const dy = (activePointer.y - this.dragLastPosition.y) / camera.zoom;
 
         camera.scrollX -= dx;
         camera.scrollY -= dy;
@@ -319,6 +319,8 @@ export default class MainScene extends Phaser.Scene {
         this.isDragging = true;
         this.dragVelocity.reset();
       }
+      // Update last position for next frame
+      this.dragLastPosition.set(activePointer.x, activePointer.y);
     } else {
       this.isDragging = false;
 
