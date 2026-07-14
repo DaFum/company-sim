@@ -118,6 +118,7 @@ const calculateEmployeeMetrics = (employees) => {
  * @property {number} workers - Total worker count.
  * @property {Employee[]} employees - List of employee objects.
  * @property {number} productivity - Global productivity multiplier.
+ * @property {boolean} isRefactoring - Whether the upcoming day is a refactoring day (productivity halted).
  * @property {number} burnRate - Daily burn rate.
  * @property {number} mood - Global mood (0-100).
  * @property {number} productLevel - Product quality level.
@@ -191,6 +192,7 @@ export const useGameStore = create(
     employees: [createEmployee('dev', Date.now())], // Initial: 1 Dev
 
     productivity: 10,
+    isRefactoring: false,
     burnRate: 50,
 
     // Metrics
@@ -539,8 +541,12 @@ export const useGameStore = create(
           state.addTerminalLog(`> PIVOTING...`);
         } else if (action === 'REFACTOR') {
           updates.technicalDebt = Math.max(0, state.technicalDebt - 30);
-          updates.productivity = 0;
-          state.addTerminalLog(`> REFACTORING: Debt reduced. Productivity halted.`);
+          // Decisions are applied at end of day, immediately before startNewDay
+          // resets productivity. Setting productivity here would be wiped
+          // instantly, so we flag the next day as a refactoring day instead and
+          // let startNewDay apply the productivity penalty.
+          updates.isRefactoring = true;
+          state.addTerminalLog(`> REFACTORING: Debt reduced. Productivity halted for the day.`);
         }
 
         // Keep the workers/roster UI helpers in sync with the employees list
@@ -700,6 +706,10 @@ export const useGameStore = create(
 
         const persistentEvents = state.activeEvents.filter((e) => e.type === 'COMPETITOR_CLONE');
 
+        // A pending REFACTOR halts productivity for the whole new day; otherwise
+        // productivity returns to its baseline (boosted by the coffee machine).
+        const baseProductivity = state.inventory.includes('coffee_machine') ? 12 : 10;
+
         return {
           day: state.day + 1,
           tick: 0,
@@ -707,12 +717,15 @@ export const useGameStore = create(
           isAiThinking: false,
           terminalLogs: [],
           officeLevel: newLevel,
-          isPlaying: true,
+          // Preserve the player's play/pause choice across the day boundary
+          // instead of force-resuming.
+          isPlaying: state.isPlaying,
           mood: Math.max(0, state.mood - 1),
           eventHistory: history,
           activeEvents: persistentEvents,
           startOfDayCash: state.cash,
-          productivity: state.inventory.includes('coffee_machine') ? 12 : 10,
+          productivity: state.isRefactoring ? 0 : baseProductivity,
+          isRefactoring: false,
         };
       });
     },

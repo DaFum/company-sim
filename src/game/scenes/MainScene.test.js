@@ -141,7 +141,7 @@ describe('MainScene', () => {
       vi.spyOn(scene, 'createFullscreenButton').mockImplementation(() => {});
       vi.spyOn(scene, 'setupTooltip').mockImplementation(() => {});
       vi.spyOn(scene, 'setupDayNightCycle').mockImplementation(() => {});
-      vi.spyOn(scene, 'syncRoster').mockImplementation(() => {});
+      vi.spyOn(scene, 'syncEmployees').mockImplementation(() => {});
       vi.spyOn(scene, 'syncVisitors').mockImplementation(() => {});
       vi.spyOn(scene, 'updateMoodVisuals').mockImplementation(() => {});
       vi.spyOn(scene, 'syncChaosVisuals').mockImplementation(() => {});
@@ -250,7 +250,7 @@ describe('MainScene', () => {
 
     it('should sync initial state from store', () => {
       scene.create();
-      expect(scene.syncRoster).toHaveBeenCalled();
+      expect(scene.syncEmployees).toHaveBeenCalled();
       expect(scene.syncVisitors).toHaveBeenCalled();
       expect(scene.updateMoodVisuals).toHaveBeenCalled();
       expect(scene.syncChaosVisuals).toHaveBeenCalled();
@@ -724,27 +724,50 @@ describe('MainScene', () => {
     });
   });
 
-  describe('syncRoster', () => {
+  describe('syncEmployees', () => {
     beforeEach(() => {
       scene.create();
+      vi.spyOn(scene, 'spawnWorker').mockImplementation(() => {});
+    });
+
+    it('should spawn a sprite for each new employee with its role and trait', () => {
       scene.workersGroup = { getChildren: vi.fn(() => []) };
-      vi.spyOn(scene, 'getWorkersByRole').mockReturnValue([]);
-      vi.spyOn(scene, 'adjustRoleCount').mockImplementation(() => {});
+
+      scene.syncEmployees([
+        { id: 1, role: 'dev', trait: '10x_ENGINEER' },
+        { id: 2, role: 'sales', trait: 'NORMAL' },
+      ]);
+
+      expect(scene.spawnWorker).toHaveBeenCalledTimes(2);
+      expect(scene.spawnWorker).toHaveBeenCalledWith('dev', 1, '10x_ENGINEER');
+      expect(scene.spawnWorker).toHaveBeenCalledWith('sales', 2, 'NORMAL');
     });
 
-    it('should adjust dev count', () => {
-      scene.syncRoster({ dev: 2, sales: 1, support: 0 });
-      expect(scene.adjustRoleCount).toHaveBeenCalledWith('dev', 0, 2);
+    it('should not respawn employees that already have a sprite', () => {
+      scene.workersGroup = { getChildren: vi.fn(() => [{ id: 1, role: 'dev', destroy: vi.fn() }]) };
+
+      scene.syncEmployees([{ id: 1, role: 'dev', trait: 'NORMAL' }]);
+
+      expect(scene.spawnWorker).not.toHaveBeenCalled();
     });
 
-    it('should adjust sales count', () => {
-      scene.syncRoster({ dev: 1, sales: 2, support: 0 });
-      expect(scene.adjustRoleCount).toHaveBeenCalledWith('sales', 0, 2);
+    it('should destroy sprites whose employee no longer exists', () => {
+      const survivor = { id: 1, role: 'dev', destroy: vi.fn() };
+      const removed = { id: 2, role: 'dev', destroy: vi.fn() };
+      scene.workersGroup = { getChildren: vi.fn(() => [survivor, removed]) };
+
+      scene.syncEmployees([{ id: 1, role: 'dev', trait: 'NORMAL' }]);
+
+      expect(removed.destroy).toHaveBeenCalled();
+      expect(survivor.destroy).not.toHaveBeenCalled();
     });
 
-    it('should adjust support count', () => {
-      scene.syncRoster({ dev: 1, sales: 0, support: 3 });
-      expect(scene.adjustRoleCount).toHaveBeenCalledWith('support', 0, 3);
+    it('should handle an empty employee list without spawning', () => {
+      scene.workersGroup = { getChildren: vi.fn(() => []) };
+
+      scene.syncEmployees([]);
+
+      expect(scene.spawnWorker).not.toHaveBeenCalled();
     });
   });
 
@@ -769,35 +792,6 @@ describe('MainScene', () => {
     });
   });
 
-  describe('adjustRoleCount', () => {
-    beforeEach(() => {
-      scene.create();
-      vi.spyOn(scene, 'spawnWorker').mockImplementation(() => {});
-      vi.spyOn(scene, 'getWorkersByRole').mockReturnValue([]);
-    });
-
-    it('should spawn workers when target is greater than current', () => {
-      scene.adjustRoleCount('dev', 1, 3);
-      expect(scene.spawnWorker).toHaveBeenCalledTimes(2);
-      expect(scene.spawnWorker).toHaveBeenCalledWith('dev');
-    });
-
-    it('should remove workers when target is less than current', () => {
-      const workers = [{ destroy: vi.fn() }, { destroy: vi.fn() }];
-      scene.getWorkersByRole = vi.fn(() => workers);
-
-      scene.adjustRoleCount('dev', 3, 1);
-
-      expect(workers[0].destroy).toHaveBeenCalled();
-      expect(workers[1].destroy).toHaveBeenCalled();
-    });
-
-    it('should do nothing when current equals target', () => {
-      scene.adjustRoleCount('dev', 2, 2);
-      expect(scene.spawnWorker).not.toHaveBeenCalled();
-    });
-  });
-
   describe('spawnWorker', () => {
     beforeEach(() => {
       scene.setupGrid();
@@ -813,7 +807,22 @@ describe('MainScene', () => {
         expect.any(Number),
         expect.any(Number),
         'dev',
-        expect.any(Number)
+        expect.any(Number),
+        expect.any(String)
+      );
+    });
+
+    it('should pass the employee id and trait to WorkerSprite', async () => {
+      const WorkerSprite = (await import('../sprites/WorkerSprite')).default;
+      scene.spawnWorker('sales', 42, 'TOXIC');
+
+      expect(WorkerSprite).toHaveBeenCalledWith(
+        scene,
+        expect.any(Number),
+        expect.any(Number),
+        'sales',
+        42,
+        'TOXIC'
       );
     });
 

@@ -121,11 +121,8 @@ export default class MainScene extends Phaser.Scene {
     if (store && store.subscribe && store.getState) {
       this.unsubscribers.push(
         store.subscribe(
-          (state) => state.roster,
-          (roster) => this.syncRoster(roster),
-          {
-            equalityFn: (a, b) => a.dev === b.dev && a.sales === b.sales && a.support === b.support,
-          }
+          (state) => state.employees,
+          (employees) => this.syncEmployees(employees)
         )
       );
 
@@ -170,7 +167,7 @@ export default class MainScene extends Phaser.Scene {
       // 5) Initial Sync
       const state = store.getState();
       if (state) {
-        this.syncRoster(state.roster);
+        this.syncEmployees(state.employees);
         this.syncVisitors(state.activeVisitors);
         this.updateMoodVisuals(state.mood);
         this.syncChaosVisuals(state.activeEvents);
@@ -887,17 +884,27 @@ export default class MainScene extends Phaser.Scene {
 
   // --- WORKERS ---
   /**
-   * Syncs the visual worker count with the store roster.
-   * @param {Roster} roster - Roster object containing role counts.
+   * Syncs worker sprites with the store's employee list, matching by id so each
+   * sprite reflects its employee's role AND trait. Employees without a sprite
+   * are spawned; sprites whose employee no longer exists are destroyed.
+   * @param {import('../../store/gameStore').Employee[]} [employees=[]] - Employee list.
    */
-  syncRoster(roster) {
-    const currentDevs = this.getWorkersByRole('dev');
-    const currentSales = this.getWorkersByRole('sales');
-    const currentSupport = this.getWorkersByRole('support');
+  syncEmployees(employees = []) {
+    const sprites = this.workersGroup.getChildren();
+    const wantedIds = new Set(employees.map((e) => String(e.id)));
 
-    this.adjustRoleCount('dev', currentDevs.length, roster.dev);
-    this.adjustRoleCount('sales', currentSales.length, roster.sales);
-    this.adjustRoleCount('support', currentSupport.length, roster.support);
+    // Remove sprites whose employee no longer exists (fired / quit).
+    sprites
+      .filter((sprite) => !wantedIds.has(String(sprite.id)))
+      .forEach((sprite) => sprite.destroy());
+
+    // Spawn a sprite for every employee that doesn't have one yet (hired).
+    const existingIds = new Set(this.workersGroup.getChildren().map((s) => String(s.id)));
+    employees.forEach((e) => {
+      if (!existingIds.has(String(e.id))) {
+        this.spawnWorker(e.role, e.id, e.trait);
+      }
+    });
   }
 
   /**
@@ -910,25 +917,12 @@ export default class MainScene extends Phaser.Scene {
   }
 
   /**
-   * Spawns or removes workers to match the target count.
-   * @param {string} role - Worker role.
-   * @param {number} current - Current count.
-   * @param {number} target - Target count.
-   */
-  adjustRoleCount(role, current, target) {
-    if (current < target) {
-      for (let i = 0; i < target - current; i++) this.spawnWorker(role);
-    } else if (current > target) {
-      const toRemove = this.getWorkersByRole(role).slice(0, current - target);
-      toRemove.forEach((w) => w.destroy());
-    }
-  }
-
-  /**
    * Spawns a new worker of the given role.
    * @param {string} role - Worker role.
+   * @param {number|string} [id=Date.now()] - Employee id used to match the sprite to the store.
+   * @param {string} [trait='NORMAL'] - Employee trait (drives the trait marker icon).
    */
-  spawnWorker(role) {
+  spawnWorker(role, id = Date.now(), trait = 'NORMAL') {
     const x = Phaser.Math.Between(1, this.cols - 2);
     const y = Phaser.Math.Between(1, this.rows - 2);
     const worker = new WorkerSprite(
@@ -936,7 +930,8 @@ export default class MainScene extends Phaser.Scene {
       x * this.tileSize + this.tileSize / 2,
       y * this.tileSize + this.tileSize / 2,
       role,
-      Date.now()
+      id,
+      trait
     );
     this.add.existing(worker);
     this.workersGroup.add(worker);
