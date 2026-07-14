@@ -76,7 +76,7 @@ class MockTextureManager {
     return this.textures.get(key);
   }
 
-  create(key, width, height) {
+  create(key, _width, _height) {
     const texture = new MockTexture(key);
     this.textures.set(key, texture);
     return texture;
@@ -249,7 +249,7 @@ class MockGroup {
     return this;
   }
 
-  clear(removeChildren = true, destroyChildren = false) {
+  clear(_removeChildren = true, destroyChildren = false) {
     if (destroyChildren) {
       this._children.forEach((child) => {
         child.destroy?.();
@@ -446,7 +446,7 @@ class MockScene {
 
     // Factory methods
     this.add = {
-      group: vi.fn((config) => new MockGroup()),
+      group: vi.fn((_config) => new MockGroup()),
       image: vi.fn((x, y, texture) => new MockImage(this, x, y, texture)),
       sprite: vi.fn((x, y, texture) => new MockSprite(this, x, y, texture)),
       text: vi.fn((x, y, text, style) => new MockText(this, x, y, text, style)),
@@ -454,7 +454,7 @@ class MockScene {
         (x, y, w, h, color, alpha) => new MockRectangle(this, x, y, w, h, color, alpha)
       ),
       renderTexture: vi.fn((x, y, w, h) => new MockRenderTexture(this, x, y, w, h)),
-      particles: vi.fn((x, y, texture, config) => new MockParticleEmitter()),
+      particles: vi.fn((_x, _y, _texture, _config) => new MockParticleEmitter()),
       follower: vi.fn((path, x, y, texture) => new MockFollower(path, x, y, texture)),
       existing: vi.fn((obj) => obj),
       graphics: vi.fn(() => new MockGraphics()),

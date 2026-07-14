@@ -36,7 +36,7 @@ describe('gameStore', () => {
       // The `roster` and `workers` are updated in `advanceTick`.
 
       // Let's verify if `employees` array is correct.
-      const devs = state.employees.filter(e => e.role === 'dev');
+      const devs = state.employees.filter((e) => e.role === 'dev');
       expect(devs.length).toBe(3);
     });
 
@@ -78,23 +78,23 @@ describe('gameStore', () => {
 
       const state = useGameStore.getState();
       expect(state.employees.length).toBe(1);
-      const hasError = state.terminalLogs.some(log => log.includes('INSUFFICIENT FUNDS'));
+      const hasError = state.terminalLogs.some((log) => log.includes('INSUFFICIENT FUNDS'));
       expect(hasError).toBe(true);
     });
   });
 
   describe('applyPendingDecision - FIRE_WORKER', () => {
     beforeEach(() => {
-        // Setup 3 devs
-        useGameStore.setState({
-            employees: [
-                { id: '1', role: 'dev', trait: 'NORMAL' },
-                { id: '2', role: 'dev', trait: 'NORMAL' },
-                { id: '3', role: 'dev', trait: 'NORMAL' }
-            ],
-            workers: 3,
-            cash: 50000
-        });
+      // Setup 3 devs
+      useGameStore.setState({
+        employees: [
+          { id: '1', role: 'dev', trait: 'NORMAL' },
+          { id: '2', role: 'dev', trait: 'NORMAL' },
+          { id: '3', role: 'dev', trait: 'NORMAL' },
+        ],
+        workers: 3,
+        cash: 50000,
+      });
     });
 
     it('should fire workers when valid count and funds exist', () => {
@@ -124,79 +124,79 @@ describe('gameStore', () => {
     });
 
     it('should reject invalid count (negative)', () => {
-        useGameStore.getState().setPendingDecision({
-          action: 'FIRE_WORKER',
-          parameters: { count: -1, role: 'dev' },
-        });
+      useGameStore.getState().setPendingDecision({
+        action: 'FIRE_WORKER',
+        parameters: { count: -1, role: 'dev' },
+      });
 
-        useGameStore.getState().applyPendingDecision();
+      useGameStore.getState().applyPendingDecision();
 
-        const state = useGameStore.getState();
-        expect(state.employees.length).toBe(3);
-        expect(state.terminalLogs).toContain('> ERROR: INVALID WORKER COUNT.');
+      const state = useGameStore.getState();
+      expect(state.employees.length).toBe(3);
+      expect(state.terminalLogs).toContain('> ERROR: INVALID WORKER COUNT.');
     });
 
     it('should cap fireCount when requesting more than available', () => {
-        useGameStore.getState().setPendingDecision({
-            action: 'FIRE_WORKER',
-            parameters: { count: 10, role: 'dev' }, // Only 3 devs exist
-        });
+      useGameStore.getState().setPendingDecision({
+        action: 'FIRE_WORKER',
+        parameters: { count: 10, role: 'dev' }, // Only 3 devs exist
+      });
 
-        useGameStore.getState().applyPendingDecision();
+      useGameStore.getState().applyPendingDecision();
 
-        const state = useGameStore.getState();
-        expect(state.employees.length).toBe(0); // All 3 fired
-        expect(state.cash).toBe(50000 - 3 * 200); // Cost for 3, not 10
+      const state = useGameStore.getState();
+      expect(state.employees.length).toBe(0); // All 3 fired
+      expect(state.cash).toBe(50000 - 3 * 200); // Cost for 3, not 10
     });
 
     it('should handle no matching workers', () => {
-        useGameStore.getState().setPendingDecision({
-            action: 'FIRE_WORKER',
-            parameters: { count: 1, role: 'sales' }, // No sales workers
-        });
+      useGameStore.getState().setPendingDecision({
+        action: 'FIRE_WORKER',
+        parameters: { count: 1, role: 'sales' }, // No sales workers
+      });
 
-        useGameStore.getState().applyPendingDecision();
+      useGameStore.getState().applyPendingDecision();
 
-        const state = useGameStore.getState();
-        expect(state.employees.length).toBe(3);
-        expect(state.terminalLogs).toContain('> ERROR: NO MATCHING WORKERS TO FIRE.');
+      const state = useGameStore.getState();
+      expect(state.employees.length).toBe(3);
+      expect(state.terminalLogs).toContain('> ERROR: NO MATCHING WORKERS TO FIRE.');
     });
 
     it('should handle insufficient funds for severance', () => {
-        useGameStore.setState({ cash: 100 }); // Not enough for severance (200)
-        useGameStore.getState().setPendingDecision({
-            action: 'FIRE_WORKER',
-            parameters: { count: 1, role: 'dev' },
-        });
+      useGameStore.setState({ cash: 100 }); // Not enough for severance (200)
+      useGameStore.getState().setPendingDecision({
+        action: 'FIRE_WORKER',
+        parameters: { count: 1, role: 'dev' },
+      });
 
-        useGameStore.getState().applyPendingDecision();
+      useGameStore.getState().applyPendingDecision();
 
-        const state = useGameStore.getState();
-        expect(state.employees.length).toBe(3);
-        expect(state.terminalLogs).toContain('> ERROR: CANNOT AFFORD SEVERANCE.');
+      const state = useGameStore.getState();
+      expect(state.employees.length).toBe(3);
+      expect(state.terminalLogs).toContain('> ERROR: CANNOT AFFORD SEVERANCE.');
     });
   });
 
   describe('manual hireWorker (Debug)', () => {
     it('should recalculate roster correctly', () => {
-        useGameStore.getState().hireWorker('sales');
+      useGameStore.getState().hireWorker('sales');
 
-        const state = useGameStore.getState();
-        expect(state.employees.length).toBe(2);
-        expect(state.roster.sales).toBe(1);
-        expect(state.roster.dev).toBe(1);
-        expect(state.workers).toBe(2);
+      const state = useGameStore.getState();
+      expect(state.employees.length).toBe(2);
+      expect(state.roster.sales).toBe(1);
+      expect(state.roster.dev).toBe(1);
+      expect(state.workers).toBe(2);
     });
 
     it('should validate role input', () => {
-        useGameStore.getState().hireWorker(' invalid_role '); // Should default to dev
+      useGameStore.getState().hireWorker(' invalid_role '); // Should default to dev
 
-        const state = useGameStore.getState();
-        expect(state.employees.length).toBe(2);
-        // "invalid_role" -> defaults to 'dev' logic check?
-        // Implementation: normalizedRole checked against ['dev','sales','support']. If not included -> 'dev'
-        const newWorker = state.employees[1];
-        expect(newWorker.role).toBe('dev');
+      const state = useGameStore.getState();
+      expect(state.employees.length).toBe(2);
+      // "invalid_role" -> defaults to 'dev' logic check?
+      // Implementation: normalizedRole checked against ['dev','sales','support']. If not included -> 'dev'
+      const newWorker = state.employees[1];
+      expect(newWorker.role).toBe('dev');
     });
   });
 });

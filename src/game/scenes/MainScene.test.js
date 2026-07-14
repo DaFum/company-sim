@@ -525,7 +525,6 @@ describe('MainScene', () => {
     });
 
     it('should increase zoom by delta', () => {
-      const initialZoom = scene.cameras.main.zoom;
       scene.handleZoom(0.2);
       expect(scene.cameras.main.setZoom).toHaveBeenCalled();
     });

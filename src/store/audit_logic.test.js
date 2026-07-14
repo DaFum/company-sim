@@ -58,7 +58,7 @@ describe('GameStore Logic Audit', () => {
         cash: 1000,
         employees: [{ id: 1, role: 'dev', trait: 'NORMAL' }],
         workers: 1,
-        roster: { dev: 1, sales: 0, support: 0 }
+        roster: { dev: 1, sales: 0, support: 0 },
       });
 
       useGameStore.getState().fireWorker();
@@ -72,7 +72,7 @@ describe('GameStore Logic Audit', () => {
     it('should not fire if funds are insufficient for severance', () => {
       useGameStore.setState({
         cash: 100,
-        employees: [{ id: 1, role: 'dev', trait: 'NORMAL' }]
+        employees: [{ id: 1, role: 'dev', trait: 'NORMAL' }],
       });
 
       useGameStore.getState().fireWorker();
@@ -140,46 +140,46 @@ describe('GameStore Logic Audit', () => {
   });
 
   describe('Decision Application', () => {
-      it('should apply HIRE_WORKER decision', () => {
-          const decision = {
-              action: 'HIRE_WORKER',
-              parameters: { count: 2, role: 'sales' },
-              amount: 1000
-          };
-          useGameStore.setState({ pendingDecision: decision, cash: 2000 });
+    it('should apply HIRE_WORKER decision', () => {
+      const decision = {
+        action: 'HIRE_WORKER',
+        parameters: { count: 2, role: 'sales' },
+        amount: 1000,
+      };
+      useGameStore.setState({ pendingDecision: decision, cash: 2000 });
 
-          useGameStore.getState().applyPendingDecision();
+      useGameStore.getState().applyPendingDecision();
 
-          const state = useGameStore.getState();
-          expect(state.employees.length).toBe(2);
-          expect(state.employees[0].role).toBe('sales');
-          expect(state.pendingDecision).toBeNull();
-          expect(state.cash).toBe(1000); // 2000 - 1000
+      const state = useGameStore.getState();
+      expect(state.employees.length).toBe(2);
+      expect(state.employees[0].role).toBe('sales');
+      expect(state.pendingDecision).toBeNull();
+      expect(state.cash).toBe(1000); // 2000 - 1000
+    });
+
+    it('should apply FIRE_WORKER decision', () => {
+      useGameStore.setState({
+        employees: [
+          { id: 1, role: 'dev', trait: 'NORMAL' },
+          { id: 2, role: 'dev', trait: 'NORMAL' },
+        ],
+        cash: 5000,
+        workers: 2,
+        roster: { dev: 2, sales: 0, support: 0 },
       });
+      const decision = {
+        action: 'FIRE_WORKER',
+        parameters: { count: 1, role: 'dev' },
+      };
+      useGameStore.setState({ pendingDecision: decision });
 
-       it('should apply FIRE_WORKER decision', () => {
-          useGameStore.setState({
-              employees: [
-                  { id: 1, role: 'dev', trait: 'NORMAL' },
-                  { id: 2, role: 'dev', trait: 'NORMAL' }
-              ],
-              cash: 5000,
-              workers: 2,
-              roster: { dev: 2, sales: 0, support: 0 }
-          });
-          const decision = {
-              action: 'FIRE_WORKER',
-              parameters: { count: 1, role: 'dev' },
-          };
-          useGameStore.setState({ pendingDecision: decision });
+      useGameStore.getState().applyPendingDecision();
 
-          useGameStore.getState().applyPendingDecision();
-
-          const state = useGameStore.getState();
-          expect(state.employees.length).toBe(1);
-          expect(state.workers).toBe(1); // synced with employees after decision
-          expect(state.roster.dev).toBe(1);
-          expect(state.cash).toBe(5000 - SEVERANCE_COST);
-      });
+      const state = useGameStore.getState();
+      expect(state.employees.length).toBe(1);
+      expect(state.workers).toBe(1); // synced with employees after decision
+      expect(state.roster.dev).toBe(1);
+      expect(state.cash).toBe(5000 - SEVERANCE_COST);
+    });
   });
 });
