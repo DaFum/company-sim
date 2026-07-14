@@ -81,13 +81,36 @@ function App() {
     setFloater(null);
   };
 
+  const phaseLabel = gamePhase === 'CRUNCH' ? 'CRUNCH' : isPlaying ? 'LIVE' : 'STANDBY';
+
   return (
     <div className="app-container">
-      <h1>🤖 AI Startup Simulator (Visual Polish)</h1>
+      {/* AMBIENT BACKDROP LAYERS */}
+      <div className="bg-mesh" aria-hidden="true" />
+      <div className="bg-vignette" aria-hidden="true" />
 
-      <button onClick={toggleMute} className="mute-button">
-        {isMuted ? '🔇 Unmute' : '🔊 Mute'}
-      </button>
+      {/* MASTHEAD */}
+      <header className="app-header">
+        <div className="brand">
+          <span className="brand-glyph">▲</span>
+          <div className="brand-text">
+            <h1>
+              AI Startup <span className="brand-accent">Simulator</span>
+            </h1>
+            <p className="brand-sub">AUTONOMOUS COMPANY DIRECTOR // v1.0</p>
+          </div>
+        </div>
+
+        <div className="header-tools">
+          <span className={`phase-chip phase-${phaseLabel.toLowerCase()}`}>
+            <i className="phase-dot" />
+            {phaseLabel}
+          </span>
+          <button onClick={toggleMute} className="mute-button" title="Toggle sound">
+            {isMuted ? '🔇' : '🔊'}
+          </button>
+        </div>
+      </header>
 
       {/* MODALS */}
       <ApiKeyModal />
@@ -107,15 +130,24 @@ function App() {
       {/* DASHBOARD */}
       <div className="dashboard">
         {/* STATUS BOARD */}
-        <div className="status-board">
-          <h2 className="status-header">Status</h2>
+        <div className="panel status-board reveal" style={{ '--reveal-delay': '0.05s' }}>
+          <h2 className="panel-header">
+            <span className="panel-header-dot" />
+            Company Status
+          </h2>
           <div className="status-row">
-            <span>Day: {day}</span>
-            <span>Time: 0:{tick.toString().padStart(2, '0')}</span>
+            <span className="stat-pill">
+              <em>DAY</em>
+              {day}
+            </span>
+            <span className="stat-pill">
+              <em>TIME</em>0:{tick.toString().padStart(2, '0')}
+            </span>
           </div>
-          <p className={`cash-display ${cash >= 0 ? 'cash-positive' : 'cash-negative'}`}>
+          <div className={`cash-display ${cash >= 0 ? 'cash-positive' : 'cash-negative'}`}>
+            <span className="cash-label">Treasury</span>
             <strong>{cash.toFixed(0)} €</strong>
-          </p>
+          </div>
           <div className="status-footer">
             <span>
               CEO: <strong className="ceo-name">{ceoPersona}</strong>
@@ -125,7 +157,12 @@ function App() {
         </div>
 
         {/* CONTROLS */}
-        <div className="controls">
+        <div className="panel controls reveal" style={{ '--reveal-delay': '0.15s' }}>
+          <h2 className="panel-header">
+            <span className="panel-header-dot" />
+            Command Deck
+          </h2>
+
           {/* AI STATUS EYE */}
           <AiStatus />
 
@@ -146,23 +183,24 @@ function App() {
             <button
               onClick={hireWorker}
               disabled={gamePhase === 'CRUNCH'}
-              className="action-button"
+              className="action-button action-hire"
             >
-              Hire (+Profit)
+              Hire <small>+Profit</small>
             </button>
             <button
               onClick={fireWorker}
               disabled={gamePhase === 'CRUNCH'}
-              className="action-button"
+              className="action-button action-fire"
             >
-              Fire (-Burn)
+              Fire <small>-Burn</small>
             </button>
           </div>
         </div>
       </div>
 
       {/* PHASER GAME CANVAS */}
-      <div className="game-canvas-container">
+      <div className="game-canvas-container reveal" style={{ '--reveal-delay': '0.25s' }}>
+        <span className="scan-badge">LIVE FEED · OFFICE CAM 01</span>
         <GameCanvas />
       </div>
 

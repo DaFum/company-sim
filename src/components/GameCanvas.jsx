@@ -39,8 +39,9 @@ export const GameCanvas = React.memo(() => {
       style={{
         width: '800px',
         height: '600px',
-        border: '4px solid #333',
-        margin: '20px auto',
+        display: 'block',
+        borderRadius: '6px',
+        overflow: 'hidden',
       }}
     />
   );

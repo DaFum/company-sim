@@ -199,7 +199,7 @@ describe('MainScene', () => {
 
     it('should set camera background color', () => {
       scene.create();
-      expect(scene.cameras.main.setBackgroundColor).toHaveBeenCalledWith('#2d2d2d');
+      expect(scene.cameras.main.setBackgroundColor).toHaveBeenCalledWith('#0d0f18');
     });
 
     it('should add multi-touch pointer', () => {
