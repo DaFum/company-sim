@@ -40,6 +40,13 @@ function App() {
   const lastDecision = useGameStore((state) => state.pendingDecision);
   const confirmDecision = useGameStore((state) => state.applyPendingDecision);
 
+  // Clear any pending store timers (e.g. the veto pizza-party timeout) when the
+  // app unmounts, so stray setTimeout callbacks don't fire against a torn-down store.
+  const clearTimers = useGameStore((state) => state.clearTimers);
+  useEffect(() => {
+    return () => clearTimers();
+  }, [clearTimers]);
+
   // 3. Daten aus dem Store holen
   const {
     cash,

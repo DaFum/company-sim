@@ -182,4 +182,58 @@ describe('GameStore Logic Audit', () => {
       expect(state.cash).toBe(5000 - SEVERANCE_COST);
     });
   });
+
+  describe('Chaos Events', () => {
+    // Baseline: 1 dev, no sales, fresh product. day=1 keeps the random event
+    // roll (day > 5) disabled so the tick is deterministic.
+    const baseSetup = {
+      cash: 1000,
+      employees: [{ id: 1, role: 'dev', trait: 'NORMAL' }],
+      roster: { dev: 1, sales: 0, support: 0 },
+      officeLevel: 1,
+      productivity: 10,
+      mood: 100,
+      isPlaying: true,
+      productAge: 0,
+      serverStability: 1.0,
+      productLevel: 1,
+      marketingMultiplier: 1.0,
+      day: 1,
+      tick: 0,
+      gamePhase: 'WORK',
+    };
+
+    it('should reduce revenue while COMPETITOR_CLONE is active', () => {
+      useGameStore.setState({ ...baseSetup, activeEvents: [] });
+      useGameStore.getState().advanceTick();
+      const gainNormal = useGameStore.getState().cash - baseSetup.cash;
+
+      useGameStore.setState({
+        ...baseSetup,
+        activeEvents: [
+          { type: 'COMPETITOR_CLONE', timeLeft: 999, severity: 'HIGH', description: 'clone' },
+        ],
+      });
+      useGameStore.getState().advanceTick();
+      const gainCompetitor = useGameStore.getState().cash - baseSetup.cash;
+
+      expect(gainCompetitor).toBeLessThan(gainNormal);
+    });
+
+    it('should clear an active COMPETITOR_CLONE when PIVOT is applied', () => {
+      useGameStore.setState({
+        activeEvents: [
+          { type: 'COMPETITOR_CLONE', timeLeft: 999, severity: 'HIGH', description: 'clone' },
+        ],
+        pendingDecision: { action: 'PIVOT', parameters: {} },
+        cash: 5000,
+      });
+
+      useGameStore.getState().applyPendingDecision();
+
+      const state = useGameStore.getState();
+      expect(state.activeEvents.some((e) => e.type === 'COMPETITOR_CLONE')).toBe(false);
+      expect(state.pendingDecision).toBeNull();
+    });
+  });
 });

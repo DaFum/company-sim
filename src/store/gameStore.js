@@ -89,6 +89,52 @@ const calculateEmployeeMetrics = (employees) => {
 };
 
 /**
+ * @typedef {Object} ChaosEventDef
+ * @property {string} type - Event type passed to triggerEvent.
+ * @property {number} weight - Relative selection weight.
+ * @property {(state: GameStoreState) => boolean} [canFire] - Optional gate; if it
+ *   returns false the roll fizzles ("dodged") and no event triggers this tick.
+ */
+
+/**
+ * Weighted table of chaos events. Replaces the old nested if/else roll: each
+ * event has a relative weight and an optional gate condition. Splitting the old
+ * single RANSOMWARE branch lets COMPETITOR_CLONE actually appear in the wild.
+ * @type {ChaosEventDef[]}
+ */
+const CHAOS_EVENT_TABLE = [
+  {
+    type: 'TECH_OUTAGE',
+    weight: 2,
+    // Higher technical debt sharply increases the odds the outage actually lands.
+    canFire: (s) => Math.random() < (0.001 + s.technicalDebt / 1000) * 10,
+  },
+  { type: 'HUMAN_QUIT', weight: 2, canFire: (s) => s.mood < 40 },
+  { type: 'HUMAN_SICK', weight: 2 },
+  { type: 'MARKET_SHITSTORM', weight: 2 },
+  { type: 'RANSOMWARE', weight: 1 },
+  { type: 'COMPETITOR_CLONE', weight: 1 },
+];
+
+/**
+ * Picks a chaos event from the weighted table.
+ * @param {GameStoreState} state - Current game state (for gate conditions).
+ * @returns {string|null} Event type to trigger, or null if the roll fizzles.
+ */
+const rollChaosEvent = (state) => {
+  const totalWeight = CHAOS_EVENT_TABLE.reduce((sum, e) => sum + e.weight, 0);
+  let roll = Math.random() * totalWeight;
+  for (const event of CHAOS_EVENT_TABLE) {
+    roll -= event.weight;
+    if (roll < 0) {
+      if (event.canFire && !event.canFire(state)) return null; // Dodged
+      return event.type;
+    }
+  }
+  return null;
+};
+
+/**
  * @typedef {Object} GameStats
  * @property {Object} roster - Count of employees by role.
  * @property {number} totalBurn - Total daily expense.
@@ -538,6 +584,8 @@ export const useGameStore = create(
           updates.mood = Math.max(0, state.mood - 30);
           updates.marketingMultiplier = 0.5;
           updates.marketingLeft = 120;
+          // Pivoting into a new market escapes a competitor that cloned us.
+          get().resolveEvent('COMPETITOR_CLONE');
           state.addTerminalLog(`> PIVOTING...`);
         } else if (action === 'REFACTOR') {
           updates.technicalDebt = Math.max(0, state.technicalDebt - 30);
@@ -588,23 +636,18 @@ export const useGameStore = create(
         const isTechOutage = activeEvents.some((e) => e.type === 'TECH_OUTAGE');
         const isSick = activeEvents.some((e) => e.type === 'HUMAN_SICK');
         const isShitstorm = activeEvents.some((e) => e.type === 'MARKET_SHITSTORM');
+        const isCompetitor = activeEvents.some((e) => e.type === 'COMPETITOR_CLONE');
 
-        const outageChance = 0.001 + state.technicalDebt / 1000;
-
+        // ~1% chance per WORK tick to roll for a chaos event, gated so it can't
+        // pile on early, while broke, or twice in one day.
         if (
           state.day > 5 &&
           state.cash > 2000 &&
           state.lastEventDay !== state.day &&
           Math.random() < 0.01
         ) {
-          const roll = Math.random();
-          if (roll < 0.2 && Math.random() < outageChance * 10) get().triggerEvent('TECH_OUTAGE');
-          else if (roll < 0.2) {
-            /* Dodged */
-          } else if (roll < 0.4 && state.mood < 40) get().triggerEvent('HUMAN_QUIT');
-          else if (roll < 0.6) get().triggerEvent('HUMAN_SICK');
-          else if (roll < 0.8) get().triggerEvent('MARKET_SHITSTORM');
-          else get().triggerEvent('RANSOMWARE');
+          const eventType = rollChaosEvent(state);
+          if (eventType) get().triggerEvent(eventType);
         }
 
         // --- 3. Economic Calc (Traits + Lifecycle) ---
@@ -617,6 +660,9 @@ export const useGameStore = create(
         if (state.productAge < 20) demandFactor = 1.5;
         else if (state.productAge > 100)
           demandFactor = Math.max(0.2, 1.0 - (state.productAge - 100) * 0.01);
+
+        // A competitor cloning our tech steals market share until we PIVOT away.
+        if (isCompetitor) demandFactor *= 0.7;
 
         let finalProd = state.productivity;
         if (isTechOutage) finalProd = 0;

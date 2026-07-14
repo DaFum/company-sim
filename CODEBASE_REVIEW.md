@@ -93,7 +93,16 @@ prior `isPlaying` value unless auto-resume is intended.
 
 ## 2. Dead / unreachable logic
 
-### 2.1 `COMPETITOR_CLONE` event is never triggered and has no effect — LOW
+> **Status: RESOLVED.** All three items in this section were integrated into the
+> game rather than deleted — the event roll was rewritten around a weighted
+> table, `COMPETITOR_CLONE` was made functional with a counter-play, and
+> `clearTimers` was wired into app teardown. Details preserved below for context.
+
+### 2.1 `COMPETITOR_CLONE` event is never triggered and has no effect — LOW — ✅ RESOLVED
+*Fix:* added `COMPETITOR_CLONE` to the weighted chaos-event table so it can now
+occur; while active it cuts demand to 70% (`advanceTick`); and `PIVOT` now
+resolves it (the only way to escape the clone). The AI prompt documents this.
+
 **File:** `src/store/gameStore.js:375-378, 701`
 
 `triggerEvent` has a `COMPETITOR_CLONE` handler (duration `999`) and
@@ -102,7 +111,11 @@ prior `isPlaying` value unless auto-resume is intended.
 (`594-601`) only produces the other five types. Even if triggered, no code reads
 it to alter revenue/gameplay. It's a fully dead feature.
 
-### 2.2 `clearTimers` action is defined but never called — LOW
+### 2.2 `clearTimers` action is defined but never called — LOW — ✅ RESOLVED
+*Fix:* `App` now calls `clearTimers()` in an unmount effect, so pending store
+timeouts (e.g. the veto pizza-party timer) are cleared on teardown instead of
+firing against a stale store.
+
 **File:** `src/store/gameStore.js:299-305`
 
 The store exposes `clearTimers` (and maintains a `timers` array), but no
@@ -110,7 +123,13 @@ component/hook invokes it — e.g. on unmount or reset. The veto pizza timer
 self-removes, so today there's no leak, but the intended cleanup hook is unused.
 Either wire it up (e.g. in an app-level unmount effect) or remove it.
 
-### 2.3 Convoluted / partly-unreachable event roll — LOW
+### 2.3 Convoluted / partly-unreachable event roll — LOW — ✅ RESOLVED
+*Fix:* replaced the nested `if/else` + double-`Math.random()` roll with a
+declarative `CHAOS_EVENT_TABLE` (weights + optional gate conditions) and a
+`rollChaosEvent` helper. Behaviour is preserved (debt-driven outages,
+mood-gated resignations, "dodge" on unmet conditions) but readable and
+extensible.
+
 **File:** `src/store/gameStore.js:586-602`
 
 `outageChance = 0.001 + technicalDebt/1000` is then gated again by
@@ -242,26 +261,26 @@ even for OpenAI-only users.
 
 ## Summary table
 
-| # | Finding | Severity | Type |
-|---|---------|----------|------|
-| 1.1 | Selected AI model never sent to API | High | Bug |
-| 1.2 | Terminal decision reason renders empty (`.reason` vs `.reasoning`) | Medium | Bug |
-| 1.3 | REFACTOR productivity penalty instantly overwritten | Medium | Bug |
-| 1.4 | Worker traits never shown on sprites | Medium | Bug |
-| 1.5 | `startNewDay` force-resumes after pause | Low | Bug |
-| 2.1 | `COMPETITOR_CLONE` never triggered / no effect | Low | Dead code |
-| 2.2 | `clearTimers` defined but unused | Low | Dead code |
-| 2.3 | Convoluted, partly-unreachable event roll | Low | Clarity |
-| 3.1 | Non-dev roles accrue technical debt | Low | Logic |
-| 3.2 | Multi-day event durations meaningless | Low | Logic |
-| 3.3 | `Date.now()` ID collisions | Low | Robustness |
-| 4.1 | `App` subscribes to entire store | Medium | Perf |
-| 4.2 | ~1.5 MB JS bundle | Low | Perf |
-| 4.3 | Single floating-number slot | Low | Perf |
-| 5.1 | Client-side key + `dangerouslyAllowBrowser` | Medium | Security |
-| 5.2 | CI runs no lint/tests | Medium | Tooling |
-| 5.3 | Unused native `canvas` dep breaks installs | Medium | Tooling |
-| 6.1 | Mixed German/English strings | Low | Consistency |
-| 6.2 | Redundant CSS import | Trivial | Cleanup |
-| 6.3 | Commented-out postFX block | Trivial | Cleanup |
-| 6.4 | Unconditional Pollinations models fetch | Trivial | Cleanup |
+| # | Finding | Severity | Type | Status |
+|---|---------|----------|------|--------|
+| 1.1 | Selected AI model never sent to API | High | Bug | Open |
+| 1.2 | Terminal decision reason renders empty (`.reason` vs `.reasoning`) | Medium | Bug | ✅ Fixed |
+| 1.3 | REFACTOR productivity penalty instantly overwritten | Medium | Bug | ✅ Fixed |
+| 1.4 | Worker traits never shown on sprites | Medium | Bug | ✅ Fixed |
+| 1.5 | `startNewDay` force-resumes after pause | Low | Bug | ✅ Fixed |
+| 2.1 | `COMPETITOR_CLONE` never triggered / no effect | Low | Dead code | ✅ Fixed |
+| 2.2 | `clearTimers` defined but unused | Low | Dead code | ✅ Fixed |
+| 2.3 | Convoluted, partly-unreachable event roll | Low | Clarity | ✅ Fixed |
+| 3.1 | Non-dev roles accrue technical debt | Low | Logic | Open |
+| 3.2 | Multi-day event durations meaningless | Low | Logic | Open |
+| 3.3 | `Date.now()` ID collisions | Low | Robustness | Open |
+| 4.1 | `App` subscribes to entire store | Medium | Perf | Open |
+| 4.2 | ~1.5 MB JS bundle | Low | Perf | Open |
+| 4.3 | Single floating-number slot | Low | Perf | Open |
+| 5.1 | Client-side key + `dangerouslyAllowBrowser` | Medium | Security | Open |
+| 5.2 | CI runs no lint/tests | Medium | Tooling | Open |
+| 5.3 | Unused native `canvas` dep breaks installs | Medium | Tooling | Open |
+| 6.1 | Mixed German/English strings | Low | Consistency | Open |
+| 6.2 | Redundant CSS import | Trivial | Cleanup | Open |
+| 6.3 | Commented-out postFX block | Trivial | Cleanup | Open |
+| 6.4 | Unconditional Pollinations models fetch | Trivial | Cleanup | Open |

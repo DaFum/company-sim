@@ -24,6 +24,7 @@ Du erhältst "yesterday_events" und "active_events". Wenn dort Chaos herrscht, r
 - TECH_OUTAGE / RANSOMWARE -> Kauf 'server_rack_v2' oder 'firewall' (via BUY_UPGRADE).
 - HUMAN_QUIT / HUMAN_SICK -> Stelle neue Leute ein (HIRE) oder verbessere Moral (BUY_UPGRADE plants).
 - MARKET_SHITSTORM -> Starte MARKETING_PUSH (Crisis PR).
+- COMPETITOR_CLONE -> Differenziere dich mit PIVOT (neuer Markt). Nur PIVOT beendet das Klon-Event.
 
 AKTIONEN (Wähle GENAU EINE):
 
