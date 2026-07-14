@@ -543,6 +543,18 @@ export const useGameStore = create(
           state.addTerminalLog(`> REFACTORING: Debt reduced. Productivity halted.`);
         }
 
+        // Keep the workers/roster UI helpers in sync with the employees list
+        // whenever a decision changes headcount, matching hireWorker/fireWorker.
+        // Without this the "Workers:" display stays stale until the next tick.
+        if (updates.employees) {
+          const roster = { dev: 0, sales: 0, support: 0 };
+          updates.employees.forEach((e) => {
+            if (roster[e.role] !== undefined) roster[e.role]++;
+          });
+          updates.workers = updates.employees.length;
+          updates.roster = roster;
+        }
+
         set(updates);
       }
     },
