@@ -120,6 +120,7 @@ describe('GameStore Logic Audit', () => {
         productAge: 0, // < 20 -> demand factor 1.5
         serverStability: 1.0,
         productLevel: 1,
+        marketingMultiplier: 1.0,
         // officeLevel 1 rent is 100. Dev salary 50. Total burn 150.
         // Burn per tick = 150 / 60 = 2.5.
 
@@ -176,6 +177,8 @@ describe('GameStore Logic Audit', () => {
 
           const state = useGameStore.getState();
           expect(state.employees.length).toBe(1);
+          expect(state.workers).toBe(1); // synced with employees after decision
+          expect(state.roster.dev).toBe(1);
           expect(state.cash).toBe(5000 - SEVERANCE_COST);
       });
   });

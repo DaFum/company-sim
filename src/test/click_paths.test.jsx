@@ -97,6 +97,7 @@ describe('App Click Paths', () => {
     const state = useGameStore.getState();
     expect(state.pendingDecision).toBeNull();
     expect(state.employees.length).toBe(1);
+    expect(state.workers).toBe(1); // UI helper stays in sync with employees
     expect(state.cash).toBe(500); // 1000 - 500
   });
 });
