@@ -95,7 +95,7 @@ export default class MainScene extends Phaser.Scene {
 
     // Camera
     this.cameras.main.centerOn(400, 300);
-    this.cameras.main.setBackgroundColor('#2d2d2d');
+    this.cameras.main.setBackgroundColor('#0d0f18');
 
     // INPUTS
     this.input.addPointer(1); // Enable multi-touch

@@ -6,19 +6,19 @@ import { useGameStore } from '../store/gameStore';
 
 // Mock Complex Components
 vi.mock('../components/GameCanvas', () => ({
-  GameCanvas: () => <div data-testid="game-canvas">Canvas</div>
+  GameCanvas: () => <div data-testid="game-canvas">Canvas</div>,
 }));
 
 vi.mock('../components/RetroTerminal', () => ({
-  RetroTerminal: () => <div data-testid="retro-terminal">Terminal</div>
+  RetroTerminal: () => <div data-testid="retro-terminal">Terminal</div>,
 }));
 
 vi.mock('../hooks/useAiDirector', () => ({
-  useAiDirector: vi.fn()
+  useAiDirector: vi.fn(),
 }));
 
 vi.mock('../hooks/useGameLoop', () => ({
-  useGameLoop: vi.fn()
+  useGameLoop: vi.fn(),
 }));
 
 describe('App Click Paths', () => {
@@ -34,7 +34,7 @@ describe('App Click Paths', () => {
         pendingDecision: null,
         day: 1,
         tick: 0,
-        ceoPersona: 'TestCEO'
+        ceoPersona: 'TestCEO',
       });
     });
   });
@@ -79,8 +79,8 @@ describe('App Click Paths', () => {
           reasoning: 'We need help',
           amount: 500,
           action: 'HIRE_WORKER',
-          parameters: { count: 1, role: 'dev' }
-        }
+          parameters: { count: 1, role: 'dev' },
+        },
       });
     });
 

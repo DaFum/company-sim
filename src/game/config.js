@@ -7,7 +7,7 @@ export const gameConfig = {
   parent: 'game-container',
   width: 800,
   height: 600,
-  backgroundColor: '#1a1a2d', // Darker background for light effects
+  backgroundColor: '#0d0f18', // Matches HUD frame so the canvas blends seamlessly
   pixelArt: true, // Crisp look for pixel art
   scale: {
     mode: Phaser.Scale.FIT,

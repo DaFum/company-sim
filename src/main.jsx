@@ -9,7 +9,7 @@ const loadEruda = () => {
   let erudaFromStorage = null;
   try {
     erudaFromStorage = window.localStorage.getItem('active-eruda');
-  } catch (e) {
+  } catch {
     // localStorage may be unavailable (e.g., in private mode or disabled); ignore and fall back to URL param only
   }
 
