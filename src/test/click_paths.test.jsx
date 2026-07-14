@@ -73,12 +73,13 @@ describe('App Click Paths', () => {
     // Setup pending decision
     act(() => {
       useGameStore.setState({
+        cash: 1000,
         pendingDecision: {
           decision_title: 'Hire Someone',
           reasoning: 'We need help',
           amount: 500,
           action: 'HIRE_WORKER',
-          parameters: { count: 1 }
+          parameters: { count: 1, role: 'dev' }
         }
       });
     });
@@ -92,7 +93,11 @@ describe('App Click Paths', () => {
     const confirmButton = screen.getByRole('button', { name: /Start Next Day/i });
     fireEvent.click(confirmButton);
 
-    // Decision should be applied (cleared)
-    expect(useGameStore.getState().pendingDecision).toBeNull();
+    // Decision should be applied and its effects reflected in the store
+    const state = useGameStore.getState();
+    expect(state.pendingDecision).toBeNull();
+    expect(state.employees.length).toBe(1);
+    expect(state.workers).toBe(1); // UI helper stays in sync with employees
+    expect(state.cash).toBe(500); // 1000 - 500
   });
 });

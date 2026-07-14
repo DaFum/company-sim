@@ -29,7 +29,7 @@
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "@vitest/ui": "^4.0.18",
+    "@vitest/ui": "^4.1.10",
     "canvas": "^3.2.1",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
@@ -41,6 +41,6 @@
     "jsdom": "^27.4.0",
     "prettier": "^3.8.1",
     "vite": "^7.2.4",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.10"
   }
 }
