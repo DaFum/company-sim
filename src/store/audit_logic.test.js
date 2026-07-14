@@ -1,5 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from './gameStore';
+
+// Economic constants mirroring the values in gameStore.js.
+const HIRING_COST = 500;
+const SEVERANCE_COST = 200;
 
 describe('GameStore Logic Audit', () => {
   beforeEach(() => {
@@ -27,7 +31,7 @@ describe('GameStore Logic Audit', () => {
       expect(state.employees.length).toBe(1);
       expect(state.employees[0].role).toBe('dev');
       expect(state.workers).toBe(1);
-      expect(state.cash).toBe(500); // 1000 - 500
+      expect(state.cash).toBe(1000 - HIRING_COST);
     });
 
     it('should not hire if funds are insufficient', () => {
@@ -62,7 +66,7 @@ describe('GameStore Logic Audit', () => {
       const state = useGameStore.getState();
       expect(state.employees.length).toBe(0);
       expect(state.workers).toBe(0);
-      expect(state.cash).toBe(800); // 1000 - 200
+      expect(state.cash).toBe(1000 - SEVERANCE_COST);
     });
 
     it('should not fire if funds are insufficient for severance', () => {
@@ -111,21 +115,26 @@ describe('GameStore Logic Audit', () => {
         mood: 100,
         isPlaying: true,
         roster: { dev: 1, sales: 0, support: 0 },
+        // Explicitly pin the values the revenue formula depends on so the
+        // test does not rely on store initialization defaults.
+        productAge: 0, // < 20 -> demand factor 1.5
+        serverStability: 1.0,
+        productLevel: 1,
         // officeLevel 1 rent is 100. Dev salary 50. Total burn 150.
         // Burn per tick = 150 / 60 = 2.5.
 
-        // Revenue: devOutput(1) * prod(10) * mood(1) * stable(1) * level(1) = 10.
-        // salesValue = 0.
-        // Rev = 10 * (0.2 + 0) * 1.0 = 2.0.
+        // devValue = devOutput(1) * prod(10) * mood(1) * stable(1) * level(1) = 10.
+        // salesValue = 0. demandFactor = 1.5 (productAge 0 < 20).
+        // Rev = 10 * (0.2 + 0) * 1.5 = 3.0.
 
-        // Net = 2.0 - 2.5 = -0.5 per tick.
+        // Net = 3.0 - 2.5 = +0.5 per tick.
       });
 
       useGameStore.getState().advanceTick();
 
       const state = useGameStore.getState();
       // Revenue (3.0) > Cost (2.5) -> +0.5 profit
-      expect(state.cash).toBe(1000.5);
+      expect(state.cash).toBeCloseTo(1000.5, 5);
     });
   });
 
@@ -153,7 +162,9 @@ describe('GameStore Logic Audit', () => {
                   { id: 1, role: 'dev', trait: 'NORMAL' },
                   { id: 2, role: 'dev', trait: 'NORMAL' }
               ],
-              cash: 5000
+              cash: 5000,
+              workers: 2,
+              roster: { dev: 2, sales: 0, support: 0 }
           });
           const decision = {
               action: 'FIRE_WORKER',
@@ -165,7 +176,7 @@ describe('GameStore Logic Audit', () => {
 
           const state = useGameStore.getState();
           expect(state.employees.length).toBe(1);
-          expect(state.cash).toBe(4800); // 5000 - 200
+          expect(state.cash).toBe(5000 - SEVERANCE_COST);
       });
   });
 });
