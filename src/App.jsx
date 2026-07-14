@@ -106,7 +106,13 @@ function App() {
             <i className="phase-dot" />
             {phaseLabel}
           </span>
-          <button onClick={toggleMute} className="mute-button" title="Toggle sound">
+          <button
+            type="button"
+            onClick={toggleMute}
+            className="mute-button"
+            title="Toggle sound"
+            aria-label={isMuted ? 'Unmute sound' : 'Mute sound'}
+          >
             {isMuted ? '🔇' : '🔊'}
           </button>
         </div>
@@ -146,7 +152,7 @@ function App() {
           </div>
           <div className={`cash-display ${cash >= 0 ? 'cash-positive' : 'cash-negative'}`}>
             <span className="cash-label">Treasury</span>
-            <strong>{cash.toFixed(0)} €</strong>
+            <strong>{cash.toLocaleString(undefined, { maximumFractionDigits: 0 })} €</strong>
           </div>
           <div className="status-footer">
             <span>
@@ -188,6 +194,7 @@ function App() {
               Hire <small>+Profit</small>
             </button>
             <button
+              type="button"
               onClick={fireWorker}
               disabled={gamePhase === 'CRUNCH'}
               className="action-button action-fire"

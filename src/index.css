@@ -2,13 +2,10 @@
   font-family: 'Share Tech Mono', ui-monospace, 'Courier New', monospace;
   line-height: 1.5;
   font-weight: 400;
-
   color-scheme: dark;
-  color: #d7e0e8;
   background-color: #07070c;
-
   font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  text-rendering: optimizelegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

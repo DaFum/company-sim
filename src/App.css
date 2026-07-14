@@ -59,7 +59,7 @@ body {
     radial-gradient(circle at 88% 8%, rgba(255, 176, 0, 0.08), transparent 42%),
     var(--bg-0);
   pointer-events: none;
-  animation: meshDrift 40s linear infinite;
+  animation: mesh-drift 40s linear infinite;
 }
 
 .bg-vignette {
@@ -70,7 +70,7 @@ body {
   background: radial-gradient(ellipse at 50% 30%, transparent 45%, rgba(0, 0, 0, 0.65) 100%);
 }
 
-@keyframes meshDrift {
+@keyframes mesh-drift {
   to {
     background-position:
       44px 44px,
@@ -151,9 +151,9 @@ body {
   font-size: 26px;
   color: var(--accent-amber);
   text-shadow: 0 0 14px rgba(255, 176, 0, 0.7);
-  animation: pulseGlyph 3s ease-in-out infinite;
+  animation: pulse-glyph 3s ease-in-out infinite;
 }
-@keyframes pulseGlyph {
+@keyframes pulse-glyph {
   50% {
     text-shadow: 0 0 22px rgba(255, 176, 0, 1);
     transform: translateY(-1px);
@@ -204,8 +204,8 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: currentColor;
-  box-shadow: 0 0 8px currentColor;
+  background: currentcolor;
+  box-shadow: 0 0 8px currentcolor;
 }
 .phase-live {
   color: var(--accent-green);
@@ -218,7 +218,7 @@ body {
 .phase-crunch {
   color: var(--accent-red);
   border-color: rgba(255, 77, 94, 0.5);
-  animation: pulseChip 0.8s infinite;
+  animation: pulse-chip 0.8s infinite;
 }
 .phase-live .phase-dot {
   animation: blink 1.4s infinite;
@@ -228,7 +228,7 @@ body {
     opacity: 0.25;
   }
 }
-@keyframes pulseChip {
+@keyframes pulse-chip {
   50% {
     background: rgba(255, 77, 94, 0.12);
   }
@@ -246,7 +246,6 @@ body {
   border: 1px solid var(--line);
   border-radius: 10px;
   transition: border-color 0.2s, transform 0.1s, box-shadow 0.2s;
-  z-index: 1001;
 }
 .mute-button:hover {
   border-color: var(--accent-cyan);
@@ -722,7 +721,7 @@ body {
   opacity: 0.4;
 }
 .log-entry {
-  animation: fadeIn 0.25s;
+  animation: fade-in 0.25s;
 }
 .log-entry::before {
   content: '› ';
@@ -738,7 +737,7 @@ body {
   background: rgba(255, 176, 0, 0.05);
   position: relative;
   z-index: 1;
-  animation: pulseBorder 2s infinite;
+  animation: pulse-border 2s infinite;
   text-shadow: 0 0 6px rgba(255, 176, 0, 0.6);
 }
 .decision-title {
@@ -804,9 +803,9 @@ body {
   text-align: center;
   border: 1px solid rgba(0, 229, 255, 0.3);
   box-shadow: var(--shadow-lift), 0 0 44px rgba(0, 229, 255, 0.14);
-  animation: popIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: pop-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-@keyframes popIn {
+@keyframes pop-in {
   from {
     opacity: 0;
     transform: translateY(24px) scale(0.94);
@@ -890,7 +889,7 @@ body {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  box-shadow: 0 0 10px currentColor;
+  box-shadow: 0 0 10px currentcolor;
 }
 .ai-status-text {
   font-family: var(--font-display);
@@ -906,13 +905,13 @@ body {
   font-weight: 700;
   font-size: 1.5em;
   pointer-events: none;
-  animation: floatUp 1.5s forwards;
+  animation: float-up 1.5s forwards;
   z-index: 1002;
-  text-shadow: 0 0 12px currentColor;
+  text-shadow: 0 0 12px currentcolor;
 }
 
 /* ---------- Animations ---------- */
-@keyframes fadeIn {
+@keyframes fade-in {
   from {
     opacity: 0;
     transform: translateY(5px);
@@ -922,7 +921,7 @@ body {
     transform: translateY(0);
   }
 }
-@keyframes pulseBorder {
+@keyframes pulse-border {
   0%,
   100% {
     border-color: var(--accent-amber);
@@ -962,7 +961,7 @@ body {
     opacity: 0.7;
   }
 }
-@keyframes floatUp {
+@keyframes float-up {
   0% {
     transform: translateY(0);
     opacity: 1;
@@ -978,6 +977,7 @@ body {
   .crt-overlay,
   .brand-glyph,
   .phase-crunch,
+  .phase-live .phase-dot,
   .veto-button {
     animation: none !important;
   }
