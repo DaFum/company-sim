@@ -892,14 +892,20 @@ export default class MainScene extends Phaser.Scene {
   syncEmployees(employees = []) {
     const sprites = this.workersGroup.getChildren();
     const wantedIds = new Set(employees.map((e) => String(e.id)));
+    const existingIds = new Set();
 
-    // Remove sprites whose employee no longer exists (fired / quit).
-    sprites
-      .filter((sprite) => !wantedIds.has(String(sprite.id)))
-      .forEach((sprite) => sprite.destroy());
+    // Remove sprites whose employee no longer exists (fired / quit),
+    // and keep track of the remaining ones.
+    [...sprites].forEach((sprite) => {
+      const id = String(sprite.id);
+      if (!wantedIds.has(id)) {
+        sprite.destroy();
+      } else {
+        existingIds.add(id);
+      }
+    });
 
     // Spawn a sprite for every employee that doesn't have one yet (hired).
-    const existingIds = new Set(this.workersGroup.getChildren().map((s) => String(s.id)));
     employees.forEach((e) => {
       if (!existingIds.has(String(e.id))) {
         this.spawnWorker(e.role, e.id, e.trait);
