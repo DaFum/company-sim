@@ -5,6 +5,7 @@ import { useAiDirector } from './hooks/useAiDirector';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { RetroTerminal } from './components/RetroTerminal';
 import { DecisionPopup } from './components/DecisionPopup';
+import { DecisionHistory } from './components/DecisionHistory';
 import { AiStatus } from './components/AiStatus';
 import './App.css';
 
@@ -69,6 +70,14 @@ function App() {
   const fireWorker = useGameStore((state) => state.fireWorker);
   const isMuted = useGameStore((state) => state.isMuted);
   const toggleMute = useGameStore((state) => state.toggleMute);
+
+  // Extra KPIs for dashboard
+  const mood = useGameStore((state) => state.mood);
+  const technicalDebt = useGameStore((state) => state.technicalDebt);
+  const productivity = useGameStore((state) => state.productivity);
+  const productLevel = useGameStore((state) => state.productLevel);
+  const getStats = useGameStore((state) => state.getStats);
+  const stats = getStats();
 
   // 4. Floating Numbers Logic
   // Track a list (not a single slot) so rapid cash swings each get their own
@@ -179,6 +188,45 @@ function App() {
             </span>
             <span>Workers: {workers}</span>
           </div>
+        </div>
+
+        {/* EXTENDED KPI BOARD */}
+        <div className="panel kpi-board reveal" style={{ '--reveal-delay': '0.10s' }}>
+          <h2 className="panel-header">
+            <span className="panel-header-dot" />
+            Company KPIs
+          </h2>
+          <div className="kpi-grid">
+            <div className="kpi-item">
+              <span className="kpi-label">Burn Rate</span>
+              <span className="kpi-value">{stats.totalBurn} € / tick</span>
+            </div>
+            <div className="kpi-item">
+              <span className="kpi-label">Mood</span>
+              <span className="kpi-value">{Math.round(mood)}%</span>
+            </div>
+            <div className="kpi-item">
+              <span className="kpi-label">Productivity</span>
+              <span className="kpi-value">{Math.round(productivity)}</span>
+            </div>
+            <div className="kpi-item">
+              <span className="kpi-label">Tech Debt</span>
+              <span className="kpi-value">{Math.round(technicalDebt)}</span>
+            </div>
+            <div className="kpi-item">
+              <span className="kpi-label">Product Lvl</span>
+              <span className="kpi-value">{productLevel}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* DECISION HISTORY */}
+        <div className="panel history-board reveal" style={{ '--reveal-delay': '0.12s' }}>
+          <h2 className="panel-header">
+            <span className="panel-header-dot" />
+            AI Decision History
+          </h2>
+          <DecisionHistory />
         </div>
 
         {/* CONTROLS */}
