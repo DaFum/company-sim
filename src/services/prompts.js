@@ -1,3 +1,32 @@
+import { ACTION_DEFINITIONS } from '../store/actionRegistry';
+
+const formatParameterValue = (value) => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return `{ ${Object.entries(value)
+      .map(([key, nestedValue]) => `"${key}": ${formatParameterValue(nestedValue)}`)
+      .join(', ')} }`;
+  }
+
+  if (typeof value === 'string') return `"${value}"`;
+
+  return JSON.stringify(value);
+};
+
+const formatActionDefinition = ([action, definition], index) => {
+  const parameters = definition.parameters || {};
+  const parameterText = Object.keys(parameters).length ? formatParameterValue(parameters) : '{}';
+
+  return `${index + 1}. ${action}
+   - "action": "${action}"
+   - description: ${definition.description}
+   - parameters: ${parameterText}
+   - effects: ${definition.effects}
+   - risk: ${definition.risk}`;
+};
+
+const generateActionsList = () =>
+  Object.entries(ACTION_DEFINITIONS).map(formatActionDefinition).join('\n\n');
+
 export const generateSystemPrompt = () => {
   return `
 Du bist die KI-CEO eines Tech-Startups.
@@ -28,38 +57,7 @@ Du erhältst "yesterday_events" und "active_events". Wenn dort Chaos herrscht, r
 
 AKTIONEN (Wähle GENAU EINE):
 
-1. HIRE_WORKER
-   - "action": "HIRE_WORKER"
-   - "parameters": { "role": "Dev" | "Sales" | "Support", "count": 1-3 }
-   - Support hilft gegen Events!
-
-2. FIRE_WORKER
-   - "action": "FIRE_WORKER"
-   - "parameters": { "role": "Dev" | "Sales" | "Support", "count": 1-5 }
-   - Senkt Burn Rate. MASSIVER Mood-Verlust.
-
-3. BUY_UPGRADE
-   - "action": "BUY_UPGRADE"
-   - "parameters": { "item_id": "coffee_machine" | "server_rack_v2" | "plants" | "firewall" }
-   - Kosten: 2000€.
-   - firewall: Schützt/Heilt Ransomware.
-
-4. MARKETING_PUSH
-   - "action": "MARKETING_PUSH"
-   - "parameters": { "budget": "HIGH" }
-   - Kosten: 5000€.
-   - Löst SHITSTORM auf.
-
-5. REFACTOR
-   - "action": "REFACTOR"
-   - "parameters": {}
-   - Kosten: 0€ Cash, aber 0 Productivity für 1 Tag.
-   - Effekt: Senkt Technical Debt massiv (-30). Verhindert Crashes.
-
-6. PIVOT
-   - "action": "PIVOT"
-   - "parameters": {}
-   - Letzter Ausweg.
+${generateActionsList()}
 
 OUTPUT FORMAT (JSON ONLY):
 {

@@ -65,7 +65,7 @@ export const useAiDirector = () => {
 
   useEffect(() => {
     const timers = [];
-    // TRIGGER AT TICK 50
+    // TRIGGER AT TICK 60
     if (tick === 60 && !processingRef.current) {
       processingRef.current = true;
       useGameStore.setState({ isAiThinking: true });
@@ -149,6 +149,9 @@ export const useAiDirector = () => {
         } catch (e) {
           console.error(e);
           addTerminalLog('> ERROR: AI CONNECTION FAILED.');
+          setPendingDecision(
+            formatDecision('NONE', {}, 'AI connection failed. Defaulting to no action.', 'LOW')
+          );
           useGameStore.setState({ isAiThinking: false });
         } finally {
           processingRef.current = false;

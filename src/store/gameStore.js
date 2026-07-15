@@ -434,6 +434,17 @@ export const useGameStore = create(
         set({
           cash: state.cash - penalty,
           activeEvents: [...state.activeEvents, eventObj],
+          eventHistory: [
+            ...state.eventHistory,
+            {
+              type,
+              startedAtDay: state.day,
+              startedAtTick: state.tick,
+              resolvedAtDay: null,
+              resolvedAtTick: null,
+              resolution: null,
+            },
+          ],
           lastEventDay: state.day,
         });
         state.addTerminalLog(msg);
@@ -472,6 +483,17 @@ export const useGameStore = create(
 
       set({
         activeEvents: [...state.activeEvents, eventObj],
+        eventHistory: [
+          ...state.eventHistory,
+          {
+            type,
+            startedAtDay: state.day,
+            startedAtTick: state.tick,
+            resolvedAtDay: null,
+            resolvedAtTick: null,
+            resolution: null,
+          },
+        ],
         lastEventDay: state.day,
       });
     },
@@ -481,25 +503,42 @@ export const useGameStore = create(
      * @param {string} type - Event type.
      */
     resolveEvent: (type) =>
-      set((state) => ({
-        activeEvents: state.activeEvents.filter((e) => e.type !== type),
-      })),
+      set((state) => {
+        let resolvedLatest = false;
+        const eventHistory = [...state.eventHistory]
+          .reverse()
+          .map((entry) => {
+            if (!resolvedLatest && entry.type === type && entry.resolution === null) {
+              resolvedLatest = true;
+              return {
+                ...entry,
+                resolvedAtDay: state.day,
+                resolvedAtTick: state.tick,
+                resolution: 'resolved',
+              };
+            }
+            return entry;
+          })
+          .reverse();
+
+        return {
+          activeEvents: state.activeEvents.filter((e) => e.type !== type),
+          eventHistory,
+        };
+      }),
 
     /**
-     * Vetoes the pending decision and triggers a morale booster.
+     * Vetoes the pending decision and applies an escalating morale penalty.
      */
     vetoDecision: () => {
       const state = get();
       if (!state.pendingDecision) return;
 
-      state.addTerminalLog(`>> VETO! REJECTED.`);
-      state.addTerminalLog(`>> SAFETY PROTOCOL: PIZZA PARTY.`);
+      const priorVetoes = state.decisionHistory.filter((d) => d.vetoed).length;
+      const penalty = 5 + priorVetoes * 5;
 
-      const timerId = setTimeout(() => {
-        get().despawnVisitor('pizza_guy');
-        // Remove self from timers
-        set((s) => ({ timers: s.timers.filter((t) => t !== timerId) }));
-      }, 10000);
+      state.addTerminalLog('>> VETO! REJECTED.');
+      state.addTerminalLog(`>> BOARD CONFIDENCE -${penalty} MOOD.`);
 
       set({
         pendingDecision: null,
@@ -507,11 +546,10 @@ export const useGameStore = create(
           ...state.decisionHistory,
           { ...state.pendingDecision, day: state.day, vetoed: true },
         ],
-        cash: state.cash - 200,
-        activeVisitors: [...state.activeVisitors, 'pizza_guy'],
-        mood: 100,
-        timers: [...state.timers, timerId],
+        mood: Math.max(0, state.mood - penalty),
       });
+
+      get().startNewDay();
     },
 
     /**
@@ -554,7 +592,39 @@ export const useGameStore = create(
           updates.roster = calculateRoster(updates.employees);
         }
 
+        if (updates.activeEvents) {
+          const removedTypes = state.activeEvents
+            .filter((event) => !updates.activeEvents.some((updated) => updated.type === event.type))
+            .map((event) => event.type);
+
+          if (removedTypes.length > 0) {
+            let currentHistory = updates.eventHistory || state.eventHistory;
+
+            removedTypes.forEach((type) => {
+              let resolvedLatest = false;
+              currentHistory = [...currentHistory]
+                .reverse()
+                .map((entry) => {
+                  if (!resolvedLatest && entry.type === type && entry.resolution === null) {
+                    resolvedLatest = true;
+                    return {
+                      ...entry,
+                      resolvedAtDay: state.day,
+                      resolvedAtTick: state.tick,
+                      resolution: 'resolved',
+                    };
+                  }
+                  return entry;
+                })
+                .reverse();
+            });
+
+            updates.eventHistory = currentHistory;
+          }
+        }
+
         set(updates);
+        get().startNewDay();
       }
     },
 
@@ -674,27 +744,61 @@ export const useGameStore = create(
         // but stats.roster gives us current counts.
         // We'll update 'workers' count for UI.
 
-        if (state.cash + netChange < -10000 || stats.count === 0) {
-          set({ gameState: 'GAME_OVER', tick: newTick, gamePhase: newPhase });
+        const finalCash = state.cash + netChange;
+        const finalMood = Math.max(0, state.mood - moodDecay);
+        const finalTechnicalDebt = state.technicalDebt + totalDebtAcc;
+
+        if (finalCash < -10000 || stats.count === 0) {
+          set({
+            gameState: 'GAME_OVER',
+            isPlaying: false,
+            cash: finalCash,
+            lastRevenue: currentRevenue,
+            tick: newTick,
+            gamePhase: newPhase,
+            marketingMultiplier: newMarketingMult,
+            marketingLeft: newMarketingLeft,
+            activeEvents: activeEvents,
+            technicalDebt: finalTechnicalDebt,
+            productAge: state.productAge + 1,
+            mood: finalMood,
+            workers: stats.count,
+            roster: stats.roster,
+          });
           return;
         }
 
-        if (state.productLevel >= 5 && state.cash + netChange > 100000) {
-          set({ gameState: 'WIN', tick: newTick, gamePhase: newPhase });
+        if (state.productLevel >= 5 && finalCash > 100000) {
+          set({
+            gameState: 'WIN',
+            isPlaying: false,
+            cash: finalCash,
+            lastRevenue: currentRevenue,
+            tick: newTick,
+            gamePhase: newPhase,
+            marketingMultiplier: newMarketingMult,
+            marketingLeft: newMarketingLeft,
+            activeEvents: activeEvents,
+            technicalDebt: finalTechnicalDebt,
+            productAge: state.productAge + 1,
+            mood: finalMood,
+            workers: stats.count,
+            roster: stats.roster,
+          });
           return;
         }
 
         set({
-          cash: state.cash + netChange,
+          cash: finalCash,
           lastRevenue: currentRevenue,
           tick: newTick,
           gamePhase: newPhase,
           marketingMultiplier: newMarketingMult,
           marketingLeft: newMarketingLeft,
           activeEvents: activeEvents,
-          technicalDebt: state.technicalDebt + totalDebtAcc,
+          technicalDebt: finalTechnicalDebt,
           productAge: state.productAge + 1,
-          mood: Math.max(0, state.mood - moodDecay),
+          mood: finalMood,
           // Sync UI helpers
           workers: stats.count,
           roster: stats.roster,
@@ -710,19 +814,34 @@ export const useGameStore = create(
         const newDebt = state.technicalDebt + debtIncrease;
 
         if (state.cash < -10000 || state.employees.length === 0) {
-          set({ gameState: 'GAME_OVER', tick: newTick, gamePhase: newPhase });
+          set({
+            gameState: 'GAME_OVER',
+            isPlaying: false,
+            tick: newTick,
+            gamePhase: newPhase,
+            technicalDebt: newDebt,
+            workers: state.employees.length,
+            roster: calculateRoster(state.employees),
+          });
           return;
         }
 
         if (state.productLevel >= 5 && state.cash > 100000) {
-          set({ gameState: 'WIN', tick: newTick, gamePhase: newPhase });
+          set({
+            gameState: 'WIN',
+            isPlaying: false,
+            tick: newTick,
+            gamePhase: newPhase,
+            technicalDebt: newDebt,
+            workers: state.employees.length,
+            roster: calculateRoster(state.employees),
+          });
           return;
         }
 
         if (newTick > 60) {
-          if (state.isAiThinking) return;
-          if (state.pendingDecision) return;
-          // Wait for user to resolve pending decision
+          if (state.isAiThinking || state.pendingDecision) return;
+          state.startNewDay();
           return;
         }
 
@@ -744,11 +863,6 @@ export const useGameStore = create(
         if (stats.count >= 16) newLevel = 3;
         else if (stats.count >= 5) newLevel = 2;
 
-        const history = state.activeEvents.map((e) => ({
-          type: e.type,
-          description: e.description,
-        }));
-
         // Carry over any event that still has time left instead of wiping them
         // nightly, so durations >1 day (e.g. a 120-tick flu wave, or the
         // long-lived COMPETITOR_CLONE) actually span multiple days as intended.
@@ -769,7 +883,6 @@ export const useGameStore = create(
           // instead of force-resuming.
           isPlaying: state.isPlaying,
           mood: Math.max(0, state.mood - 1),
-          eventHistory: history,
           activeEvents: carriedEvents,
           startOfDayCash: state.cash,
           productivity: state.isRefactoring ? 0 : baseProductivity,

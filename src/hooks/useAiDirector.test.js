@@ -75,7 +75,7 @@ describe('useAiDirector', () => {
     expect(callAI).not.toHaveBeenCalled();
   });
 
-  it('should trigger at tick 50, log progress, call API and set decision when API key is present', async () => {
+  it('should trigger at tick 60, log progress, call API and set decision when API key is present', async () => {
     currentState.tick = 60;
     useGameStore.__setMockState(currentState);
 
