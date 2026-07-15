@@ -52,6 +52,9 @@ describe('useAiDirector', () => {
       day: 1,
       mood: 100,
       isAiThinking: false,
+      inventory: [],
+      eventHistory: [],
+      activeEvents: [],
     };
 
     useGameStore.__setMockState(currentState);
@@ -60,6 +63,7 @@ describe('useAiDirector', () => {
   afterEach(() => {
     vi.runOnlyPendingTimers();
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it('should not trigger if tick is not 50', () => {
@@ -170,7 +174,9 @@ describe('useAiDirector', () => {
 
     const { rerender } = renderHook(() => useAiDirector());
 
-    // Re-render while still tick 50
+    // Change a dependency to force the useEffect to trigger again
+    currentState.aiProvider = 'anthropic';
+    useGameStore.__setMockState(currentState);
     rerender();
 
     await act(async () => {
