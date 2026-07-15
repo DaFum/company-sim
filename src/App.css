@@ -506,6 +506,20 @@ body {
     linear-gradient(var(--accent-amber), var(--accent-amber)) 100% 100% / 2px 16px no-repeat;
   opacity: 0.7;
 }
+.game-canvas-loading {
+  display: grid;
+  place-items: center;
+  width: 800px;
+  height: 600px;
+  max-width: 100%;
+  border-radius: 6px;
+  background: var(--panel-solid, #0d0f18);
+  color: var(--accent-amber, #00ff9c);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.15em;
+  animation: pulse 1.2s ease-in-out infinite;
+}
 .scan-badge {
   position: absolute;
   top: -10px;

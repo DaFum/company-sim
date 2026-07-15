@@ -1,20 +1,25 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, lazy, Suspense } from 'react';
 import { useGameStore } from './store/gameStore';
 import { useGameLoop } from './hooks/useGameLoop';
 import { useAiDirector } from './hooks/useAiDirector';
-import { GameCanvas } from './components/GameCanvas';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { RetroTerminal } from './components/RetroTerminal';
 import { DecisionPopup } from './components/DecisionPopup';
 import { AiStatus } from './components/AiStatus';
 import './App.css';
 
+// GameCanvas pulls in Phaser (~1.4 MB). Load it lazily so the HUD paints first
+// and Phaser lands in its own async chunk instead of the main bundle.
+const GameCanvas = lazy(() =>
+  import('./components/GameCanvas').then((m) => ({ default: m.GameCanvas }))
+);
+
 // Simple Floating Number Component (Internal)
-const FloatingNumber = ({ value, x, y, onComplete }) => {
+const FloatingNumber = ({ id, value, x, y, onComplete }) => {
   useEffect(() => {
-    const timer = setTimeout(onComplete, 1500); // Match CSS animation
+    const timer = setTimeout(() => onComplete(id), 1500); // Match CSS animation
     return () => clearTimeout(timer);
-  }, [onComplete]);
+  }, [id, onComplete]);
 
   return (
     <div
@@ -47,28 +52,32 @@ function App() {
     return () => clearTimers();
   }, [clearTimers]);
 
-  // 3. Daten aus dem Store holen
-  const {
-    cash,
-    day,
-    tick,
-    workers,
-    gamePhase,
-    isPlaying,
-    gameSpeed,
-    ceoPersona,
-    togglePause,
-    toggleSpeed,
-    hireWorker,
-    fireWorker,
-    isMuted,
-    toggleMute,
-  } = useGameStore();
+  // 3. Daten aus dem Store holen.
+  // Individual selectors so App only re-renders when a value it actually shows
+  // changes — not on every unrelated store mutation (logs, mood, events, …).
+  const cash = useGameStore((state) => state.cash);
+  const day = useGameStore((state) => state.day);
+  const tick = useGameStore((state) => state.tick);
+  const workers = useGameStore((state) => state.workers);
+  const gamePhase = useGameStore((state) => state.gamePhase);
+  const isPlaying = useGameStore((state) => state.isPlaying);
+  const gameSpeed = useGameStore((state) => state.gameSpeed);
+  const ceoPersona = useGameStore((state) => state.ceoPersona);
+  const togglePause = useGameStore((state) => state.togglePause);
+  const toggleSpeed = useGameStore((state) => state.toggleSpeed);
+  const hireWorker = useGameStore((state) => state.hireWorker);
+  const fireWorker = useGameStore((state) => state.fireWorker);
+  const isMuted = useGameStore((state) => state.isMuted);
+  const toggleMute = useGameStore((state) => state.toggleMute);
 
   // 4. Floating Numbers Logic
-  const [floater, setFloater] = useState(null);
+  // Track a list (not a single slot) so rapid cash swings each get their own
+  // number instead of clobbering the previous one.
+  const [floaters, setFloaters] = useState([]);
   // Use Ref for tracking previous value to avoid render loops/dependency issues
   const prevCashRef = useRef(cash);
+  // Monotonic id so stacked floaters never collide (unlike Date.now()).
+  const floaterIdRef = useRef(0);
 
   useEffect(() => {
     const delta = cash - prevCashRef.current;
@@ -76,17 +85,19 @@ function App() {
     if (Math.abs(delta) >= 100) {
       const randomX = 300 + Math.random() * 200;
       const randomY = 100 + Math.random() * 50;
-      const id = Date.now();
-      setFloater({ id, value: delta, x: randomX, y: randomY });
+      floaterIdRef.current += 1;
+      const id = floaterIdRef.current;
+      setFloaters((list) => [...list, { id, value: Math.round(delta), x: randomX, y: randomY }]);
     }
 
     // Update ref AFTER check
     prevCashRef.current = cash;
   }, [cash]);
 
-  const handleFloaterComplete = () => {
-    setFloater(null);
-  };
+  // Stable callback so FloatingNumber's timer effect isn't reset on every tick.
+  const handleFloaterComplete = useCallback((id) => {
+    setFloaters((list) => list.filter((f) => f.id !== id));
+  }, []);
 
   const phaseLabel = gamePhase === 'CRUNCH' ? 'CRUNCH' : isPlaying ? 'LIVE' : 'STANDBY';
 
@@ -129,16 +140,17 @@ function App() {
       <ApiKeyModal />
       <DecisionPopup decision={lastDecision} onConfirm={confirmDecision} />
 
-      {/* JUICE: Floating Number */}
-      {floater && (
+      {/* JUICE: Floating Numbers */}
+      {floaters.map((f) => (
         <FloatingNumber
-          key={floater.id}
-          value={floater.value}
-          x={floater.x}
-          y={floater.y}
+          key={f.id}
+          id={f.id}
+          value={f.value}
+          x={f.x}
+          y={f.y}
           onComplete={handleFloaterComplete}
         />
-      )}
+      ))}
 
       {/* DASHBOARD */}
       <div className="dashboard">
@@ -215,7 +227,9 @@ function App() {
       {/* PHASER GAME CANVAS */}
       <div className="game-canvas-container reveal" style={{ '--reveal-delay': '0.25s' }}>
         <span className="scan-badge">LIVE FEED · OFFICE CAM 01</span>
-        <GameCanvas />
+        <Suspense fallback={<div className="game-canvas-loading">BOOTING OFFICE FEED…</div>}>
+          <GameCanvas />
+        </Suspense>
       </div>
 
       {/* TERMINAL (Bottom) */}

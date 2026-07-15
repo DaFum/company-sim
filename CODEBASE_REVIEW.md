@@ -188,7 +188,16 @@ a monotonic counter or `crypto.randomUUID()`.
 
 ## 4. Performance
 
-### 4.1 `App` subscribes to the entire store — MEDIUM
+> **Status: RESOLVED.** All three items fixed. Build now code-splits cleanly:
+> app chunk dropped from ~1,572 kB to ~311 kB, with Phaser isolated in its own
+> async, independently-cached chunk.
+
+### 4.1 `App` subscribes to the entire store — MEDIUM — ✅ RESOLVED
+*Fix:* replaced the single destructured `useGameStore()` call with individual
+selectors (one per field), matching the pattern the other components already
+use. `App` now re-renders only when a value it renders changes, not on every
+unrelated store mutation.
+
 **File:** `src/App.jsx:44-59`
 
 ```js
@@ -200,14 +209,26 @@ change, so the whole component tree re-renders on every tick (and every event,
 mood tick, etc.). Use individual selectors (as the other components do) or a
 shallow-equality selector to scope re-renders.
 
-### 4.2 Large single JS bundle (~1.5 MB) — LOW
+### 4.2 Large single JS bundle (~1.5 MB) — LOW — ✅ RESOLVED
+*Fix:* two changes — (1) `manualChunks` in `vite.config.js` splits `phaser` and
+`react`/`react-dom` into dedicated vendor chunks; (2) `GameCanvas` is now
+`React.lazy`-loaded behind a `Suspense` fallback, so Phaser lands in an async
+chunk and the HUD paints first. Result: main app chunk `1,572 kB → 311 kB`,
+Phaser isolated at ~1,208 kB (cached across deploys). The warning limit is
+raised past Phaser so genuine app-code bloat still surfaces.
+
 **Build output**
 
 `dist/assets/index-*.js` is 1,572 kB (mostly Phaser) and trips Vite's 500 kB
 warning. Consider `manualChunks` to split Phaser, or lazy-loading the game canvas.
 `eruda` (506 kB) is already dynamically imported behind `?eruda=true`, which is good.
 
-### 4.3 Single floating-number slot — LOW
+### 4.3 Single floating-number slot — LOW — ✅ RESOLVED
+*Fix:* `App` now keeps an array of floaters (append on cash swing, remove by id
+on complete) instead of a single slot, so rapid changes each render their own
+number. IDs come from a monotonic ref, and the completion callback is
+`useCallback`-stable so `FloatingNumber`'s dismiss timer isn't reset every tick.
+
 **File:** `src/App.jsx:62-78`
 
 `setFloater` replaces any in-flight floater, so rapid cash swings drop earlier
@@ -292,9 +313,9 @@ even for OpenAI-only users.
 | 3.1 | Non-dev roles accrue technical debt | Low | Logic | ✅ Fixed |
 | 3.2 | Multi-day event durations meaningless | Low | Logic | ✅ Fixed |
 | 3.3 | `Date.now()` ID collisions | Low | Robustness | ✅ Fixed |
-| 4.1 | `App` subscribes to entire store | Medium | Perf | Open |
-| 4.2 | ~1.5 MB JS bundle | Low | Perf | Open |
-| 4.3 | Single floating-number slot | Low | Perf | Open |
+| 4.1 | `App` subscribes to entire store | Medium | Perf | ✅ Fixed |
+| 4.2 | ~1.5 MB JS bundle | Low | Perf | ✅ Fixed |
+| 4.3 | Single floating-number slot | Low | Perf | ✅ Fixed |
 | 5.1 | Client-side key + `dangerouslyAllowBrowser` | Medium | Security | Open |
 | 5.2 | CI runs no lint/tests | Medium | Tooling | Open |
 | 5.3 | Unused native `canvas` dep breaks installs | Medium | Tooling | Open |
