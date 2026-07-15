@@ -895,15 +895,17 @@ export default class MainScene extends Phaser.Scene {
     const existingIds = new Set();
 
     // Remove sprites whose employee no longer exists (fired / quit),
-    // and keep track of the remaining ones.
-    [...sprites].forEach((sprite) => {
+    // and keep track of the remaining ones. Iterate backwards to safely
+    // mutate the group's children array during destruction without copying.
+    for (let i = sprites.length - 1; i >= 0; i--) {
+      const sprite = sprites[i];
       const id = String(sprite.id);
       if (!wantedIds.has(id)) {
         sprite.destroy();
       } else {
         existingIds.add(id);
       }
-    });
+    }
 
     // Spawn a sprite for every employee that doesn't have one yet (hired).
     employees.forEach((e) => {
