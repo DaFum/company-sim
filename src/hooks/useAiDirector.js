@@ -29,7 +29,7 @@ import { ACTION_DEFINITIONS } from '../store/actionRegistry';
  */
 const formatDecision = (action, params, reason) => {
   const safeParams = params && typeof params === 'object' ? params : {};
-  const def = ACTION_DEFINITIONS[action];
+  const def = Object.hasOwn(ACTION_DEFINITIONS, action) ? ACTION_DEFINITIONS[action] : null;
 
   let title = `Action: ${action}`;
   let amount = 0;

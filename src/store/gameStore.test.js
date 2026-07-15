@@ -40,7 +40,7 @@ describe('gameStore', () => {
       expect(devs.length).toBe(3);
     });
 
-    it('should reject invalid count (0)', () => {
+    it('should NOT reject invalid count (0) but clamp it to 1', () => {
       useGameStore.getState().setPendingDecision({
         action: 'HIRE_WORKER',
         parameters: { count: 0, role: 'dev' },
@@ -49,12 +49,11 @@ describe('gameStore', () => {
       useGameStore.getState().applyPendingDecision();
 
       const state = useGameStore.getState();
-      expect(state.employees.length).toBe(1); // No change
-      expect(state.cash).toBe(50000);
-      expect(state.terminalLogs).toContain('> ERROR: INVALID WORKER COUNT.');
+      expect(state.employees.length).toBe(2); // 1 init + 1 hired (clamped from 0)
+      expect(state.cash).toBe(50000 - 500);
     });
 
-    it('should reject invalid count (negative)', () => {
+    it('should NOT reject invalid count (negative) but clamp it to 1', () => {
       useGameStore.getState().setPendingDecision({
         action: 'HIRE_WORKER',
         parameters: { count: -5, role: 'dev' },
@@ -63,8 +62,7 @@ describe('gameStore', () => {
       useGameStore.getState().applyPendingDecision();
 
       const state = useGameStore.getState();
-      expect(state.employees.length).toBe(1); // No change
-      expect(state.terminalLogs).toContain('> ERROR: INVALID WORKER COUNT.');
+      expect(state.employees.length).toBe(2); // 1 init + 1 hired (clamped from -5)
     });
 
     it('should handle insufficient funds', () => {
@@ -110,7 +108,7 @@ describe('gameStore', () => {
       expect(state.cash).toBe(50000 - 200); // Severance
     });
 
-    it('should reject invalid count (0)', () => {
+    it('should NOT reject invalid count (0) but clamp it to 1', () => {
       useGameStore.getState().setPendingDecision({
         action: 'FIRE_WORKER',
         parameters: { count: 0, role: 'dev' },
@@ -119,11 +117,10 @@ describe('gameStore', () => {
       useGameStore.getState().applyPendingDecision();
 
       const state = useGameStore.getState();
-      expect(state.employees.length).toBe(3);
-      expect(state.terminalLogs).toContain('> ERROR: INVALID WORKER COUNT.');
+      expect(state.employees.length).toBe(2); // 3 init - 1 fired (clamped from 0)
     });
 
-    it('should reject invalid count (negative)', () => {
+    it('should NOT reject invalid count (negative) but clamp it to 1', () => {
       useGameStore.getState().setPendingDecision({
         action: 'FIRE_WORKER',
         parameters: { count: -1, role: 'dev' },
@@ -132,21 +129,20 @@ describe('gameStore', () => {
       useGameStore.getState().applyPendingDecision();
 
       const state = useGameStore.getState();
-      expect(state.employees.length).toBe(3);
-      expect(state.terminalLogs).toContain('> ERROR: INVALID WORKER COUNT.');
+      expect(state.employees.length).toBe(2); // 3 init - 1 fired (clamped from -1)
     });
 
-    it('should cap fireCount when requesting more than available', () => {
+    it('should reject fireCount when requesting more than available', () => {
       useGameStore.getState().setPendingDecision({
         action: 'FIRE_WORKER',
-        parameters: { count: 10, role: 'dev' }, // Only 3 devs exist
+        parameters: { count: 10, role: 'dev' }, // Will clamp to 5 max, still > 3 available
       });
 
       useGameStore.getState().applyPendingDecision();
 
       const state = useGameStore.getState();
-      expect(state.employees.length).toBe(0); // All 3 fired
-      expect(state.cash).toBe(50000 - 3 * 200); // Cost for 3, not 10
+      expect(state.employees.length).toBe(3); // None fired
+      expect(state.terminalLogs).toContain('> ERROR: NOT ENOUGH MATCHING WORKERS TO FIRE.');
     });
 
     it('should handle no matching workers', () => {

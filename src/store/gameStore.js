@@ -526,7 +526,7 @@ export const useGameStore = create(
         const action = decision.action;
         const params = decision.parameters || {};
 
-        const def = ACTION_DEFINITIONS[action];
+        const def = Object.hasOwn(ACTION_DEFINITIONS, action) ? ACTION_DEFINITIONS[action] : null;
         if (def) {
           const result = def.apply(state, updates, params, { createEmployee, nextEmployeeId });
           if (result.error) {
@@ -575,11 +575,17 @@ export const useGameStore = create(
         let isShitstorm = false;
         let isCompetitor = false;
 
-        const supportPower = 1 + (state.roster.support || 0);
+        // Support bonus: accelerates resolution of operational events, max 3
+        const supportBonus = Math.min(state.roster.support || 0, 3);
 
         for (const e of state.activeEvents) {
           if (e && e.timeLeft > 0) {
-            const updatedEvent = { ...e, timeLeft: e.timeLeft - supportPower };
+            let reduction = 1;
+            // Only operational events are affected by support
+            if (['TECH_OUTAGE', 'HUMAN_SICK', 'MARKET_SHITSTORM'].includes(e.type)) {
+              reduction += supportBonus;
+            }
+            const updatedEvent = { ...e, timeLeft: e.timeLeft - reduction };
             if (updatedEvent.timeLeft > 0) {
               activeEvents.push(updatedEvent);
             }

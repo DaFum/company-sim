@@ -1,56 +1,76 @@
+const VALID_ROLES = ['dev', 'sales', 'support'];
+const VALID_UPGRADES = ['coffee_machine', 'plants', 'server_rack_v2', 'firewall'];
+
+const parseWorkerParams = (params, maxCount = 3) => {
+  const rawCount = Number(params?.count ?? 1);
+  const count = Math.min(
+    Math.max(Number.isFinite(rawCount) ? Math.floor(rawCount) : 1, 1),
+    maxCount
+  );
+  const roleInput = typeof params?.role === 'string' ? params.role.trim().toLowerCase() : 'dev';
+  const role = VALID_ROLES.includes(roleInput) ? roleInput : 'dev';
+  return { count, role };
+};
+
 export const ACTION_DEFINITIONS = {
+  NONE: {
+    title: () => 'No Action',
+    calculateCost: () => 0,
+    apply: () => ({ status: 'SKIPPED' }),
+  },
   HIRE_WORKER: {
-    title: (params) => `Hire ${params?.count ?? 1} ${params?.role ?? 'Dev'}(s)`,
-    calculateCost: (params) => (params?.count ?? 1) * 500,
+    title: (params) => {
+      const { count, role } = parseWorkerParams(params, 3);
+      return `Hire ${count} ${role}(s)`;
+    },
+    calculateCost: (params) => {
+      const { count } = parseWorkerParams(params, 3);
+      return count * 500;
+    },
     apply: (state, updates, params, helpers) => {
-      const rawCount = Number(params?.count ?? 1);
-      const count = Number.isFinite(rawCount) ? Math.floor(rawCount) : 0;
-      if (count < 1) {
-        return { error: '> ERROR: INVALID WORKER COUNT.' };
-      }
+      const { count, role } = parseWorkerParams(params, 3);
       const cost = count * 500;
+
       if (state.cash < cost) {
         return { error: '> ERROR: INSUFFICIENT FUNDS TO HIRE.' };
       }
 
-      const roleInput = typeof params?.role === 'string' ? params.role : 'dev';
-      const role = roleInput.toLowerCase();
-      let actualRole = 'dev';
-      if (role.includes('sale')) actualRole = 'sales';
-      else if (role.includes('support')) actualRole = 'support';
-
       const newEmployees = [...state.employees];
       for (let i = 0; i < count; i++) {
-        newEmployees.push(helpers.createEmployee(actualRole, helpers.nextEmployeeId()));
+        newEmployees.push(helpers.createEmployee(role, helpers.nextEmployeeId()));
       }
       updates.employees = newEmployees;
       updates.cash = state.cash - cost;
       return {};
-    }
+    },
   },
   FIRE_WORKER: {
-    title: (params) => `Fire ${params?.count ?? 1} ${params?.role ?? 'Dev'}(s)`,
-    calculateCost: (params) => (params?.count ?? 1) * 200,
+    title: (params) => {
+      const { count, role } = parseWorkerParams(params, 5);
+      return `Fire ${count} ${role}(s)`;
+    },
+    calculateCost: (params) => {
+      const { count } = parseWorkerParams(params, 5);
+      return count * 200; // Expected max cost
+    },
     apply: (state, updates, params) => {
-      const rawCount = Number(params?.count ?? 1);
-      const count = Number.isFinite(rawCount) ? Math.floor(rawCount) : 0;
-      if (count < 1) {
-        return { error: '> ERROR: INVALID WORKER COUNT.' };
-      }
-      const roleInput = typeof params?.role === 'string' ? params.role : 'dev';
-      const role = roleInput.toLowerCase();
-      let actualRole = 'dev';
-      if (role.includes('sale')) actualRole = 'sales';
-      else if (role.includes('support')) actualRole = 'support';
+      const { count: requestedCount, role } = parseWorkerParams(params, 5);
 
       let newEmployees = [...state.employees];
-      const candidates = newEmployees.filter((e) => e.role === actualRole);
-      const fireCount = Math.min(count, candidates.length);
-      const cost = fireCount * 200;
+      const candidates = newEmployees.filter((e) => e.role === role);
+      const fireCount = Math.min(requestedCount, candidates.length);
 
       if (fireCount === 0) {
         return { error: '> ERROR: NO MATCHING WORKERS TO FIRE.' };
       }
+
+      // Check if requested count is higher than available to act accordingly or just clamp.
+      // Instructions specify rejecting requests whose count exceeds available matching workers
+      if (requestedCount > candidates.length) {
+        return { error: '> ERROR: NOT ENOUGH MATCHING WORKERS TO FIRE.' };
+      }
+
+      const cost = fireCount * 200;
 
       if (state.cash < cost) {
         return { error: '> ERROR: CANNOT AFFORD SEVERANCE.' };
@@ -65,13 +85,16 @@ export const ACTION_DEFINITIONS = {
       updates.cash = state.cash - cost;
       updates.mood = Math.max(0, state.mood - fireCount * 20);
       return {};
-    }
+    },
   },
   BUY_UPGRADE: {
     title: (params) => `Buy Upgrade: ${params?.item_id ?? 'Item'}`,
     calculateCost: () => 2000,
     apply: (state, updates, params) => {
       const item = params?.item_id;
+      if (!VALID_UPGRADES.includes(item)) {
+        return { error: `> ERROR: INVALID UPGRADE ${item}` };
+      }
       const cost = 2000;
       if (state.cash < cost) {
         return { error: `> ERROR: NO FUNDS FOR ${item}` };
@@ -93,7 +116,7 @@ export const ACTION_DEFINITIONS = {
         );
       }
       return {};
-    }
+    },
   },
   MARKETING_PUSH: {
     title: () => 'Launch Marketing Push',
@@ -110,7 +133,7 @@ export const ACTION_DEFINITIONS = {
         (e) => e.type !== 'MARKET_SHITSTORM'
       );
       return {};
-    }
+    },
   },
   PIVOT: {
     title: () => 'Pivot Strategy',
@@ -126,7 +149,7 @@ export const ACTION_DEFINITIONS = {
         (e) => e.type !== 'COMPETITOR_CLONE'
       );
       return { log: '> PIVOTING...' };
-    }
+    },
   },
   REFACTOR: {
     title: () => 'Refactor Technical Debt',
@@ -135,6 +158,6 @@ export const ACTION_DEFINITIONS = {
       updates.technicalDebt = Math.max(0, state.technicalDebt - 30);
       updates.isRefactoring = true;
       return { log: '> REFACTORING: Debt reduced. Productivity halted for the day.' };
-    }
-  }
+    },
+  },
 };
