@@ -666,9 +666,11 @@ export const useGameStore = create(
         let isCompetitor = false;
 
         for (const e of state.activeEvents) {
-          if (e && e.timeLeft > 1) {
+          if (e && e.timeLeft > 0) {
             const updatedEvent = { ...e, timeLeft: e.timeLeft - 1 };
-            activeEvents.push(updatedEvent);
+            if (updatedEvent.timeLeft > 0) {
+              activeEvents.push(updatedEvent);
+            }
             switch (e.type) {
               case 'TECH_OUTAGE':
                 isTechOutage = true;
