@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { callAI } from '../services/aiService';
 import { generateSystemPrompt } from '../services/prompts';
+import { ACTION_DEFINITIONS } from '../store/actionRegistry';
 
 /**
  * @typedef {Object} DecisionParams
@@ -28,40 +29,14 @@ import { generateSystemPrompt } from '../services/prompts';
  */
 const formatDecision = (action, params, reason) => {
   const safeParams = params && typeof params === 'object' ? params : {};
-  const count = safeParams.count ?? 1;
-  const role = safeParams.role ?? 'Dev';
-  const itemId = safeParams.item_id ?? 'Item';
-  let title = action;
+  const def = ACTION_DEFINITIONS[action];
+
+  let title = `Action: ${action}`;
   let amount = 0;
 
-  switch (action) {
-    case 'HIRE_WORKER':
-      title = `Hire ${count} ${role}(s)`;
-      amount = count * 500;
-      break;
-    case 'FIRE_WORKER':
-      title = `Fire ${count} ${role}(s)`;
-      amount = count * 200;
-      break;
-    case 'BUY_UPGRADE':
-      title = `Buy Upgrade: ${itemId}`;
-      amount = 2000;
-      break;
-    case 'MARKETING_PUSH':
-      title = 'Launch Marketing Push';
-      amount = 5000;
-      break;
-    case 'PIVOT':
-      title = 'Pivot Strategy';
-      amount = 0;
-      break;
-    case 'REFACTOR':
-      title = 'Refactor Technical Debt';
-      amount = 0;
-      break;
-    default:
-      title = `Action: ${action}`;
-      amount = 0;
+  if (def) {
+    title = def.title(safeParams);
+    amount = def.calculateCost(safeParams);
   }
 
   return {

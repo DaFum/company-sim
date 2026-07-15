@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
+import { ACTION_DEFINITIONS } from './actionRegistry';
 
 // Helpers
 const PERSONAS = ['Visionary', 'Accountant', 'Benevolent'];
@@ -41,7 +42,7 @@ let employeeIdCounter = 0;
  * Generates a unique, stable employee ID.
  * @returns {string} Unique ID (e.g. "emp-1").
  */
-const nextEmployeeId = () => {
+export const nextEmployeeId = () => {
   employeeIdCounter += 1;
   return `emp-${employeeIdCounter}`;
 };
@@ -52,7 +53,7 @@ const nextEmployeeId = () => {
  * @param {number|string} id - Unique ID.
  * @returns {Employee} Employee object.
  */
-const createEmployee = (role, id) => ({
+export const createEmployee = (role, id) => ({
   id,
   role,
   trait: getRandomTrait(),
@@ -525,126 +526,19 @@ export const useGameStore = create(
         const action = decision.action;
         const params = decision.parameters || {};
 
-        if (action === 'HIRE_WORKER') {
-          const rawCount = Number(params.count ?? 1);
-          const count = Number.isFinite(rawCount) ? Math.floor(rawCount) : 0;
-          if (count < 1) {
-            state.addTerminalLog('> ERROR: INVALID WORKER COUNT.');
+        const def = ACTION_DEFINITIONS[action];
+        if (def) {
+          const result = def.apply(state, updates, params, { createEmployee, nextEmployeeId });
+          if (result.error) {
+            state.addTerminalLog(result.error);
             set({ pendingDecision: null });
             return;
           }
-          const cost = count * 500;
-
-          if (state.cash >= cost) {
-            const roleInput = typeof params.role === 'string' ? params.role : 'dev';
-            const role = roleInput.toLowerCase();
-            const newEmployees = [...state.employees];
-
-            // Map role
-            let actualRole = 'dev';
-            if (role.includes('sale')) actualRole = 'sales';
-            else if (role.includes('support')) actualRole = 'support';
-
-            for (let i = 0; i < count; i++) {
-              newEmployees.push(createEmployee(actualRole, nextEmployeeId()));
-            }
-
-            updates.employees = newEmployees;
-            updates.cash = state.cash - cost;
-          } else {
-            state.addTerminalLog(`> ERROR: INSUFFICIENT FUNDS TO HIRE.`);
+          if (result.log) {
+            state.addTerminalLog(result.log);
           }
-        } else if (action === 'FIRE_WORKER') {
-          const rawCount = Number(params.count ?? 1);
-          const count = Number.isFinite(rawCount) ? Math.floor(rawCount) : 0;
-          if (count < 1) {
-            state.addTerminalLog('> ERROR: INVALID WORKER COUNT.');
-            set({ pendingDecision: null });
-            return;
-          }
-          const roleInput = typeof params.role === 'string' ? params.role : 'dev';
-          const role = roleInput.toLowerCase();
-          let actualRole = 'dev';
-          if (role.includes('sale')) actualRole = 'sales';
-          else if (role.includes('support')) actualRole = 'support';
-
-          let newEmployees = [...state.employees];
-          const candidates = newEmployees.filter((e) => e.role === actualRole);
-          const fireCount = Math.min(count, candidates.length);
-          const cost = fireCount * 200;
-
-          if (fireCount === 0) {
-            state.addTerminalLog('> ERROR: NO MATCHING WORKERS TO FIRE.');
-            set({ pendingDecision: null });
-            return;
-          }
-
-          if (state.cash >= cost) {
-            // Simplified: Fire first match
-            for (let i = 0; i < fireCount; i++) {
-              const victim = candidates[i];
-              newEmployees = newEmployees.filter((e) => e.id !== victim.id);
-            }
-
-            updates.employees = newEmployees;
-            updates.cash = state.cash - cost;
-            updates.mood = Math.max(0, state.mood - fireCount * 20);
-          } else {
-            state.addTerminalLog(`> ERROR: CANNOT AFFORD SEVERANCE.`);
-          }
-        } else if (action === 'BUY_UPGRADE') {
-          const item = params.item_id;
-          const cost = 2000;
-          if (state.cash >= cost) {
-            updates.cash = state.cash - cost;
-            updates.inventory = [...state.inventory, item];
-            if (item === 'coffee_machine') updates.productivity = state.productivity + 2;
-            if (item === 'plants') updates.mood = Math.min(100, state.mood + 15);
-            if (item === 'server_rack_v2') {
-              updates.serverStability = 1.0;
-              updates.serverHealth = 100;
-              updates.activeEvents = (updates.activeEvents || state.activeEvents).filter(
-                (e) => e.type !== 'TECH_OUTAGE'
-              );
-            }
-            if (item === 'firewall') {
-              updates.activeEvents = (updates.activeEvents || state.activeEvents).filter(
-                (e) => e.type !== 'RANSOMWARE'
-              );
-            }
-          } else {
-            state.addTerminalLog(`> ERROR: NO FUNDS FOR ${item}`);
-          }
-        } else if (action === 'MARKETING_PUSH') {
-          const cost = 5000;
-          if (state.cash >= cost) {
-            updates.cash = state.cash - cost;
-            updates.marketingMultiplier = 2.0;
-            updates.marketingLeft = 60;
-            updates.activeEvents = (updates.activeEvents || state.activeEvents).filter(
-              (e) => e.type !== 'MARKET_SHITSTORM'
-            );
-          } else {
-            state.addTerminalLog(`> ERROR: NO FUNDS.`);
-          }
-        } else if (action === 'PIVOT') {
-          updates.productLevel = state.productLevel + 1;
-          updates.productAge = 0; // Reset Lifecycle
-          updates.cash = state.cash;
-          updates.mood = Math.max(0, state.mood - 30);
-          updates.marketingMultiplier = 0.5;
-          updates.marketingLeft = 120;
-          // Pivoting into a new market escapes a competitor that cloned us.
-          updates.activeEvents = state.activeEvents.filter((e) => e.type !== 'COMPETITOR_CLONE');
-          state.addTerminalLog(`> PIVOTING...`);
-        } else if (action === 'REFACTOR') {
-          updates.technicalDebt = Math.max(0, state.technicalDebt - 30);
-          // Decisions are applied at end of day, immediately before startNewDay
-          // resets productivity. Setting productivity here would be wiped
-          // instantly, so we flag the next day as a refactoring day instead and
-          // let startNewDay apply the productivity penalty.
-          updates.isRefactoring = true;
-          state.addTerminalLog(`> REFACTORING: Debt reduced. Productivity halted for the day.`);
+        } else {
+          state.addTerminalLog(`> ERROR: UNKNOWN ACTION ${action}`);
         }
 
         // Keep the workers/roster UI helpers in sync with the employees list
