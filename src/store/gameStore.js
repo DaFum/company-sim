@@ -770,7 +770,9 @@ export const useGameStore = create(
         }
       } else {
         // Crunch Phase
-        const debtIncrease = state.employees.filter((e) => e.role === 'dev').length * 0.05 * 2;
+        // Ensure stats are available in this branch since getStats() is called inside WORK branch usually
+        const stats = state.getStats();
+        const debtIncrease = stats.roster.dev * 0.05 * 2;
         const newDebt = state.technicalDebt + debtIncrease;
 
         if (newTick > 60) {
