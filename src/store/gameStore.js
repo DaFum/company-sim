@@ -659,14 +659,33 @@ export const useGameStore = create(
       }
 
       if (state.gamePhase === 'WORK') {
-        const activeEvents = state.activeEvents
-          .map((e) => ({ ...e, timeLeft: e.timeLeft - 1 }))
-          .filter((e) => e.timeLeft > 0);
+        const activeEvents = [];
+        let isTechOutage = false;
+        let isSick = false;
+        let isShitstorm = false;
+        let isCompetitor = false;
 
-        const isTechOutage = activeEvents.some((e) => e.type === 'TECH_OUTAGE');
-        const isSick = activeEvents.some((e) => e.type === 'HUMAN_SICK');
-        const isShitstorm = activeEvents.some((e) => e.type === 'MARKET_SHITSTORM');
-        const isCompetitor = activeEvents.some((e) => e.type === 'COMPETITOR_CLONE');
+        for (let i = 0; i < state.activeEvents.length; i++) {
+          const e = state.activeEvents[i];
+          if (e.timeLeft > 1) {
+            const updatedEvent = { ...e, timeLeft: e.timeLeft - 1 };
+            activeEvents.push(updatedEvent);
+            switch (updatedEvent.type) {
+              case 'TECH_OUTAGE':
+                isTechOutage = true;
+                break;
+              case 'HUMAN_SICK':
+                isSick = true;
+                break;
+              case 'MARKET_SHITSTORM':
+                isShitstorm = true;
+                break;
+              case 'COMPETITOR_CLONE':
+                isCompetitor = true;
+                break;
+            }
+          }
+        }
 
         // ~1% chance per WORK tick to roll for a chaos event, gated so it can't
         // pile on early, while broke, or twice in one day.
