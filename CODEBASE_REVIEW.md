@@ -13,6 +13,7 @@ bugs where a feature silently does nothing.
 ## 1. Functional bugs (features that silently don't work)
 
 ### 1.1 Selected AI model is never sent to the API — HIGH
+
 **Files:** `src/hooks/useAiDirector.js:139`, `src/services/aiService.js:20-66`, `src/components/ApiKeyModal.jsx:99-117`
 
 `callAI` accepts a `model` parameter (6th arg), but the only real caller omits it:
@@ -33,6 +34,7 @@ Consequences:
 argument in the OpenAI branch (`model` instead of the hardcoded literal).
 
 ### 1.2 Terminal decision overlay shows an empty reason — MEDIUM
+
 **File:** `src/components/RetroTerminal.jsx:33`
 
 ```jsx
@@ -45,6 +47,7 @@ uses `decision.reasoning`. The terminal overlay renders `""` every time.
 **Fix:** use `pendingDecision.reasoning`.
 
 ### 1.3 REFACTOR's "productivity halted" effect is instantly overwritten — MEDIUM
+
 **Files:** `src/store/gameStore.js:540-543` (REFACTOR), `540-544` (crunch), `689-717` (startNewDay)
 
 Pending decisions are applied at the end of the day, in the crunch branch of
@@ -67,6 +70,7 @@ advertises the penalty, so behavior contradicts documentation.
 apply the productivity penalty to the following day explicitly.
 
 ### 1.4 Worker traits never appear on the sprites — MEDIUM
+
 **Files:** `src/game/scenes/MainScene.js:931-943`, `src/game/sprites/WorkerSprite.js:30,126-130`
 
 `WorkerSprite` supports trait markers (🔥 10x, 🤢 toxic, 👶 junior) via its
@@ -83,6 +87,7 @@ invisible in-game. **Fix:** sync sprites against `employees` (or include a trait
 breakdown in the roster subscription) and pass the trait into `spawnWorker`.
 
 ### 1.5 `startNewDay` force-resumes the game every day — LOW
+
 **File:** `src/store/gameStore.js:710`
 
 `startNewDay` sets `isPlaying: true` unconditionally. If the player paused during
@@ -99,6 +104,7 @@ prior `isPlaying` value unless auto-resume is intended.
 > `clearTimers` was wired into app teardown. Details preserved below for context.
 
 ### 2.1 `COMPETITOR_CLONE` event is never triggered and has no effect — LOW — ✅ RESOLVED
+
 *Fix:* added `COMPETITOR_CLONE` to the weighted chaos-event table so it can now
 occur; while active it cuts demand to 70% (`advanceTick`); and `PIVOT` now
 resolves it (the only way to escape the clone). The AI prompt documents this.
@@ -112,6 +118,7 @@ resolves it (the only way to escape the clone). The AI prompt documents this.
 it to alter revenue/gameplay. It's a fully dead feature.
 
 ### 2.2 `clearTimers` action is defined but never called — LOW — ✅ RESOLVED
+
 *Fix:* `App` now calls `clearTimers()` in an unmount effect, so pending store
 timeouts (e.g. the veto pizza-party timer) are cleared on teardown instead of
 firing against a stale store.
@@ -124,6 +131,7 @@ self-removes, so today there's no leak, but the intended cleanup hook is unused.
 Either wire it up (e.g. in an app-level unmount effect) or remove it.
 
 ### 2.3 Convoluted / partly-unreachable event roll — LOW — ✅ RESOLVED
+
 *Fix:* replaced the nested `if/else` + double-`Math.random()` roll with a
 declarative `CHAOS_EVENT_TABLE` (weights + optional gate conditions) and a
 `rollChaosEvent` helper. Behaviour is preserved (debt-driven outages,
@@ -145,6 +153,7 @@ documented weighted table.
 > **Status: RESOLVED.** All three items fixed and covered by new tests.
 
 ### 3.1 Non-dev roles accrue technical debt — LOW — ✅ RESOLVED
+
 *Fix:* the `10x_ENGINEER` debt accrual (`+0.2`) is now gated to `role === 'dev'`
 in `calculateEmployeeMetrics`, so 10x sales/support hires no longer add debt to
 code they don't touch.
@@ -158,6 +167,7 @@ generates technical debt while producing nothing. Consider scoping trait effects
 to relevant roles.
 
 ### 3.2 Multi-day events can't outlive a day — LOW — ✅ RESOLVED
+
 *Fix:* `startNewDay` now carries over every event with `timeLeft > 0` instead of
 wiping all non-`COMPETITOR_CLONE` events. Durations like `HUMAN_SICK`'s 120 ticks
 now genuinely span multiple days, and the old `COMPETITOR_CLONE` special case is
@@ -170,6 +180,7 @@ subsumed by the general rule.
 meaningless. Durations >60 for non-persistent events are misleading.
 
 ### 3.3 ID collisions from `Date.now()` — LOW — ✅ RESOLVED
+
 *Fix:* employee IDs now come from a monotonic `nextEmployeeId()` counter
 (`emp-1`, `emp-2`, …) at every creation site, guaranteeing uniqueness even for
 bulk hires in one tick. This also makes sprite-to-employee matching (see 1.4)
@@ -193,6 +204,7 @@ a monotonic counter or `crypto.randomUUID()`.
 > async, independently-cached chunk.
 
 ### 4.1 `App` subscribes to the entire store — MEDIUM — ✅ RESOLVED
+
 *Fix:* replaced the single destructured `useGameStore()` call with individual
 selectors (one per field), matching the pattern the other components already
 use. `App` now re-renders only when a value it renders changes, not on every
@@ -210,6 +222,7 @@ mood tick, etc.). Use individual selectors (as the other components do) or a
 shallow-equality selector to scope re-renders.
 
 ### 4.2 Large single JS bundle (~1.5 MB) — LOW — ✅ RESOLVED
+
 *Fix:* two changes — (1) `manualChunks` in `vite.config.js` splits `phaser` and
 `react`/`react-dom` into dedicated vendor chunks; (2) `GameCanvas` is now
 `React.lazy`-loaded behind a `Suspense` fallback, so Phaser lands in an async
@@ -224,6 +237,7 @@ warning. Consider `manualChunks` to split Phaser, or lazy-loading the game canva
 `eruda` (506 kB) is already dynamically imported behind `?eruda=true`, which is good.
 
 ### 4.3 Single floating-number slot — LOW — ✅ RESOLVED
+
 *Fix:* `App` now keeps an array of floaters (append on cash swing, remove by id
 on complete) instead of a single slot, so rapid changes each render their own
 number. IDs come from a monotonic ref, and the completion callback is
@@ -239,6 +253,7 @@ numbers. A small array/queue would render them all if that's desired.
 ## 5. Security / configuration
 
 ### 5.1 Browser-side OpenAI key with `dangerouslyAllowBrowser` — MEDIUM (by design, document it)
+
 **Files:** `src/services/aiService.js:56`, `src/store/gameStore.js:166,244-247`
 
 The OpenAI key is entered client-side, stored in `sessionStorage`, and used with
@@ -248,6 +263,7 @@ that the key is exposed to any script running on the page and travels directly
 from the browser. No server proxy exists to mitigate.
 
 ### 5.2 CI does not run lint or tests — MEDIUM
+
 **File:** `.github/workflows/deploy.yml`
 
 The only workflow builds and deploys to GitHub Pages on push to `main`. There is
@@ -256,6 +272,7 @@ ESLint never gate merges. Adding a `test` job (or steps before build) would catc
 regressions like 1.2 above.
 
 ### 5.3 `canvas` native dependency is unused and can break `npm ci` — MEDIUM
+
 **File:** `package.json:33`
 
 `canvas@^3.2.1` is a devDependency but is **not imported anywhere in `src/`**
@@ -270,6 +287,7 @@ before dropping.
 ## 6. Code quality / consistency
 
 ### 6.1 Mixed German/English strings — LOW
+
 **Files:** `src/services/aiService.js:28,68`, `src/services/prompts.js` (whole prompt), various UI
 
 Error messages like `'Kein API Key vorhanden.'` / `'Leere Antwort von der KI.'`
@@ -278,18 +296,21 @@ and the entire system prompt are German, while the UI is English. A prior commit
 German. Pick one language (or externalize strings) for consistency.
 
 ### 6.2 Redundant `import '../App.css'` — TRIVIAL
+
 **File:** `src/components/AiStatus.jsx:3`
 
 `App.jsx` already imports `App.css`; the duplicate import in `AiStatus` is
 unnecessary (harmless due to bundler dedup).
 
 ### 6.3 Commented-out post-processing blocks — TRIVIAL
+
 **File:** `src/game/scenes/MainScene.js:182-193`
 
 A disabled tilt-shift/vignette/bloom stack is left commented in `create()`. Either
 restore it behind a capability check or remove it to reduce noise.
 
 ### 6.4 `getAvailableModels` always hits Pollinations — TRIVIAL
+
 **File:** `src/components/ApiKeyModal.jsx:36-44`, `src/services/aiService.js:3-18`
 
 The modal fetches the Pollinations model list on mount regardless of the chosen

@@ -426,8 +426,14 @@ export const useGameStore = create(
           const victim = devs[0];
           newEmployees = newEmployees.filter((e) => e.id !== victim.id);
         }
+        const roster = { dev: 0, sales: 0, support: 0 };
+        newEmployees.forEach((e) => {
+          if (roster[e.role] !== undefined) roster[e.role]++;
+        });
         set({
           employees: newEmployees,
+          workers: newEmployees.length,
+          roster,
           mood: Math.max(0, state.mood - 10),
         });
       } else if (type === 'HUMAN_SICK') {
@@ -601,7 +607,7 @@ export const useGameStore = create(
           updates.marketingMultiplier = 0.5;
           updates.marketingLeft = 120;
           // Pivoting into a new market escapes a competitor that cloned us.
-          get().resolveEvent('COMPETITOR_CLONE');
+          updates.activeEvents = state.activeEvents.filter((e) => e.type !== 'COMPETITOR_CLONE');
           state.addTerminalLog(`> PIVOTING...`);
         } else if (action === 'REFACTOR') {
           updates.technicalDebt = Math.max(0, state.technicalDebt - 30);
@@ -656,14 +662,14 @@ export const useGameStore = create(
 
         // ~1% chance per WORK tick to roll for a chaos event, gated so it can't
         // pile on early, while broke, or twice in one day.
+        let rolledEventType = null;
         if (
           state.day > 5 &&
           state.cash > 2000 &&
           state.lastEventDay !== state.day &&
           Math.random() < 0.01
         ) {
-          const eventType = rollChaosEvent(state);
-          if (eventType) get().triggerEvent(eventType);
+          rolledEventType = rollChaosEvent(state);
         }
 
         // --- 3. Economic Calc (Traits + Lifecycle) ---
@@ -731,6 +737,10 @@ export const useGameStore = create(
           workers: stats.count,
           roster: stats.roster,
         });
+
+        if (rolledEventType) {
+          get().triggerEvent(rolledEventType);
+        }
       } else {
         // Crunch Phase
         const debtIncrease = state.employees.filter((e) => e.role === 'dev').length * 0.05 * 2;

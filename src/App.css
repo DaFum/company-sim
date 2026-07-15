@@ -513,8 +513,17 @@ body {
   height: 600px;
   max-width: 100%;
   border-radius: 6px;
-  background: var(--panel-solid, #0d0f18);
-  color: var(--accent-amber, #00ff9c);
+  background:
+    linear-gradient(45deg, rgba(255,176,0,0.05) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255,176,0,0.05) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255,176,0,0.05) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255,176,0,0.05) 75%),
+    var(--panel-solid, #0d0f18);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  border: 1px solid rgba(255, 176, 0, 0.3);
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+  color: var(--accent-amber, #ffb000);
   font-family: 'Share Tech Mono', monospace;
   font-size: 0.8rem;
   letter-spacing: 0.15em;
