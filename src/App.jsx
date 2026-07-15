@@ -45,9 +45,10 @@ function App() {
   useAiDirector();
   const lastDecision = useGameStore((state) => state.pendingDecision);
   const confirmDecision = useGameStore((state) => state.applyPendingDecision);
+  const vetoDecision = useGameStore((state) => state.vetoDecision);
 
-  // Clear any pending store timers (e.g. the veto pizza-party timeout) when the
-  // app unmounts, so stray setTimeout callbacks don't fire against a torn-down store.
+  // Clear any pending store timers when the app unmounts, so stray setTimeout
+  // callbacks do not fire against a torn-down store.
   const clearTimers = useGameStore((state) => state.clearTimers);
   useEffect(() => {
     return () => clearTimers();
@@ -76,6 +77,7 @@ function App() {
   const technicalDebt = useGameStore((state) => state.technicalDebt);
   const productivity = useGameStore((state) => state.productivity);
   const productLevel = useGameStore((state) => state.productLevel);
+  const gameState = useGameStore((state) => state.gameState);
   const totalBurn = useGameStore((state) => {
     const baseBurn = state.officeLevel * 100;
     const employeeBurn = state.employees.reduce((sum, e) => {
@@ -124,6 +126,65 @@ function App() {
       <div className="bg-mesh" aria-hidden="true" />
       <div className="bg-vignette" aria-hidden="true" />
 
+      {gameState !== 'PLAYING' && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 10000,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backdropFilter: 'blur(10px)',
+          }}
+        >
+          <div
+            style={{
+              background: 'var(--panel-solid)',
+              padding: '60px',
+              borderRadius: '16px',
+              textAlign: 'center',
+              border: `2px solid ${gameState === 'WIN' ? 'var(--accent-cyan)' : 'var(--accent-red)'}`,
+            }}
+          >
+            <h1
+              style={{
+                fontSize: '3rem',
+                margin: '0 0 20px 0',
+                color: gameState === 'WIN' ? 'var(--accent-cyan)' : 'var(--accent-red)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+              }}
+            >
+              {gameState === 'WIN' ? 'IPO SUCCESS' : 'BANKRUPT'}
+            </h1>
+            <p style={{ fontSize: '1.2rem', color: 'var(--ink)' }}>
+              {gameState === 'WIN'
+                ? 'Your startup achieved unicorn status!'
+                : 'The board has seized your assets. Game Over.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              style={{
+                marginTop: '40px',
+                padding: '16px 32px',
+                background: 'var(--accent-cyan)',
+                color: '#000',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1.2rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+              }}
+            >
+              RESTART SIMULATION
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* MASTHEAD */}
       <header className="app-header">
         <div className="brand">
@@ -155,7 +216,7 @@ function App() {
 
       {/* MODALS */}
       <ApiKeyModal />
-      <DecisionPopup decision={lastDecision} onConfirm={confirmDecision} />
+      <DecisionPopup decision={lastDecision} onConfirm={confirmDecision} onVeto={vetoDecision} />
 
       {/* JUICE: Floating Numbers */}
       {floaters.map((f) => (

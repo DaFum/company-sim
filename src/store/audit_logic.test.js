@@ -93,7 +93,12 @@ describe('GameStore Logic Audit', () => {
 
   describe('Game Loop & Economy', () => {
     it('should advance tick and change phase', () => {
-      useGameStore.setState({ tick: 48, gamePhase: 'WORK', isPlaying: true });
+      useGameStore.setState({
+        tick: 48,
+        gamePhase: 'WORK',
+        isPlaying: true,
+        employees: [{ id: 1, role: 'dev', trait: 'NORMAL' }],
+      });
 
       const store = useGameStore.getState();
       store.advanceTick(); // 49

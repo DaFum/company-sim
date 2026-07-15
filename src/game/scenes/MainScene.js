@@ -164,6 +164,20 @@ export default class MainScene extends Phaser.Scene {
         )
       );
 
+      this.unsubscribers.push(
+        store.subscribe(
+          (state) => state.isRefactoring,
+          (isRefactoring) => this.syncRefactorVisuals(isRefactoring)
+        )
+      );
+
+      this.unsubscribers.push(
+        store.subscribe(
+          (state) => state.inventory,
+          (inventory) => this.syncInventoryVisuals(inventory)
+        )
+      );
+
       // 5) Initial Sync
       const state = store.getState();
       if (state) {
@@ -171,6 +185,8 @@ export default class MainScene extends Phaser.Scene {
         this.syncVisitors(state.activeVisitors);
         this.updateMoodVisuals(state.mood);
         this.syncChaosVisuals(state.activeEvents);
+        this.syncRefactorVisuals(state.isRefactoring);
+        this.syncInventoryVisuals(state.inventory);
       }
     } else {
       console.warn('[MainScene] Store unavailable.');
@@ -1037,12 +1053,37 @@ export default class MainScene extends Phaser.Scene {
 
   // --- VISUALS ---
   /**
+   * Applies worker tints from highest to lowest priority: sickness, refactoring, then mood.
+   */
+  refreshWorkerTints(moodOverride) {
+    const state = useGameStore.getState?.();
+    const events = state?.activeEvents || [];
+    const mood = moodOverride ?? state?.mood ?? 100;
+
+    let tint = mood > 80 ? 0xffffff : mood > 40 ? 0xccccff : 0x8888ff;
+    if (state?.isRefactoring) tint = 0x888888;
+    if (events.some((e) => e.type === 'HUMAN_SICK')) tint = 0x88ff88;
+
+    this.workersGroup.children.iterate((w) => w?.setTint?.(tint));
+  }
+
+  /**
    * Updates worker tints based on the mood.
-   * @param {number} mood - Current mood value (0-100).
    */
   updateMoodVisuals(mood) {
-    const tint = mood > 80 ? 0xffffff : mood > 40 ? 0xccccff : 0x8888ff;
-    this.workersGroup.children.iterate((w) => w?.setTint?.(tint));
+    this.refreshWorkerTints(mood);
+  }
+
+  clearChaosOverlays(preserveRefactorOverlay) {
+    if (!preserveRefactorOverlay) {
+      this.overlayGroup?.clear(true, true);
+      return;
+    }
+
+    const children = this.overlayGroup?.getChildren?.() || [];
+    [...children].forEach((child) => {
+      if (child && child.text !== 'REFACTORING') child.destroy?.();
+    });
   }
 
   /**
@@ -1054,7 +1095,9 @@ export default class MainScene extends Phaser.Scene {
       this._chaosTweens.forEach((t) => t.stop());
     }
     this._chaosTweens = [];
-    this.overlayGroup?.clear(true, true);
+
+    const isRefactoring = useGameStore.getState?.()?.isRefactoring;
+    this.clearChaosOverlays(isRefactoring);
 
     for (const e of events) {
       if (e.type === 'TECH_OUTAGE') {
@@ -1082,7 +1125,45 @@ export default class MainScene extends Phaser.Scene {
       } else if (e.type === 'MARKET_SHITSTORM') {
         this.addOverlayText('SHITSTORM IN PROGRESS', '#aa0000');
         this.cameras.main.shake(100, 0.005);
+      } else if (e.type === 'COMPETITOR_CLONE') {
+        this.addOverlayText('COMPETITOR DETECTED', '#aa0000');
       }
+    }
+
+    this.refreshWorkerTints();
+  }
+
+  /**
+   * Triggers visual effects for refactoring state.
+   * @param {boolean} isRefactoring - Whether refactoring is active.
+   */
+  syncRefactorVisuals(isRefactoring) {
+    this.refreshWorkerTints();
+
+    const children = this.overlayGroup?.getChildren?.() || [];
+    [...children].forEach((child) => {
+      if (child && child.text === 'REFACTORING') child.destroy?.();
+    });
+
+    if (isRefactoring) {
+      this.addOverlayText('REFACTORING', '#555555');
+    }
+  }
+
+  /**
+   * Triggers visual effects for newly acquired inventory items.
+   * @param {string[]} inventory - The player's inventory list.
+   */
+  syncInventoryVisuals(inventory) {
+    if (!inventory) return;
+    if (inventory.includes('firewall')) {
+      // Small visual indicator or protective shield around server (can be expanded later)
+    }
+    if (inventory.includes('server_rack_v2')) {
+      // Additional server rack prop spawned (can be expanded later)
+    }
+    if (inventory.includes('plants')) {
+      // The map already has plants, but we could spawn additional dynamic ones here.
     }
   }
 
