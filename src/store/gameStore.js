@@ -231,8 +231,11 @@ const rollChaosEvent = (state) => {
  */
 function calculateRoster(employees) {
   const roster = { dev: 0, sales: 0, support: 0 };
+  if (!Array.isArray(employees)) return roster;
   employees.forEach((e) => {
-    if (roster[e.role] !== undefined) roster[e.role]++;
+    if (e && e.role && roster[e.role] !== undefined) {
+      roster[e.role]++;
+    }
   });
   return roster;
 }
