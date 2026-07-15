@@ -422,6 +422,10 @@ export const useGameStore = create(
         duration = 20;
         msg = '> ALERT: CLOUD SERVICES OFFLINE.';
       } else if (type === 'RANSOMWARE') {
+        if (state.inventory.includes('firewall')) {
+          state.addTerminalLog('> FIREWALL BLOCKED RANSOMWARE ATTEMPT.');
+          return;
+        }
         duration = 60;
         msg = '> ALERT: RANSOMWARE DETECTED. ASSETS FROZEN.';
         const penalty = state.cash * 0.2;
@@ -645,7 +649,7 @@ export const useGameStore = create(
         );
 
         // Add base debt (normal work)
-        const totalDebtAcc = debtAcc + stats.roster.dev * 0.05;
+        const totalDebtAcc = state.isRefactoring ? 0 : debtAcc + stats.roster.dev * 0.05;
 
         // Formula
         const devValue =
@@ -671,6 +675,7 @@ export const useGameStore = create(
 
         set({
           cash: state.cash + netChange,
+          lastRevenue: currentRevenue,
           tick: newTick,
           gamePhase: newPhase,
           marketingMultiplier: newMarketingMult,
@@ -690,7 +695,7 @@ export const useGameStore = create(
       } else {
         // Crunch Phase
         // Ensure stats are available in this branch since getStats() is called inside WORK branch usually
-        const debtIncrease = state.roster.dev * 0.05 * 2;
+        const debtIncrease = state.isRefactoring ? 0 : state.roster.dev * 0.05 * 2;
         const newDebt = state.technicalDebt + debtIncrease;
 
         if (newTick > 60) {

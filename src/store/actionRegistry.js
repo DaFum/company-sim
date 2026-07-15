@@ -95,6 +95,12 @@ export const ACTION_DEFINITIONS = {
       if (!VALID_UPGRADES.includes(item)) {
         return { error: `> ERROR: INVALID UPGRADE ${item}` };
       }
+      if (
+        ['coffee_machine', 'firewall', 'server_rack_v2'].includes(item) &&
+        state.inventory.includes(item)
+      ) {
+        return { error: `> ERROR: ALREADY OWN ${item}` };
+      }
       const cost = 2000;
       if (state.cash < cost) {
         return { error: `> ERROR: NO FUNDS FOR ${item}` };

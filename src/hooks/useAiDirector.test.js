@@ -128,6 +128,7 @@ describe('useAiDirector', () => {
       reasoning: 'Need more developers to increase productivity.',
       decision_title: 'Hire 2 dev(s)',
       amount: 1000, // 2 * 500
+      risk_assessment: 'LOW',
     });
 
     expect(useGameStore.setState).toHaveBeenCalledWith({ isAiThinking: false });
@@ -159,6 +160,7 @@ describe('useAiDirector', () => {
       reasoning: 'No API Key found. Playing safe.',
       decision_title: 'No Action',
       amount: 0,
+      risk_assessment: 'LOW',
     });
 
     expect(useGameStore.setState).toHaveBeenCalledWith({ isAiThinking: false });
