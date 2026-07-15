@@ -14,6 +14,9 @@
 
   /* Accents */
   --accent-amber: #ffb000;
+  --accent-amber-loading-bg: rgba(255, 176, 0, 0.05);
+  --accent-amber-loading-border: rgba(255, 176, 0, 0.3);
+  --shadow-loading-inset: inset 0 0 20px rgba(0, 0, 0, 0.5);
   --accent-amber-dim: #b87c00;
   --accent-cyan: #00e5ff;
   --accent-green: #00ff9c;
@@ -514,15 +517,15 @@ body {
   max-width: 100%;
   border-radius: 6px;
   background:
-    linear-gradient(45deg, rgba(255,176,0,0.05) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(255,176,0,0.05) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgba(255,176,0,0.05) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(255,176,0,0.05) 75%),
+    linear-gradient(45deg, var(--accent-amber-loading-bg) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--accent-amber-loading-bg) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--accent-amber-loading-bg) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--accent-amber-loading-bg) 75%),
     var(--panel-solid, #0d0f18);
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-  border: 1px solid rgba(255, 176, 0, 0.3);
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--accent-amber-loading-border);
+  box-shadow: var(--shadow-loading-inset);
   color: var(--accent-amber, #ffb000);
   font-family: 'Share Tech Mono', monospace;
   font-size: 0.8rem;
