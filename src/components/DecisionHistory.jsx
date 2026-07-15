@@ -18,7 +18,10 @@ export const DecisionHistory = () => {
   return (
     <div className="decision-history-list">
       {displayHistory.map((decision, i) => (
-        <div key={i} className={`history-item ${decision.vetoed ? 'vetoed' : 'executed'}`}>
+        <div
+          key={decision.day + '-' + decision.action + '-' + (decision.decision_title || i)}
+          className={`history-item ${decision.vetoed ? 'vetoed' : 'executed'}`}
+        >
           <div className="history-header">
             <span className="history-day">DAY {decision.day}</span>
             <span className="history-action">{decision.action}</span>

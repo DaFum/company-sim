@@ -76,8 +76,16 @@ function App() {
   const technicalDebt = useGameStore((state) => state.technicalDebt);
   const productivity = useGameStore((state) => state.productivity);
   const productLevel = useGameStore((state) => state.productLevel);
-  const getStats = useGameStore((state) => state.getStats);
-  const stats = getStats();
+  const totalBurn = useGameStore((state) => {
+    const baseBurn = state.officeLevel * 100;
+    const employeeBurn = state.employees.reduce((sum, e) => {
+      let salary = 50;
+      if (e.trait === '10x_ENGINEER') salary = 100;
+      if (e.trait === 'JUNIOR') salary = 25;
+      return sum + salary;
+    }, 0);
+    return baseBurn + employeeBurn;
+  });
 
   // 4. Floating Numbers Logic
   // Track a list (not a single slot) so rapid cash swings each get their own
@@ -199,7 +207,7 @@ function App() {
           <div className="kpi-grid">
             <div className="kpi-item">
               <span className="kpi-label">Burn Rate</span>
-              <span className="kpi-value">{stats.totalBurn} € / tick</span>
+              <span className="kpi-value">{totalBurn} € / tick</span>
             </div>
             <div className="kpi-item">
               <span className="kpi-label">Mood</span>
