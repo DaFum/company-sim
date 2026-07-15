@@ -223,6 +223,20 @@ const rollChaosEvent = (state) => {
  * Manages economics, employees, time, and game phase.
  * @type {import('zustand').UseBoundStore<import('zustand').StoreApi<GameStoreState>>}
  */
+
+/**
+ * Calculates current roster counts from an array of employees.
+ * @param {Array} employees - Array of employee objects.
+ * @returns {Object} Roster counts by role.
+ */
+function calculateRoster(employees) {
+  const roster = { dev: 0, sales: 0, support: 0 };
+  employees.forEach((e) => {
+    if (roster[e.role] !== undefined) roster[e.role]++;
+  });
+  return roster;
+}
+
 export const useGameStore = create(
   subscribeWithSelector((set, get) => ({
     // --- STATE ---
@@ -281,12 +295,10 @@ export const useGameStore = create(
      */
     getStats: () => {
       const state = get();
-      const roster = { dev: 0, sales: 0, support: 0 };
+      const roster = calculateRoster(state.employees);
       let totalBurn = 0;
 
       state.employees.forEach((e) => {
-        if (roster[e.role] !== undefined) roster[e.role]++;
-
         // Trait Logic: Salary
         let salary = 50;
         if (e.trait === '10x_ENGINEER') salary = 100;
@@ -426,10 +438,7 @@ export const useGameStore = create(
           const victim = devs[0];
           newEmployees = newEmployees.filter((e) => e.id !== victim.id);
         }
-        const roster = { dev: 0, sales: 0, support: 0 };
-        newEmployees.forEach((e) => {
-          if (roster[e.role] !== undefined) roster[e.role]++;
-        });
+        const roster = calculateRoster(newEmployees);
         set({
           employees: newEmployees,
           workers: newEmployees.length,
@@ -623,12 +632,8 @@ export const useGameStore = create(
         // whenever a decision changes headcount, matching hireWorker/fireWorker.
         // Without this the "Workers:" display stays stale until the next tick.
         if (updates.employees) {
-          const roster = { dev: 0, sales: 0, support: 0 };
-          updates.employees.forEach((e) => {
-            if (roster[e.role] !== undefined) roster[e.role]++;
-          });
           updates.workers = updates.employees.length;
-          updates.roster = roster;
+          updates.roster = calculateRoster(updates.employees);
         }
 
         set(updates);
@@ -823,10 +828,7 @@ export const useGameStore = create(
         : 'dev';
 
       const newEmployees = [...state.employees, createEmployee(actualRole, nextEmployeeId())];
-      const roster = { dev: 0, sales: 0, support: 0 };
-      newEmployees.forEach((e) => {
-        if (roster[e.role] !== undefined) roster[e.role]++;
-      });
+      const roster = calculateRoster(newEmployees);
       set({
         employees: newEmployees,
         workers: newEmployees.length,
@@ -852,10 +854,7 @@ export const useGameStore = create(
         const victim = devs[0];
         const newEmployees = state.employees.filter((e) => e.id !== victim.id);
 
-        const roster = { dev: 0, sales: 0, support: 0 };
-        newEmployees.forEach((e) => {
-          if (roster[e.role] !== undefined) roster[e.role]++;
-        });
+        const roster = calculateRoster(newEmployees);
         return {
           employees: newEmployees,
           workers: newEmployees.length,

@@ -33,7 +33,7 @@ Consequences:
 **Fix:** pass `aiModel` from the store into `callAI`, and use the `model`
 argument in the OpenAI branch (`model` instead of the hardcoded literal).
 
-### 1.2 Terminal decision overlay shows an empty reason — MEDIUM
+### 1.2 Terminal decision overlay shows an empty reason — MEDIUM — ✅ RESOLVED
 
 **File:** `src/components/RetroTerminal.jsx:33`
 
@@ -44,9 +44,9 @@ argument in the OpenAI branch (`model` instead of the hardcoded literal).
 The decision object produced by `formatDecision` (`useAiDirector.js:67-74`) has
 no `reason` field — it's called `reasoning`. `DecisionPopup.jsx:20` correctly
 uses `decision.reasoning`. The terminal overlay renders `""` every time.
-**Fix:** use `pendingDecision.reasoning`.
+*Fix:* Changed `pendingDecision.reason` to `pendingDecision.reasoning` in the decision overlay rendering to correctly map the AI response to the UI.
 
-### 1.3 REFACTOR's "productivity halted" effect is instantly overwritten — MEDIUM
+### 1.3 REFACTOR's "productivity halted" effect is instantly overwritten — MEDIUM — ✅ RESOLVED
 
 **Files:** `src/store/gameStore.js:540-543` (REFACTOR), `540-544` (crunch), `689-717` (startNewDay)
 
@@ -66,10 +66,9 @@ or `10`. So `REFACTOR`'s `updates.productivity = 0` is wiped microseconds later
 and the intended "lose a day of productivity" penalty never actually happens —
 only the technical-debt reduction persists. The prompt (`prompts.js:53-56`)
 advertises the penalty, so behavior contradicts documentation.
-**Fix:** track a "refactoring" flag that survives `startNewDay` for one day, or
-apply the productivity penalty to the following day explicitly.
+*Fix:* Added an `isRefactoring` flag to state during the REFACTOR action that survives `startNewDay`. During `startNewDay`, if `isRefactoring` is true, productivity is kept at 0 and the flag is cleared for the subsequent day.
 
-### 1.4 Worker traits never appear on the sprites — MEDIUM
+### 1.4 Worker traits never appear on the sprites — MEDIUM — ✅ RESOLVED
 
 **Files:** `src/game/scenes/MainScene.js:931-943`, `src/game/sprites/WorkerSprite.js:30,126-130`
 
@@ -83,16 +82,14 @@ const worker = new WorkerSprite(this, x, y, role, Date.now()); // trait defaults
 The scene subscribes only to `state.roster` (role **counts**), not to
 `state.employees` (which carry traits), so the visual layer has no way to know a
 worker's trait. Result: trait icons are dead code and the store's trait system is
-invisible in-game. **Fix:** sync sprites against `employees` (or include a trait
-breakdown in the roster subscription) and pass the trait into `spawnWorker`.
+invisible in-game. *Fix:* Updated the `MainScene` to subscribe to `state.employees` instead of just `state.roster`, allowing the scene to read individual employee traits and pass them to `spawnWorker` so they correctly render above sprites.
 
-### 1.5 `startNewDay` force-resumes the game every day — LOW
+### 1.5 `startNewDay` force-resumes the game every day — LOW — ✅ RESOLVED
 
 **File:** `src/store/gameStore.js:710`
 
 `startNewDay` sets `isPlaying: true` unconditionally. If the player paused during
-the previous day, the game silently un-pauses at the day boundary. Preserve the
-prior `isPlaying` value unless auto-resume is intended.
+the previous day, the game silently un-pauses at the day boundary. *Fix:* Removed the unconditional `isPlaying: true` assignment from `startNewDay`, ensuring that if the player paused the game before the end of the day, it correctly remains paused into the new day.
 
 ---
 
@@ -324,10 +321,10 @@ even for OpenAI-only users.
 | # | Finding | Severity | Type | Status |
 |---|---------|----------|------|--------|
 | 1.1 | Selected AI model never sent to API | High | Bug | Open |
-| 1.2 | Terminal decision reason renders empty (`.reason` vs `.reasoning`) | Medium | Bug | ✅ Fixed |
-| 1.3 | REFACTOR productivity penalty instantly overwritten | Medium | Bug | ✅ Fixed |
-| 1.4 | Worker traits never shown on sprites | Medium | Bug | ✅ Fixed |
-| 1.5 | `startNewDay` force-resumes after pause | Low | Bug | ✅ Fixed |
+| 1.2 | Terminal decision reason renders empty (`.reason` vs `.reasoning`) | Medium | Bug | ✅ RESOLVED |
+| 1.3 | REFACTOR productivity penalty instantly overwritten | Medium | Bug | ✅ RESOLVED |
+| 1.4 | Worker traits never shown on sprites | Medium | Bug | ✅ RESOLVED |
+| 1.5 | `startNewDay` force-resumes after pause | Low | Bug | ✅ RESOLVED |
 | 2.1 | `COMPETITOR_CLONE` never triggered / no effect | Low | Dead code | ✅ Fixed |
 | 2.2 | `clearTimers` defined but unused | Low | Dead code | ✅ Fixed |
 | 2.3 | Convoluted, partly-unreachable event roll | Low | Clarity | ✅ Fixed |
