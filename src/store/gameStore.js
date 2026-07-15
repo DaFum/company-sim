@@ -426,8 +426,14 @@ export const useGameStore = create(
           const victim = devs[0];
           newEmployees = newEmployees.filter((e) => e.id !== victim.id);
         }
+        const roster = { dev: 0, sales: 0, support: 0 };
+        newEmployees.forEach((e) => {
+          if (roster[e.role] !== undefined) roster[e.role]++;
+        });
         set({
           employees: newEmployees,
+          workers: newEmployees.length,
+          roster,
           mood: Math.max(0, state.mood - 10),
         });
       } else if (type === 'HUMAN_SICK') {
