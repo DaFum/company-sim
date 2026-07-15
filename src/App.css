@@ -1054,3 +1054,137 @@ body {
     min-height: 48px;
   }
 }
+
+/* ============================================================
+   DecisionHistory
+   ============================================================ */
+.decision-history-empty {
+  padding: 16px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--ink-dim);
+  border: 1px dashed var(--line-soft);
+  border-radius: 8px;
+  background: rgba(0,0,0,0.2);
+}
+.decision-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+.decision-history-list::-webkit-scrollbar {
+  width: 6px;
+}
+.decision-history-list::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.1);
+  border-radius: 3px;
+}
+.decision-history-list::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 3px;
+}
+.history-item {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 0.85em;
+}
+.history-item.vetoed {
+  border-color: rgba(255, 77, 94, 0.3);
+  background: rgba(255, 77, 94, 0.05);
+}
+.history-item.executed {
+  border-color: rgba(0, 229, 255, 0.2);
+}
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-family: var(--font-display);
+  letter-spacing: 0.05em;
+  font-size: 0.9em;
+}
+.history-day {
+  color: var(--ink-faint);
+}
+.history-action {
+  font-weight: bold;
+  color: var(--ink);
+}
+.history-status {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: bold;
+}
+.status-vetoed {
+  color: var(--accent-red);
+  background: rgba(255, 77, 94, 0.1);
+}
+.status-executed {
+  color: var(--accent-cyan);
+  background: rgba(0, 229, 255, 0.1);
+}
+.history-title {
+  color: var(--accent-cyan);
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+.history-reason {
+  color: var(--ink-dim);
+  font-style: italic;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+.history-cost {
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+/* ============================================================
+   KPI Board
+   ============================================================ */
+.kpi-board {
+  flex: 1;
+}
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
+}
+.kpi-item {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.kpi-label {
+  font-size: 0.75em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+.kpi-value {
+  font-family: var(--font-display);
+  font-size: 1.1em;
+  font-weight: bold;
+  color: var(--ink);
+}
+
+/* ============================================================
+   History Board
+   ============================================================ */
+.history-board {
+  flex: 1.5;
+}

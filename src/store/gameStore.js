@@ -261,6 +261,7 @@ export const useGameStore = create(
     // Visual & Logic
     officeLevel: 1,
     terminalLogs: [],
+    decisionHistory: [],
     pendingDecision: null,
     activeVisitors: [],
     ceoPersona: getRandomPersona(),
@@ -496,6 +497,10 @@ export const useGameStore = create(
 
       set({
         pendingDecision: null,
+        decisionHistory: [
+          ...state.decisionHistory,
+          { ...state.pendingDecision, day: state.day, vetoed: true },
+        ],
         cash: state.cash - 200,
         activeVisitors: [...state.activeVisitors, 'pizza_guy'],
         mood: 100,
@@ -513,6 +518,10 @@ export const useGameStore = create(
       if (decision) {
         state.addTerminalLog(`>> EXECUTING: ${decision.action}`);
         let updates = { pendingDecision: null };
+        updates.decisionHistory = [
+          ...state.decisionHistory,
+          { ...decision, day: state.day, vetoed: false },
+        ];
         const action = decision.action;
         const params = decision.parameters || {};
 
