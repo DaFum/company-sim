@@ -142,7 +142,13 @@ documented weighted table.
 
 ## 3. Logic quirks worth a look
 
-### 3.1 Non-dev roles accrue technical debt — LOW
+> **Status: RESOLVED.** All three items fixed and covered by new tests.
+
+### 3.1 Non-dev roles accrue technical debt — LOW — ✅ RESOLVED
+*Fix:* the `10x_ENGINEER` debt accrual (`+0.2`) is now gated to `role === 'dev'`
+in `calculateEmployeeMetrics`, so 10x sales/support hires no longer add debt to
+code they don't touch.
+
 **File:** `src/store/gameStore.js:64-89`
 
 `calculateEmployeeMetrics` adds `debtAcc += 0.2` for **any** `10x_ENGINEER`,
@@ -151,14 +157,26 @@ that output is only counted for dev/sales roles. A 10x support hire silently
 generates technical debt while producing nothing. Consider scoping trait effects
 to relevant roles.
 
-### 3.2 Multi-day events can't outlive a day — LOW
+### 3.2 Multi-day events can't outlive a day — LOW — ✅ RESOLVED
+*Fix:* `startNewDay` now carries over every event with `timeLeft > 0` instead of
+wiping all non-`COMPETITOR_CLONE` events. Durations like `HUMAN_SICK`'s 120 ticks
+now genuinely span multiple days, and the old `COMPETITOR_CLONE` special case is
+subsumed by the general rule.
+
 **File:** `src/store/gameStore.js:369,713`
 
 `HUMAN_SICK` is created with `duration: 120` (2 days' worth of ticks), but
 `startNewDay` wipes all non-`COMPETITOR_CLONE` events, so the extra duration is
 meaningless. Durations >60 for non-persistent events are misleading.
 
-### 3.3 ID collisions from `Date.now()` — LOW
+### 3.3 ID collisions from `Date.now()` — LOW — ✅ RESOLVED
+*Fix:* employee IDs now come from a monotonic `nextEmployeeId()` counter
+(`emp-1`, `emp-2`, …) at every creation site, guaranteeing uniqueness even for
+bulk hires in one tick. This also makes sprite-to-employee matching (see 1.4)
+collision-proof. (The `Date.now()` fallback left in `MainScene.spawnWorker` is
+now only reached by unit tests; production sprites always receive the store's
+counter ID.)
+
 **Files:** `src/store/gameStore.js:191,458,737`, `src/game/scenes/MainScene.js:939`
 
 Employee and sprite IDs use `Date.now()`. Bulk hires guard against this with
@@ -271,9 +289,9 @@ even for OpenAI-only users.
 | 2.1 | `COMPETITOR_CLONE` never triggered / no effect | Low | Dead code | ✅ Fixed |
 | 2.2 | `clearTimers` defined but unused | Low | Dead code | ✅ Fixed |
 | 2.3 | Convoluted, partly-unreachable event roll | Low | Clarity | ✅ Fixed |
-| 3.1 | Non-dev roles accrue technical debt | Low | Logic | Open |
-| 3.2 | Multi-day event durations meaningless | Low | Logic | Open |
-| 3.3 | `Date.now()` ID collisions | Low | Robustness | Open |
+| 3.1 | Non-dev roles accrue technical debt | Low | Logic | ✅ Fixed |
+| 3.2 | Multi-day event durations meaningless | Low | Logic | ✅ Fixed |
+| 3.3 | `Date.now()` ID collisions | Low | Robustness | ✅ Fixed |
 | 4.1 | `App` subscribes to entire store | Medium | Perf | Open |
 | 4.2 | ~1.5 MB JS bundle | Low | Perf | Open |
 | 4.3 | Single floating-number slot | Low | Perf | Open |

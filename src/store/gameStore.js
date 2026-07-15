@@ -32,6 +32,20 @@ const getRandomTrait = () => {
  * @property {string} trait - Employee trait.
  */
 
+// Monotonic counter for employee IDs. Date.now() collided when several
+// employees were created within the same millisecond (e.g. a bulk hire), which
+// broke sprite-to-employee matching in the Phaser scene.
+let employeeIdCounter = 0;
+
+/**
+ * Generates a unique, stable employee ID.
+ * @returns {string} Unique ID (e.g. "emp-1").
+ */
+const nextEmployeeId = () => {
+  employeeIdCounter += 1;
+  return `emp-${employeeIdCounter}`;
+};
+
 /**
  * Creates a new employee object.
  * @param {string} role - Employee role.
@@ -72,7 +86,9 @@ const calculateEmployeeMetrics = (employees) => {
     // Trait Modifiers
     if (e.trait === '10x_ENGINEER') {
       output = 4.0;
-      debtAcc += 0.2;
+      // Technical debt is a coding artifact: only 10x *devs* accrue it. A 10x
+      // hire in sales/support shouldn't add debt to a codebase they don't touch.
+      if (e.role === 'dev') debtAcc += 0.2;
     }
     if (e.trait === 'JUNIOR') {
       output = 0.5;
@@ -235,7 +251,7 @@ export const useGameStore = create(
     // Resources (Refactored for Traits)
     roster: { dev: 1, sales: 0, support: 0 }, // Initial Sync
     workers: 1, // Initial Sync
-    employees: [createEmployee('dev', Date.now())], // Initial: 1 Dev
+    employees: [createEmployee('dev', nextEmployeeId())], // Initial: 1 Dev
 
     productivity: 10,
     isRefactoring: false,
@@ -503,7 +519,7 @@ export const useGameStore = create(
             else if (role.includes('support')) actualRole = 'support';
 
             for (let i = 0; i < count; i++) {
-              newEmployees.push(createEmployee(actualRole, Date.now() + i));
+              newEmployees.push(createEmployee(actualRole, nextEmployeeId()));
             }
 
             updates.employees = newEmployees;
@@ -750,7 +766,10 @@ export const useGameStore = create(
           description: e.description,
         }));
 
-        const persistentEvents = state.activeEvents.filter((e) => e.type === 'COMPETITOR_CLONE');
+        // Carry over any event that still has time left instead of wiping them
+        // nightly, so durations >1 day (e.g. a 120-tick flu wave, or the
+        // long-lived COMPETITOR_CLONE) actually span multiple days as intended.
+        const carriedEvents = state.activeEvents.filter((e) => e.timeLeft > 0);
 
         // A pending REFACTOR halts productivity for the whole new day; otherwise
         // productivity returns to its baseline (boosted by the coffee machine).
@@ -768,7 +787,7 @@ export const useGameStore = create(
           isPlaying: state.isPlaying,
           mood: Math.max(0, state.mood - 1),
           eventHistory: history,
-          activeEvents: persistentEvents,
+          activeEvents: carriedEvents,
           startOfDayCash: state.cash,
           productivity: state.isRefactoring ? 0 : baseProductivity,
           isRefactoring: false,
@@ -793,7 +812,7 @@ export const useGameStore = create(
         ? normalizedRole
         : 'dev';
 
-      const newEmployees = [...state.employees, createEmployee(actualRole, Date.now())];
+      const newEmployees = [...state.employees, createEmployee(actualRole, nextEmployeeId())];
       const roster = { dev: 0, sales: 0, support: 0 };
       newEmployees.forEach((e) => {
         if (roster[e.role] !== undefined) roster[e.role]++;
