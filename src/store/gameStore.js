@@ -11,6 +11,33 @@ const PERSONAS = ['Visionary', 'Accountant', 'Benevolent'];
  */
 const getRandomPersona = () => PERSONAS[Math.floor(Math.random() * PERSONAS.length)];
 
+/**
+ * Resolves only the latest unresolved matching event-history entry.
+ * @param {Object[]} eventHistory - Existing event history entries.
+ * @param {string} type - Event type to resolve.
+ * @param {number} day - Resolution day stamp.
+ * @param {number} tick - Resolution tick stamp.
+ * @returns {Object[]} Updated event history.
+ */
+const resolveLatestEventHistoryEntry = (eventHistory, type, day, tick) => {
+  let resolvedLatest = false;
+  return [...eventHistory]
+    .reverse()
+    .map((entry) => {
+      if (!resolvedLatest && entry.type === type && entry.resolution === null) {
+        resolvedLatest = true;
+        return {
+          ...entry,
+          resolvedAtDay: day,
+          resolvedAtTick: tick,
+          resolution: 'resolved',
+        };
+      }
+      return entry;
+    })
+    .reverse();
+};
+
 // Trait Generators
 const TRAITS = ['10x_ENGINEER', 'JUNIOR', 'TOXIC', 'NORMAL'];
 
@@ -504,22 +531,12 @@ export const useGameStore = create(
      */
     resolveEvent: (type) =>
       set((state) => {
-        let resolvedLatest = false;
-        const eventHistory = [...state.eventHistory]
-          .reverse()
-          .map((entry) => {
-            if (!resolvedLatest && entry.type === type && entry.resolution === null) {
-              resolvedLatest = true;
-              return {
-                ...entry,
-                resolvedAtDay: state.day,
-                resolvedAtTick: state.tick,
-                resolution: 'resolved',
-              };
-            }
-            return entry;
-          })
-          .reverse();
+        const eventHistory = resolveLatestEventHistoryEntry(
+          state.eventHistory,
+          type,
+          state.day,
+          state.tick
+        );
 
         return {
           activeEvents: state.activeEvents.filter((e) => e.type !== type),
@@ -601,22 +618,12 @@ export const useGameStore = create(
             let currentHistory = updates.eventHistory || state.eventHistory;
 
             removedTypes.forEach((type) => {
-              let resolvedLatest = false;
-              currentHistory = [...currentHistory]
-                .reverse()
-                .map((entry) => {
-                  if (!resolvedLatest && entry.type === type && entry.resolution === null) {
-                    resolvedLatest = true;
-                    return {
-                      ...entry,
-                      resolvedAtDay: state.day,
-                      resolvedAtTick: state.tick,
-                      resolution: 'resolved',
-                    };
-                  }
-                  return entry;
-                })
-                .reverse();
+              currentHistory = resolveLatestEventHistoryEntry(
+                currentHistory,
+                type,
+                state.day,
+                state.tick
+              );
             });
 
             updates.eventHistory = currentHistory;
@@ -872,6 +879,10 @@ export const useGameStore = create(
         // productivity returns to its baseline (boosted by the coffee machine).
         const baseProductivity = state.inventory.includes('coffee_machine') ? 12 : 10;
 
+        const recentEventHistory = state.eventHistory.filter(
+          (event) => event.resolution === null || event.startedAtDay >= state.day - 1
+        );
+
         return {
           day: state.day + 1,
           tick: 0,
@@ -884,6 +895,7 @@ export const useGameStore = create(
           isPlaying: state.isPlaying,
           mood: Math.max(0, state.mood - 1),
           activeEvents: carriedEvents,
+          eventHistory: recentEventHistory,
           startOfDayCash: state.cash,
           productivity: state.isRefactoring ? 0 : baseProductivity,
           isRefactoring: false,

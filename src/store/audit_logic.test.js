@@ -306,6 +306,43 @@ describe('GameStore Logic Audit', () => {
 
       expect(useGameStore.getState().activeEvents.some((e) => e.type === 'HUMAN_QUIT')).toBe(false);
     });
+
+    it('should preserve unresolved long-running event history when bounding old entries', () => {
+      useGameStore.setState({
+        activeEvents: [
+          { type: 'COMPETITOR_CLONE', timeLeft: 800, severity: 'HIGH', description: 'clone' },
+        ],
+        eventHistory: [
+          {
+            type: 'COMPETITOR_CLONE',
+            startedAtDay: 1,
+            startedAtTick: 12,
+            resolvedAtDay: null,
+            resolvedAtTick: null,
+            resolution: null,
+          },
+          {
+            type: 'HUMAN_QUIT',
+            startedAtDay: 1,
+            startedAtTick: 20,
+            resolvedAtDay: 1,
+            resolvedAtTick: 25,
+            resolution: 'resolved',
+          },
+        ],
+        employees: [{ id: 'e1', role: 'dev', trait: 'NORMAL' }],
+        day: 5,
+        mood: 100,
+        cash: 5000,
+        inventory: [],
+      });
+
+      useGameStore.getState().startNewDay();
+
+      const { eventHistory } = useGameStore.getState();
+      expect(eventHistory.some((event) => event.type === 'COMPETITOR_CLONE')).toBe(true);
+      expect(eventHistory.some((event) => event.type === 'HUMAN_QUIT')).toBe(false);
+    });
   });
 
   describe('Employee ID uniqueness', () => {

@@ -806,6 +806,79 @@ body {
 }
 
 /* ============================================================
+   Terminal state overlay — offset board memo
+   ============================================================ */
+.terminal-state-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center start;
+  padding-left: clamp(28px, 12vw, 180px);
+  background:
+    radial-gradient(circle at 72% 28%, rgba(255, 176, 0, 0.12), transparent 28%),
+    linear-gradient(115deg, rgba(0, 0, 0, 0.94) 0%, rgba(0, 0, 0, 0.76) 64%);
+  backdrop-filter: blur(10px);
+}
+.terminal-state-card {
+  position: relative;
+  max-width: 560px;
+  padding: 54px 46px 42px 58px;
+  background: linear-gradient(145deg, rgba(18, 22, 31, 0.96), rgba(9, 11, 18, 0.92));
+  border: 1px solid var(--line);
+  border-left: 8px solid var(--accent-red);
+  border-radius: 20px 20px 20px 4px;
+  box-shadow: var(--shadow-lift), -28px 28px 0 rgba(255, 176, 0, 0.08);
+  text-align: left;
+}
+.terminal-state-win .terminal-state-card {
+  border-left-color: var(--accent-cyan);
+  box-shadow: var(--shadow-lift), -28px 28px 0 rgba(0, 229, 255, 0.08);
+}
+.terminal-state-kicker {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: var(--accent-amber);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+.terminal-state-title {
+  margin: 0 0 18px;
+  color: var(--accent-red);
+  font-family: var(--font-display);
+  font-size: clamp(2.7rem, 7vw, 5.8rem);
+  line-height: 0.86;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+}
+.terminal-state-win .terminal-state-title {
+  color: var(--accent-cyan);
+}
+.terminal-state-copy {
+  max-width: 420px;
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.15rem;
+  line-height: 1.6;
+}
+.terminal-state-button {
+  margin-top: 36px;
+  padding: 15px 26px;
+  background: var(--accent-cyan);
+  color: #001318;
+  border: 0;
+  border-radius: 4px 16px 16px 4px;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  box-shadow: 12px 12px 0 rgba(0, 229, 255, 0.14);
+}
+
+/* ============================================================
    DecisionPopup — dark HUD card (was jarring white)
    ============================================================ */
 .popup-overlay {
@@ -845,10 +918,10 @@ body {
 .popup-title {
   margin-top: 0;
   font-family: var(--font-display);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   font-size: 0.95rem;
-  color: var(--ink-dim);
+  color: var(--accent-amber);
 }
 .popup-subtitle {
   color: var(--accent-cyan);
@@ -877,15 +950,27 @@ body {
 .popup-cost.neutral {
   color: var(--ink-dim);
 }
+.popup-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(118px, 0.65fr);
+  gap: 14px;
+  align-items: stretch;
+  margin-top: 24px;
+  transform: translateX(10px);
+}
+.popup-confirm,
+.popup-veto {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
 .popup-confirm {
   padding: 13px 26px;
   background: linear-gradient(180deg, var(--accent-cyan), #0092b3);
   color: #001318;
   border: none;
   border-radius: 8px;
-  font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: 0.08em;
   font-size: 1rem;
   cursor: pointer;
   transition: box-shadow 0.2s, transform 0.1s;
@@ -894,6 +979,22 @@ body {
   box-shadow: 0 0 24px rgba(0, 229, 255, 0.6);
 }
 .popup-confirm:active {
+  transform: scale(0.97);
+}
+.popup-veto {
+  padding: 13px 18px;
+  background: rgba(255, 77, 94, 0.16);
+  color: var(--accent-red);
+  border: 1px solid rgba(255, 77, 94, 0.38);
+  border-radius: 16px 4px 4px 16px;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.1s, background 0.2s;
+}
+.popup-veto:hover {
+  background: rgba(255, 77, 94, 0.24);
+  box-shadow: 0 0 20px rgba(255, 77, 94, 0.34);
+}
+.popup-veto:active {
   transform: scale(0.97);
 }
 
