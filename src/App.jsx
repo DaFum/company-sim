@@ -45,9 +45,10 @@ function App() {
   useAiDirector();
   const lastDecision = useGameStore((state) => state.pendingDecision);
   const confirmDecision = useGameStore((state) => state.applyPendingDecision);
+  const vetoDecision = useGameStore((state) => state.vetoDecision);
 
-  // Clear any pending store timers (e.g. the veto pizza-party timeout) when the
-  // app unmounts, so stray setTimeout callbacks don't fire against a torn-down store.
+  // Clear any pending store timers when the app unmounts, so stray setTimeout
+  // callbacks do not fire against a torn-down store.
   const clearTimers = useGameStore((state) => state.clearTimers);
   useEffect(() => {
     return () => clearTimers();
@@ -164,6 +165,7 @@ function App() {
                 : 'The board has seized your assets. Game Over.'}
             </p>
             <button
+              type="button"
               onClick={() => window.location.reload()}
               style={{
                 marginTop: '40px',
@@ -214,7 +216,7 @@ function App() {
 
       {/* MODALS */}
       <ApiKeyModal />
-      <DecisionPopup decision={lastDecision} onConfirm={confirmDecision} />
+      <DecisionPopup decision={lastDecision} onConfirm={confirmDecision} onVeto={vetoDecision} />
 
       {/* JUICE: Floating Numbers */}
       {floaters.map((f) => (

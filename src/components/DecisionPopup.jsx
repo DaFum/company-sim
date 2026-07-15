@@ -27,16 +27,26 @@ export const DecisionPopup = ({ decision, onConfirm, onVeto }) => {
 
         {decision.expected_effects && (
           <div className="popup-expected">
-             <strong>{POPUP_TEXT.EXPECTED}</strong> {decision.expected_effects}
+            <strong>{POPUP_TEXT.EXPECTED}</strong> {decision.expected_effects}
           </div>
         )}
 
         <div className="popup-actions" style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-          <button onClick={onConfirm} className="popup-confirm" style={{ flex: 1 }}>
+          <button
+            type="button"
+            onClick={() => onConfirm?.()}
+            className="popup-confirm"
+            style={{ flex: 1 }}
+          >
             {POPUP_TEXT.CONFIRM}
           </button>
 
-          <button onClick={onVeto} className="popup-veto" style={{ flex: 1, backgroundColor: 'red', color: 'white' }}>
+          <button
+            type="button"
+            onClick={() => onVeto?.()}
+            className="popup-veto"
+            style={{ flex: 1, backgroundColor: 'red', color: 'white' }}
+          >
             {POPUP_TEXT.VETO}
           </button>
         </div>

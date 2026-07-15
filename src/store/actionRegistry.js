@@ -14,11 +14,19 @@ const parseWorkerParams = (params, maxCount = 3) => {
 
 export const ACTION_DEFINITIONS = {
   NONE: {
+    description: 'Take no strategic action this cycle.',
+    parameters: {},
+    effects: 'Skips execution without changing company metrics.',
+    risk: 'LOW',
     title: () => 'No Action',
     calculateCost: () => 0,
     apply: () => ({ status: 'SKIPPED' }),
   },
   HIRE_WORKER: {
+    description: 'Hire one to three employees in a specific role to increase capacity.',
+    parameters: { role: 'dev | sales | support', count: '1-3' },
+    effects: 'Adds employees and increases payroll; support helps resolve operational events.',
+    risk: 'MEDIUM',
     title: (params) => {
       const { count, role } = parseWorkerParams(params, 3);
       return `Hire ${count} ${role}(s)`;
@@ -45,6 +53,10 @@ export const ACTION_DEFINITIONS = {
     },
   },
   FIRE_WORKER: {
+    description: 'Fire one to five employees in a specific role to reduce burn rate.',
+    parameters: { role: 'dev | sales | support', count: '1-5' },
+    effects: 'Removes employees, charges severance, and significantly lowers mood.',
+    risk: 'HIGH',
     title: (params) => {
       const { count, role } = parseWorkerParams(params, 5);
       return `Fire ${count} ${role}(s)`;
@@ -88,6 +100,10 @@ export const ACTION_DEFINITIONS = {
     },
   },
   BUY_UPGRADE: {
+    description: 'Buy an office or infrastructure upgrade.',
+    parameters: { item_id: 'coffee_machine | server_rack_v2 | plants | firewall' },
+    effects: 'Improves productivity, mood, stability, or resolves matching crisis events.',
+    risk: 'MEDIUM',
     title: (params) => `Buy Upgrade: ${params?.item_id ?? 'Item'}`,
     calculateCost: () => 2000,
     apply: (state, updates, params) => {
@@ -125,6 +141,10 @@ export const ACTION_DEFINITIONS = {
     },
   },
   MARKETING_PUSH: {
+    description: 'Launch a high-budget marketing campaign.',
+    parameters: { budget: 'HIGH' },
+    effects: 'Temporarily doubles marketing impact and resolves market shitstorms.',
+    risk: 'HIGH',
     title: () => 'Launch Marketing Push',
     calculateCost: () => 5000,
     apply: (state, updates) => {
@@ -142,6 +162,11 @@ export const ACTION_DEFINITIONS = {
     },
   },
   PIVOT: {
+    description: 'Reset the product direction to differentiate from competitors.',
+    parameters: {},
+    effects:
+      'Raises product level, resets product age, ends clone pressure, but damages mood and marketing efficiency.',
+    risk: 'HIGH',
     title: () => 'Pivot Strategy',
     calculateCost: () => 0,
     apply: (state, updates) => {
@@ -158,6 +183,10 @@ export const ACTION_DEFINITIONS = {
     },
   },
   REFACTOR: {
+    description: 'Spend a day reducing technical debt instead of shipping.',
+    parameters: {},
+    effects: 'Reduces technical debt by 30 and sets productivity to zero for the next day.',
+    risk: 'LOW',
     title: () => 'Refactor Technical Debt',
     calculateCost: () => 0,
     apply: (state, updates) => {
