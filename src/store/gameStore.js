@@ -592,6 +592,37 @@ export const useGameStore = create(
           updates.roster = calculateRoster(updates.employees);
         }
 
+        if (updates.activeEvents) {
+          const removedTypes = state.activeEvents
+            .filter((event) => !updates.activeEvents.some((updated) => updated.type === event.type))
+            .map((event) => event.type);
+
+          if (removedTypes.length > 0) {
+            let currentHistory = updates.eventHistory || state.eventHistory;
+
+            removedTypes.forEach((type) => {
+              let resolvedLatest = false;
+              currentHistory = [...currentHistory]
+                .reverse()
+                .map((entry) => {
+                  if (!resolvedLatest && entry.type === type && entry.resolution === null) {
+                    resolvedLatest = true;
+                    return {
+                      ...entry,
+                      resolvedAtDay: state.day,
+                      resolvedAtTick: state.tick,
+                      resolution: 'resolved',
+                    };
+                  }
+                  return entry;
+                })
+                .reverse();
+            });
+
+            updates.eventHistory = currentHistory;
+          }
+        }
+
         set(updates);
         get().startNewDay();
       }

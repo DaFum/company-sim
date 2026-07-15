@@ -1080,8 +1080,9 @@ export default class MainScene extends Phaser.Scene {
       return;
     }
 
-    this.overlayGroup?.getChildren?.().forEach((child) => {
-      if (child.text !== 'REFACTORING') child.destroy?.();
+    const children = this.overlayGroup?.getChildren?.() || [];
+    [...children].forEach((child) => {
+      if (child && child.text !== 'REFACTORING') child.destroy?.();
     });
   }
 
@@ -1139,8 +1140,9 @@ export default class MainScene extends Phaser.Scene {
   syncRefactorVisuals(isRefactoring) {
     this.refreshWorkerTints();
 
-    this.overlayGroup?.getChildren?.().forEach((child) => {
-      if (child.text === 'REFACTORING') child.destroy?.();
+    const children = this.overlayGroup?.getChildren?.() || [];
+    [...children].forEach((child) => {
+      if (child && child.text === 'REFACTORING') child.destroy?.();
     });
 
     if (isRefactoring) {
