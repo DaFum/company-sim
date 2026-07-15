@@ -30,7 +30,7 @@ export const RetroTerminal = () => {
       {pendingDecision && (
         <div className="decision-overlay">
           <h3 className="decision-title">&gt;&gt; PROPOSAL: {pendingDecision.action}</h3>
-          <p className="decision-reason">"{pendingDecision.reasoning}"</p>
+          <p className="decision-reason">&quot;{pendingDecision.reasoning}&quot;</p>
 
           <div className="veto-container">
             <button onClick={vetoDecision} className="veto-button">
