@@ -32,6 +32,20 @@ const getRandomTrait = () => {
  * @property {string} trait - Employee trait.
  */
 
+// Monotonic counter for employee IDs. Date.now() collided when several
+// employees were created within the same millisecond (e.g. a bulk hire), which
+// broke sprite-to-employee matching in the Phaser scene.
+let employeeIdCounter = 0;
+
+/**
+ * Generates a unique, stable employee ID.
+ * @returns {string} Unique ID (e.g. "emp-1").
+ */
+const nextEmployeeId = () => {
+  employeeIdCounter += 1;
+  return `emp-${employeeIdCounter}`;
+};
+
 /**
  * Creates a new employee object.
  * @param {string} role - Employee role.
@@ -72,7 +86,9 @@ const calculateEmployeeMetrics = (employees) => {
     // Trait Modifiers
     if (e.trait === '10x_ENGINEER') {
       output = 4.0;
-      debtAcc += 0.2;
+      // Technical debt is a coding artifact: only 10x *devs* accrue it. A 10x
+      // hire in sales/support shouldn't add debt to a codebase they don't touch.
+      if (e.role === 'dev') debtAcc += 0.2;
     }
     if (e.trait === 'JUNIOR') {
       output = 0.5;
@@ -86,6 +102,52 @@ const calculateEmployeeMetrics = (employees) => {
   });
 
   return { totalDevOutput, totalSalesOutput, debtAcc, moodDecay };
+};
+
+/**
+ * @typedef {Object} ChaosEventDef
+ * @property {string} type - Event type passed to triggerEvent.
+ * @property {number} weight - Relative selection weight.
+ * @property {(state: GameStoreState) => boolean} [canFire] - Optional gate; if it
+ *   returns false the roll fizzles ("dodged") and no event triggers this tick.
+ */
+
+/**
+ * Weighted table of chaos events. Replaces the old nested if/else roll: each
+ * event has a relative weight and an optional gate condition. Splitting the old
+ * single RANSOMWARE branch lets COMPETITOR_CLONE actually appear in the wild.
+ * @type {ChaosEventDef[]}
+ */
+const CHAOS_EVENT_TABLE = [
+  {
+    type: 'TECH_OUTAGE',
+    weight: 2,
+    // Higher technical debt sharply increases the odds the outage actually lands.
+    canFire: (s) => Math.random() < (0.001 + s.technicalDebt / 1000) * 10,
+  },
+  { type: 'HUMAN_QUIT', weight: 2, canFire: (s) => s.mood < 40 },
+  { type: 'HUMAN_SICK', weight: 2 },
+  { type: 'MARKET_SHITSTORM', weight: 2 },
+  { type: 'RANSOMWARE', weight: 1 },
+  { type: 'COMPETITOR_CLONE', weight: 1 },
+];
+
+/**
+ * Picks a chaos event from the weighted table.
+ * @param {GameStoreState} state - Current game state (for gate conditions).
+ * @returns {string|null} Event type to trigger, or null if the roll fizzles.
+ */
+const rollChaosEvent = (state) => {
+  const totalWeight = CHAOS_EVENT_TABLE.reduce((sum, e) => sum + e.weight, 0);
+  let roll = Math.random() * totalWeight;
+  for (const event of CHAOS_EVENT_TABLE) {
+    roll -= event.weight;
+    if (roll < 0) {
+      if (event.canFire && !event.canFire(state)) return null; // Dodged
+      return event.type;
+    }
+  }
+  return null;
 };
 
 /**
@@ -118,6 +180,7 @@ const calculateEmployeeMetrics = (employees) => {
  * @property {number} workers - Total worker count.
  * @property {Employee[]} employees - List of employee objects.
  * @property {number} productivity - Global productivity multiplier.
+ * @property {boolean} isRefactoring - Whether the upcoming day is a refactoring day (productivity halted).
  * @property {number} burnRate - Daily burn rate.
  * @property {number} mood - Global mood (0-100).
  * @property {number} productLevel - Product quality level.
@@ -188,9 +251,10 @@ export const useGameStore = create(
     // Resources (Refactored for Traits)
     roster: { dev: 1, sales: 0, support: 0 }, // Initial Sync
     workers: 1, // Initial Sync
-    employees: [createEmployee('dev', Date.now())], // Initial: 1 Dev
+    employees: [createEmployee('dev', nextEmployeeId())], // Initial: 1 Dev
 
     productivity: 10,
+    isRefactoring: false,
     burnRate: 50,
 
     // Metrics
@@ -362,8 +426,14 @@ export const useGameStore = create(
           const victim = devs[0];
           newEmployees = newEmployees.filter((e) => e.id !== victim.id);
         }
+        const roster = { dev: 0, sales: 0, support: 0 };
+        newEmployees.forEach((e) => {
+          if (roster[e.role] !== undefined) roster[e.role]++;
+        });
         set({
           employees: newEmployees,
+          workers: newEmployees.length,
+          roster,
           mood: Math.max(0, state.mood - 10),
         });
       } else if (type === 'HUMAN_SICK') {
@@ -455,7 +525,7 @@ export const useGameStore = create(
             else if (role.includes('support')) actualRole = 'support';
 
             for (let i = 0; i < count; i++) {
-              newEmployees.push(createEmployee(actualRole, Date.now() + i));
+              newEmployees.push(createEmployee(actualRole, nextEmployeeId()));
             }
 
             updates.employees = newEmployees;
@@ -536,11 +606,17 @@ export const useGameStore = create(
           updates.mood = Math.max(0, state.mood - 30);
           updates.marketingMultiplier = 0.5;
           updates.marketingLeft = 120;
+          // Pivoting into a new market escapes a competitor that cloned us.
+          updates.activeEvents = state.activeEvents.filter((e) => e.type !== 'COMPETITOR_CLONE');
           state.addTerminalLog(`> PIVOTING...`);
         } else if (action === 'REFACTOR') {
           updates.technicalDebt = Math.max(0, state.technicalDebt - 30);
-          updates.productivity = 0;
-          state.addTerminalLog(`> REFACTORING: Debt reduced. Productivity halted.`);
+          // Decisions are applied at end of day, immediately before startNewDay
+          // resets productivity. Setting productivity here would be wiped
+          // instantly, so we flag the next day as a refactoring day instead and
+          // let startNewDay apply the productivity penalty.
+          updates.isRefactoring = true;
+          state.addTerminalLog(`> REFACTORING: Debt reduced. Productivity halted for the day.`);
         }
 
         // Keep the workers/roster UI helpers in sync with the employees list
@@ -582,23 +658,18 @@ export const useGameStore = create(
         const isTechOutage = activeEvents.some((e) => e.type === 'TECH_OUTAGE');
         const isSick = activeEvents.some((e) => e.type === 'HUMAN_SICK');
         const isShitstorm = activeEvents.some((e) => e.type === 'MARKET_SHITSTORM');
+        const isCompetitor = activeEvents.some((e) => e.type === 'COMPETITOR_CLONE');
 
-        const outageChance = 0.001 + state.technicalDebt / 1000;
-
+        // ~1% chance per WORK tick to roll for a chaos event, gated so it can't
+        // pile on early, while broke, or twice in one day.
+        let rolledEventType = null;
         if (
           state.day > 5 &&
           state.cash > 2000 &&
           state.lastEventDay !== state.day &&
           Math.random() < 0.01
         ) {
-          const roll = Math.random();
-          if (roll < 0.2 && Math.random() < outageChance * 10) get().triggerEvent('TECH_OUTAGE');
-          else if (roll < 0.2) {
-            /* Dodged */
-          } else if (roll < 0.4 && state.mood < 40) get().triggerEvent('HUMAN_QUIT');
-          else if (roll < 0.6) get().triggerEvent('HUMAN_SICK');
-          else if (roll < 0.8) get().triggerEvent('MARKET_SHITSTORM');
-          else get().triggerEvent('RANSOMWARE');
+          rolledEventType = rollChaosEvent(state);
         }
 
         // --- 3. Economic Calc (Traits + Lifecycle) ---
@@ -611,6 +682,9 @@ export const useGameStore = create(
         if (state.productAge < 20) demandFactor = 1.5;
         else if (state.productAge > 100)
           demandFactor = Math.max(0.2, 1.0 - (state.productAge - 100) * 0.01);
+
+        // A competitor cloning our tech steals market share until we PIVOT away.
+        if (isCompetitor) demandFactor *= 0.7;
 
         let finalProd = state.productivity;
         if (isTechOutage) finalProd = 0;
@@ -663,6 +737,10 @@ export const useGameStore = create(
           workers: stats.count,
           roster: stats.roster,
         });
+
+        if (rolledEventType) {
+          get().triggerEvent(rolledEventType);
+        }
       } else {
         // Crunch Phase
         const debtIncrease = state.employees.filter((e) => e.role === 'dev').length * 0.05 * 2;
@@ -698,7 +776,14 @@ export const useGameStore = create(
           description: e.description,
         }));
 
-        const persistentEvents = state.activeEvents.filter((e) => e.type === 'COMPETITOR_CLONE');
+        // Carry over any event that still has time left instead of wiping them
+        // nightly, so durations >1 day (e.g. a 120-tick flu wave, or the
+        // long-lived COMPETITOR_CLONE) actually span multiple days as intended.
+        const carriedEvents = state.activeEvents.filter((e) => e.timeLeft > 0);
+
+        // A pending REFACTOR halts productivity for the whole new day; otherwise
+        // productivity returns to its baseline (boosted by the coffee machine).
+        const baseProductivity = state.inventory.includes('coffee_machine') ? 12 : 10;
 
         return {
           day: state.day + 1,
@@ -707,12 +792,15 @@ export const useGameStore = create(
           isAiThinking: false,
           terminalLogs: [],
           officeLevel: newLevel,
-          isPlaying: true,
+          // Preserve the player's play/pause choice across the day boundary
+          // instead of force-resuming.
+          isPlaying: state.isPlaying,
           mood: Math.max(0, state.mood - 1),
           eventHistory: history,
-          activeEvents: persistentEvents,
+          activeEvents: carriedEvents,
           startOfDayCash: state.cash,
-          productivity: state.inventory.includes('coffee_machine') ? 12 : 10,
+          productivity: state.isRefactoring ? 0 : baseProductivity,
+          isRefactoring: false,
         };
       });
     },
@@ -734,7 +822,7 @@ export const useGameStore = create(
         ? normalizedRole
         : 'dev';
 
-      const newEmployees = [...state.employees, createEmployee(actualRole, Date.now())];
+      const newEmployees = [...state.employees, createEmployee(actualRole, nextEmployeeId())];
       const roster = { dev: 0, sales: 0, support: 0 };
       newEmployees.forEach((e) => {
         if (roster[e.role] !== undefined) roster[e.role]++;

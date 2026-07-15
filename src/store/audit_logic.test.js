@@ -182,4 +182,150 @@ describe('GameStore Logic Audit', () => {
       expect(state.cash).toBe(5000 - SEVERANCE_COST);
     });
   });
+
+  describe('Chaos Events', () => {
+    // Baseline: 1 dev, no sales, fresh product. day=1 keeps the random event
+    // roll (day > 5) disabled so the tick is deterministic.
+    const baseSetup = {
+      cash: 1000,
+      employees: [{ id: 1, role: 'dev', trait: 'NORMAL' }],
+      roster: { dev: 1, sales: 0, support: 0 },
+      officeLevel: 1,
+      productivity: 10,
+      mood: 100,
+      isPlaying: true,
+      productAge: 0,
+      serverStability: 1.0,
+      productLevel: 1,
+      marketingMultiplier: 1.0,
+      day: 1,
+      tick: 0,
+      gamePhase: 'WORK',
+    };
+
+    it('should reduce revenue while COMPETITOR_CLONE is active', () => {
+      useGameStore.setState({ ...baseSetup, activeEvents: [] });
+      useGameStore.getState().advanceTick();
+      const gainNormal = useGameStore.getState().cash - baseSetup.cash;
+
+      useGameStore.setState({
+        ...baseSetup,
+        activeEvents: [
+          { type: 'COMPETITOR_CLONE', timeLeft: 999, severity: 'HIGH', description: 'clone' },
+        ],
+      });
+      useGameStore.getState().advanceTick();
+      const gainCompetitor = useGameStore.getState().cash - baseSetup.cash;
+
+      expect(gainCompetitor).toBeLessThan(gainNormal);
+    });
+
+    it('should clear an active COMPETITOR_CLONE when PIVOT is applied', () => {
+      useGameStore.setState({
+        activeEvents: [
+          { type: 'COMPETITOR_CLONE', timeLeft: 999, severity: 'HIGH', description: 'clone' },
+        ],
+        pendingDecision: { action: 'PIVOT', parameters: {} },
+        cash: 5000,
+      });
+
+      useGameStore.getState().applyPendingDecision();
+
+      const state = useGameStore.getState();
+      expect(state.activeEvents.some((e) => e.type === 'COMPETITOR_CLONE')).toBe(false);
+      expect(state.pendingDecision).toBeNull();
+    });
+  });
+
+  describe('Trait economics', () => {
+    const traitSetup = (employee) => ({
+      employees: [employee],
+      technicalDebt: 0,
+      day: 1, // day <= 5 disables the random event roll -> deterministic
+      tick: 0,
+      gamePhase: 'WORK',
+      isPlaying: true,
+      mood: 100,
+      productivity: 10,
+      productAge: 0,
+      serverStability: 1.0,
+      productLevel: 1,
+      marketingMultiplier: 1.0,
+      cash: 5000,
+      activeEvents: [],
+    });
+
+    it('should NOT accrue technical debt for a 10x engineer in a non-dev role', () => {
+      useGameStore.setState(traitSetup({ id: 'e1', role: 'support', trait: '10x_ENGINEER' }));
+      useGameStore.getState().advanceTick();
+      expect(useGameStore.getState().technicalDebt).toBe(0);
+    });
+
+    it('should accrue technical debt for a 10x engineer dev', () => {
+      useGameStore.setState(traitSetup({ id: 'e1', role: 'dev', trait: '10x_ENGINEER' }));
+      useGameStore.getState().advanceTick();
+      // base dev debt (0.05) + 10x dev debt (0.2) = 0.25
+      expect(useGameStore.getState().technicalDebt).toBeCloseTo(0.25, 5);
+    });
+  });
+
+  describe('Event lifetime across days', () => {
+    it('should carry a still-active event into the next day', () => {
+      useGameStore.setState({
+        activeEvents: [{ type: 'HUMAN_SICK', timeLeft: 90, severity: 'HIGH', description: 'flu' }],
+        employees: [{ id: 'e1', role: 'dev', trait: 'NORMAL' }],
+        day: 3,
+        mood: 100,
+        cash: 5000,
+        inventory: [],
+      });
+
+      useGameStore.getState().startNewDay();
+
+      const state = useGameStore.getState();
+      expect(state.day).toBe(4);
+      expect(state.activeEvents.some((e) => e.type === 'HUMAN_SICK')).toBe(true);
+    });
+
+    it('should drop expired (timeLeft 0) events at the day boundary', () => {
+      useGameStore.setState({
+        activeEvents: [{ type: 'HUMAN_QUIT', timeLeft: 0, severity: 'HIGH', description: 'quit' }],
+        employees: [{ id: 'e1', role: 'dev', trait: 'NORMAL' }],
+        day: 3,
+        mood: 100,
+        cash: 5000,
+        inventory: [],
+      });
+
+      useGameStore.getState().startNewDay();
+
+      expect(useGameStore.getState().activeEvents.some((e) => e.type === 'HUMAN_QUIT')).toBe(false);
+    });
+  });
+
+  describe('Employee ID uniqueness', () => {
+    it('should assign unique ids when bulk-hiring in a single tick', () => {
+      useGameStore.setState({
+        employees: [],
+        cash: 10000,
+        pendingDecision: { action: 'HIRE_WORKER', parameters: { count: 3, role: 'dev' } },
+      });
+
+      useGameStore.getState().applyPendingDecision();
+
+      const ids = useGameStore.getState().employees.map((e) => e.id);
+      expect(ids).toHaveLength(3);
+      expect(new Set(ids).size).toBe(3);
+    });
+
+    it('should assign unique ids across separate hires', () => {
+      useGameStore.setState({ employees: [], cash: 10000 });
+
+      useGameStore.getState().hireWorker('dev');
+      useGameStore.getState().hireWorker('dev');
+
+      const ids = useGameStore.getState().employees.map((e) => e.id);
+      expect(new Set(ids).size).toBe(2);
+    });
+  });
 });

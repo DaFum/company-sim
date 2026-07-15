@@ -15,4 +15,20 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split heavy, rarely-changing vendors into their own chunks so app
+        // code stays small and vendors cache independently across deploys.
+        manualChunks: {
+          phaser: ['phaser'],
+          'vendor-react': ['react', 'react-dom'],
+        },
+      },
+    },
+    // Phaser is a large but essential engine living in its own async chunk, so
+    // the size warning would only ever flag Phaser itself. Raise the limit past
+    // it while keeping real app-code regressions visible.
+    chunkSizeWarningLimit: 1600,
+  },
 });
