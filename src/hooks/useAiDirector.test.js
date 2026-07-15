@@ -55,6 +55,8 @@ describe('useAiDirector', () => {
       inventory: [],
       eventHistory: [],
       activeEvents: [],
+      getStats: vi.fn().mockReturnValue({ totalBurn: 250 }),
+      technicalDebt: 20,
     };
 
     useGameStore.__setMockState(currentState);
@@ -124,8 +126,9 @@ describe('useAiDirector', () => {
       action: 'HIRE_WORKER',
       parameters: { count: 2, role: 'Dev' },
       reasoning: 'Need more developers to increase productivity.',
-      decision_title: 'Hire 2 Dev(s)',
+      decision_title: 'Hire 2 dev(s)',
       amount: 1000, // 2 * 500
+      risk_assessment: 'LOW',
     });
 
     expect(useGameStore.setState).toHaveBeenCalledWith({ isAiThinking: false });
@@ -155,8 +158,9 @@ describe('useAiDirector', () => {
       action: 'NONE',
       parameters: {},
       reasoning: 'No API Key found. Playing safe.',
-      decision_title: 'Action: NONE',
+      decision_title: 'No Action',
       amount: 0,
+      risk_assessment: 'LOW',
     });
 
     expect(useGameStore.setState).toHaveBeenCalledWith({ isAiThinking: false });

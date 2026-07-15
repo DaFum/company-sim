@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { callAI } from '../services/aiService';
 import { generateSystemPrompt } from '../services/prompts';
+import { ACTION_DEFINITIONS } from '../store/actionRegistry';
 
 /**
  * @typedef {Object} DecisionParams
@@ -26,42 +27,16 @@ import { generateSystemPrompt } from '../services/prompts';
  * @param {string} reason - The AI's reasoning.
  * @returns {Decision} Formatted decision object.
  */
-const formatDecision = (action, params, reason) => {
+const formatDecision = (action, params, reason, riskAssessment) => {
   const safeParams = params && typeof params === 'object' ? params : {};
-  const count = safeParams.count ?? 1;
-  const role = safeParams.role ?? 'Dev';
-  const itemId = safeParams.item_id ?? 'Item';
-  let title = action;
+  const def = Object.hasOwn(ACTION_DEFINITIONS, action) ? ACTION_DEFINITIONS[action] : null;
+
+  let title = `Action: ${action}`;
   let amount = 0;
 
-  switch (action) {
-    case 'HIRE_WORKER':
-      title = `Hire ${count} ${role}(s)`;
-      amount = count * 500;
-      break;
-    case 'FIRE_WORKER':
-      title = `Fire ${count} ${role}(s)`;
-      amount = count * 200;
-      break;
-    case 'BUY_UPGRADE':
-      title = `Buy Upgrade: ${itemId}`;
-      amount = 2000;
-      break;
-    case 'MARKETING_PUSH':
-      title = 'Launch Marketing Push';
-      amount = 5000;
-      break;
-    case 'PIVOT':
-      title = 'Pivot Strategy';
-      amount = 0;
-      break;
-    case 'REFACTOR':
-      title = 'Refactor Technical Debt';
-      amount = 0;
-      break;
-    default:
-      title = `Action: ${action}`;
-      amount = 0;
+  if (def) {
+    title = def.title(safeParams);
+    amount = def.calculateCost(safeParams);
   }
 
   return {
@@ -70,6 +45,7 @@ const formatDecision = (action, params, reason) => {
     reasoning: reason,
     decision_title: title,
     amount,
+    risk_assessment: riskAssessment || 'LOW',
   };
 };
 
@@ -119,15 +95,27 @@ export const useAiDirector = () => {
             return acc;
           }, {});
 
+          const stats = state.getStats();
+
           const fullState = {
             cash: state.cash,
+            burn_rate: stats.totalBurn,
             financial_trend: financialTrend,
-            product_age: state.productAge, // NEW
-            workers: state.workers,
-            roster: state.roster,
-            employee_traits: traitSummary, // NEW
+            product_age: state.productAge,
+            workers: stats.count,
+            roster: stats.roster,
+            employee_traits: traitSummary,
             day: state.day,
             mood: state.mood,
+            technical_debt: state.technicalDebt,
+            productivity: state.productivity,
+            product_level: state.productLevel,
+            revenue_per_tick: state.lastRevenue || 0, // Ensure gameStore has this or default to 0
+            marketing_multiplier: state.marketingMultiplier,
+            marketing_ticks_remaining: state.marketingLeft,
+            is_refactoring: state.isRefactoring,
+            server_health: state.serverHealth,
+            server_stability: state.serverStability,
             yesterday_events: state.eventHistory || [],
             active_events: state.activeEvents || [],
             inventory: state.inventory,
@@ -152,7 +140,8 @@ export const useAiDirector = () => {
           const decisionData = formatDecision(
             result.action || 'NONE',
             result.parameters || {},
-            result.reasoning || 'Analyzing market data.'
+            result.reasoning || 'Analyzing market data.',
+            result.risk_assessment
           );
           setPendingDecision(decisionData);
 

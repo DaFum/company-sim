@@ -27,10 +27,11 @@ export const callAI = async (
 ) => {
   if (!apiKey) throw new Error('Kein API Key vorhanden.');
 
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), 15000); // 15-second timeout
+
   try {
     let content;
-
-    // Use specific prompt for PIVOT logic if detected in game state (optional, simplified for now)
 
     if (provider === 'pollinations') {
       const response = await fetch('https://gen.pollinations.ai/v1/chat/completions', {
@@ -45,8 +46,9 @@ export const callAI = async (
             { role: 'system', content: systemPrompt },
             { role: 'user', content: JSON.stringify(gameState) },
           ],
-          jsonMode: true, // Pollinations might support this or via prompt
+          jsonMode: true,
         }),
+        signal: abortController.signal,
       });
 
       if (!response.ok) throw new Error(`Pollinations API Error: ${response.statusText}`);
@@ -54,14 +56,17 @@ export const callAI = async (
       content = data.choices[0].message.content;
     } else {
       const client = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
-      const response = await client.chat.completions.create({
-        model: 'gpt-4o-mini', // Better than 3.5 for JSON
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: JSON.stringify(gameState) },
-        ],
-        response_format: { type: 'json_object' },
-      });
+      const response = await client.chat.completions.create(
+        {
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: JSON.stringify(gameState) },
+          ],
+          response_format: { type: 'json_object' },
+        },
+        { signal: abortController.signal }
+      );
       content = response.choices[0].message.content;
     }
 
@@ -76,8 +81,10 @@ export const callAI = async (
     // Validation
     if (!parsed.action) throw new Error("Missing 'action' field");
 
+    clearTimeout(timeoutId);
     return parsed;
   } catch (error) {
+    clearTimeout(timeoutId);
     console.error('AI Service Error:', error);
     if (!suppressErrors) throw error;
 
@@ -85,7 +92,10 @@ export const callAI = async (
     return {
       action: 'NONE',
       parameters: {},
-      reasoning: 'AI Connection Failed. Playing it safe.',
+      reasoning:
+        error.name === 'AbortError'
+          ? 'AI Connection Timeout. Playing it safe.'
+          : 'AI Connection Failed. Playing it safe.',
       risk_assessment: 'LOW',
     };
   }
