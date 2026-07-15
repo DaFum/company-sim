@@ -880,7 +880,7 @@ export const useGameStore = create(
         const baseProductivity = state.inventory.includes('coffee_machine') ? 12 : 10;
 
         const recentEventHistory = state.eventHistory.filter(
-          (event) => event.startedAtDay >= state.day - 1
+          (event) => event.resolution === null || event.startedAtDay >= state.day - 1
         );
 
         return {
