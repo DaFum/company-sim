@@ -119,8 +119,11 @@ export const useAiDirector = () => {
             return acc;
           }, {});
 
+          const stats = state.getStats();
+
           const fullState = {
             cash: state.cash,
+            burn_rate: stats.totalBurn,
             financial_trend: financialTrend,
             product_age: state.productAge, // NEW
             workers: state.workers,
@@ -128,6 +131,7 @@ export const useAiDirector = () => {
             employee_traits: traitSummary, // NEW
             day: state.day,
             mood: state.mood,
+            technical_debt: state.technicalDebt,
             yesterday_events: state.eventHistory || [],
             active_events: state.activeEvents || [],
             inventory: state.inventory,

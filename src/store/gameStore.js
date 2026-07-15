@@ -603,6 +603,7 @@ export const useGameStore = create(
             if (item === 'server_rack_v2') {
               updates.serverStability = 1.0;
               updates.serverHealth = 100;
+              get().resolveEvent('TECH_OUTAGE');
             }
             if (item === 'firewall') {
               get().resolveEvent('RANSOMWARE');
@@ -674,9 +675,11 @@ export const useGameStore = create(
         let isShitstorm = false;
         let isCompetitor = false;
 
+        const supportPower = 1 + (state.roster.support || 0);
+
         for (const e of state.activeEvents) {
           if (e && e.timeLeft > 0) {
-            const updatedEvent = { ...e, timeLeft: e.timeLeft - 1 };
+            const updatedEvent = { ...e, timeLeft: e.timeLeft - supportPower };
             if (updatedEvent.timeLeft > 0) {
               activeEvents.push(updatedEvent);
             }

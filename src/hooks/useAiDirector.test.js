@@ -55,6 +55,8 @@ describe('useAiDirector', () => {
       inventory: [],
       eventHistory: [],
       activeEvents: [],
+      getStats: vi.fn().mockReturnValue({ totalBurn: 250 }),
+      technicalDebt: 20,
     };
 
     useGameStore.__setMockState(currentState);
