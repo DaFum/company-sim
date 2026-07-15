@@ -164,6 +164,20 @@ export default class MainScene extends Phaser.Scene {
         )
       );
 
+      this.unsubscribers.push(
+        store.subscribe(
+          (state) => state.isRefactoring,
+          (isRefactoring) => this.syncRefactorVisuals(isRefactoring)
+        )
+      );
+
+      this.unsubscribers.push(
+        store.subscribe(
+          (state) => state.inventory,
+          (inventory) => this.syncInventoryVisuals(inventory)
+        )
+      );
+
       // 5) Initial Sync
       const state = store.getState();
       if (state) {
@@ -171,6 +185,8 @@ export default class MainScene extends Phaser.Scene {
         this.syncVisitors(state.activeVisitors);
         this.updateMoodVisuals(state.mood);
         this.syncChaosVisuals(state.activeEvents);
+        this.syncRefactorVisuals(state.isRefactoring);
+        this.syncInventoryVisuals(state.inventory);
       }
     } else {
       console.warn('[MainScene] Store unavailable.');
@@ -1041,6 +1057,9 @@ export default class MainScene extends Phaser.Scene {
    * @param {number} mood - Current mood value (0-100).
    */
   updateMoodVisuals(mood) {
+    // If store is refactoring, its subscription handles the tint override.
+    // Similarly for HUMAN_SICK via activeEvents.
+    // We'll apply the mood tint as a baseline, but the other systems may overwrite it immediately.
     const tint = mood > 80 ? 0xffffff : mood > 40 ? 0xccccff : 0x8888ff;
     this.workersGroup.children.iterate((w) => w?.setTint?.(tint));
   }
@@ -1082,7 +1101,39 @@ export default class MainScene extends Phaser.Scene {
       } else if (e.type === 'MARKET_SHITSTORM') {
         this.addOverlayText('SHITSTORM IN PROGRESS', '#aa0000');
         this.cameras.main.shake(100, 0.005);
+      } else if (e.type === 'HUMAN_SICK') {
+        this.workersGroup.children.iterate((w) => w?.setTint?.(0x88ff88));
+      } else if (e.type === 'COMPETITOR_CLONE') {
+        this.addOverlayText('COMPETITOR DETECTED', '#aa0000');
       }
+    }
+  }
+
+  /**
+   * Triggers visual effects for refactoring state.
+   * @param {boolean} isRefactoring - Whether refactoring is active.
+   */
+  syncRefactorVisuals(isRefactoring) {
+    if (isRefactoring) {
+      this.workersGroup.children.iterate((w) => w?.setTint?.(0x888888));
+      this.addOverlayText('REFACTORING', '#555555');
+    }
+  }
+
+  /**
+   * Triggers visual effects for newly acquired inventory items.
+   * @param {string[]} inventory - The player's inventory list.
+   */
+  syncInventoryVisuals(inventory) {
+    if (!inventory) return;
+    if (inventory.includes('firewall')) {
+      // Small visual indicator or protective shield around server (can be expanded later)
+    }
+    if (inventory.includes('server_rack_v2')) {
+      // Additional server rack prop spawned (can be expanded later)
+    }
+    if (inventory.includes('plants')) {
+      // The map already has plants, but we could spawn additional dynamic ones here.
     }
   }
 

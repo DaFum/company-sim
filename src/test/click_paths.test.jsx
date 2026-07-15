@@ -90,7 +90,7 @@ describe('App Click Paths', () => {
     expect(screen.getByText(/Hire Someone/)).toBeInTheDocument();
 
     // Click Confirm
-    const confirmButton = screen.getByRole('button', { name: /Start Next Day/i });
+    const confirmButton = screen.getByRole('button', { name: /Execute Decision/i });
     fireEvent.click(confirmButton);
 
     // Decision should be applied and its effects reflected in the store

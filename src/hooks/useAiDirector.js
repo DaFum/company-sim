@@ -66,7 +66,7 @@ export const useAiDirector = () => {
   useEffect(() => {
     const timers = [];
     // TRIGGER AT TICK 50
-    if (tick === 50 && !processingRef.current) {
+    if (tick === 60 && !processingRef.current) {
       processingRef.current = true;
       useGameStore.setState({ isAiThinking: true });
 

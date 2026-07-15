@@ -3,10 +3,12 @@ import React from 'react';
 const POPUP_TEXT = {
   TITLE: 'The CEO has decided',
   COST: 'Cost:',
-  CONFIRM: 'Start Next Day',
+  EXPECTED: 'Expected:',
+  CONFIRM: 'Execute Decision',
+  VETO: 'Veto Decision',
 };
 
-export const DecisionPopup = ({ decision, onConfirm }) => {
+export const DecisionPopup = ({ decision, onConfirm, onVeto }) => {
   if (!decision) return null;
 
   return (
@@ -23,9 +25,21 @@ export const DecisionPopup = ({ decision, onConfirm }) => {
           {POPUP_TEXT.COST} {decision.amount} €
         </div>
 
-        <button onClick={onConfirm} className="popup-confirm">
-          {POPUP_TEXT.CONFIRM}
-        </button>
+        {decision.expected_effects && (
+          <div className="popup-expected">
+             <strong>{POPUP_TEXT.EXPECTED}</strong> {decision.expected_effects}
+          </div>
+        )}
+
+        <div className="popup-actions" style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+          <button onClick={onConfirm} className="popup-confirm" style={{ flex: 1 }}>
+            {POPUP_TEXT.CONFIRM}
+          </button>
+
+          <button onClick={onVeto} className="popup-veto" style={{ flex: 1, backgroundColor: 'red', color: 'white' }}>
+            {POPUP_TEXT.VETO}
+          </button>
+        </div>
       </div>
     </div>
   );

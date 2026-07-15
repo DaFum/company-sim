@@ -277,6 +277,7 @@ export const useGameStore = create(
     burnRate: 50,
 
     // Metrics
+    gameState: 'PLAYING', // PLAYING, GAME_OVER, WIN
     mood: 100,
     productLevel: 1,
     productAge: 0, // NEW: Lifecycle
@@ -673,6 +674,16 @@ export const useGameStore = create(
         // but stats.roster gives us current counts.
         // We'll update 'workers' count for UI.
 
+        if (state.cash + netChange < -10000 || stats.count === 0) {
+          set({ gameState: 'GAME_OVER', tick: newTick, gamePhase: newPhase });
+          return;
+        }
+
+        if (state.productLevel >= 5 && state.cash + netChange > 100000) {
+          set({ gameState: 'WIN', tick: newTick, gamePhase: newPhase });
+          return;
+        }
+
         set({
           cash: state.cash + netChange,
           lastRevenue: currentRevenue,
@@ -698,10 +709,20 @@ export const useGameStore = create(
         const debtIncrease = state.isRefactoring ? 0 : state.roster.dev * 0.05 * 2;
         const newDebt = state.technicalDebt + debtIncrease;
 
+        if (state.cash < -10000 || state.employees.length === 0) {
+          set({ gameState: 'GAME_OVER', tick: newTick, gamePhase: newPhase });
+          return;
+        }
+
+        if (state.productLevel >= 5 && state.cash > 100000) {
+          set({ gameState: 'WIN', tick: newTick, gamePhase: newPhase });
+          return;
+        }
+
         if (newTick > 60) {
           if (state.isAiThinking) return;
-          if (state.pendingDecision) state.applyPendingDecision();
-          state.startNewDay();
+          if (state.pendingDecision) return;
+          // Wait for user to resolve pending decision
           return;
         }
 

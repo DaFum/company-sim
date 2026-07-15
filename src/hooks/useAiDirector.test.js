@@ -68,7 +68,7 @@ describe('useAiDirector', () => {
     vi.restoreAllMocks();
   });
 
-  it('should not trigger if tick is not 50', () => {
+  it('should not trigger if tick is not 60', () => {
     renderHook(() => useAiDirector());
 
     expect(currentState.addTerminalLog).not.toHaveBeenCalled();
@@ -76,7 +76,7 @@ describe('useAiDirector', () => {
   });
 
   it('should trigger at tick 50, log progress, call API and set decision when API key is present', async () => {
-    currentState.tick = 50;
+    currentState.tick = 60;
     useGameStore.__setMockState(currentState);
 
     callAI.mockResolvedValueOnce({
@@ -135,7 +135,7 @@ describe('useAiDirector', () => {
   });
 
   it('should use fallback delay and decision when no API key is present', async () => {
-    currentState.tick = 50;
+    currentState.tick = 60;
     currentState.apiKey = ''; // No API key
     useGameStore.__setMockState(currentState);
 
@@ -167,7 +167,7 @@ describe('useAiDirector', () => {
   });
 
   it('should prevent double-firing due to processingRef', async () => {
-    currentState.tick = 50;
+    currentState.tick = 60;
     useGameStore.__setMockState(currentState);
 
     callAI.mockResolvedValueOnce({
@@ -192,7 +192,7 @@ describe('useAiDirector', () => {
   });
 
   it('should handle errors from callAI gracefully', async () => {
-    currentState.tick = 50;
+    currentState.tick = 60;
     useGameStore.__setMockState(currentState);
 
     // Simulate error
