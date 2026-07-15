@@ -603,10 +603,14 @@ export const useGameStore = create(
             if (item === 'server_rack_v2') {
               updates.serverStability = 1.0;
               updates.serverHealth = 100;
-              get().resolveEvent('TECH_OUTAGE');
+              updates.activeEvents = (updates.activeEvents || state.activeEvents).filter(
+                (e) => e.type !== 'TECH_OUTAGE'
+              );
             }
             if (item === 'firewall') {
-              get().resolveEvent('RANSOMWARE');
+              updates.activeEvents = (updates.activeEvents || state.activeEvents).filter(
+                (e) => e.type !== 'RANSOMWARE'
+              );
             }
           } else {
             state.addTerminalLog(`> ERROR: NO FUNDS FOR ${item}`);
@@ -617,7 +621,9 @@ export const useGameStore = create(
             updates.cash = state.cash - cost;
             updates.marketingMultiplier = 2.0;
             updates.marketingLeft = 60;
-            get().resolveEvent('MARKET_SHITSTORM');
+            updates.activeEvents = (updates.activeEvents || state.activeEvents).filter(
+              (e) => e.type !== 'MARKET_SHITSTORM'
+            );
           } else {
             state.addTerminalLog(`> ERROR: NO FUNDS.`);
           }
