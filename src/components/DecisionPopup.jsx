@@ -31,22 +31,12 @@ export const DecisionPopup = ({ decision, onConfirm, onVeto }) => {
           </div>
         )}
 
-        <div className="popup-actions" style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-          <button
-            type="button"
-            onClick={() => onConfirm?.()}
-            className="popup-confirm"
-            style={{ flex: 1 }}
-          >
+        <div className="popup-actions">
+          <button type="button" onClick={() => onConfirm?.()} className="popup-confirm">
             {POPUP_TEXT.CONFIRM}
           </button>
 
-          <button
-            type="button"
-            onClick={() => onVeto?.()}
-            className="popup-veto"
-            style={{ flex: 1, backgroundColor: 'red', color: 'white' }}
-          >
+          <button type="button" onClick={() => onVeto?.()} className="popup-veto">
             {POPUP_TEXT.VETO}
           </button>
         </div>

@@ -142,7 +142,7 @@ export const ACTION_DEFINITIONS = {
   },
   MARKETING_PUSH: {
     description: 'Launch a high-budget marketing campaign.',
-    parameters: { budget: 'HIGH' },
+    parameters: {},
     effects: 'Temporarily doubles marketing impact and resolves market shitstorms.',
     risk: 'HIGH',
     title: () => 'Launch Marketing Push',
