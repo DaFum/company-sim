@@ -665,12 +665,13 @@ export const useGameStore = create(
         let isShitstorm = false;
         let isCompetitor = false;
 
-        for (let i = 0; i < state.activeEvents.length; i++) {
-          const e = state.activeEvents[i];
-          if (e.timeLeft > 1) {
+        for (const e of state.activeEvents) {
+          if (e && e.timeLeft > 0) {
             const updatedEvent = { ...e, timeLeft: e.timeLeft - 1 };
-            activeEvents.push(updatedEvent);
-            switch (updatedEvent.type) {
+            if (updatedEvent.timeLeft > 0) {
+              activeEvents.push(updatedEvent);
+            }
+            switch (e.type) {
               case 'TECH_OUTAGE':
                 isTechOutage = true;
                 break;
@@ -771,8 +772,7 @@ export const useGameStore = create(
       } else {
         // Crunch Phase
         // Ensure stats are available in this branch since getStats() is called inside WORK branch usually
-        const stats = state.getStats();
-        const debtIncrease = stats.roster.dev * 0.05 * 2;
+        const debtIncrease = state.roster.dev * 0.05 * 2;
         const newDebt = state.technicalDebt + debtIncrease;
 
         if (newTick > 60) {
