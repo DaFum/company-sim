@@ -85,5 +85,25 @@ describe('aiService', () => {
 
       expect(consoleSpy).toHaveBeenCalled();
     });
+
+    it('should pass the selected Pollinations model to the chat request', async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                content: '{"action":"NONE","parameters":{},"reasoning":"ok"}',
+              },
+            },
+          ],
+        }),
+      });
+
+      await callAI('dummy-key', 'system-prompt', {}, true, 'pollinations', 'mistral');
+
+      const requestBody = JSON.parse(global.fetch.mock.calls[0][1].body);
+      expect(requestBody.model).toBe('mistral');
+    });
   });
 });

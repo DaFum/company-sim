@@ -77,17 +77,18 @@ function App() {
   const technicalDebt = useGameStore((state) => state.technicalDebt);
   const productivity = useGameStore((state) => state.productivity);
   const productLevel = useGameStore((state) => state.productLevel);
+  const serverHealth = useGameStore((state) => state.serverHealth);
+  const marketingMultiplier = useGameStore((state) => state.marketingMultiplier);
+  const marketingLeft = useGameStore((state) => state.marketingLeft);
+  const inventory = useGameStore((state) => state.inventory);
+  const activeEvents = useGameStore((state) => state.activeEvents);
   const gameState = useGameStore((state) => state.gameState);
-  const totalBurn = useGameStore((state) => {
-    const baseBurn = state.officeLevel * 100;
-    const employeeBurn = state.employees.reduce((sum, e) => {
-      let salary = 50;
-      if (e.trait === '10x_ENGINEER') salary = 100;
-      if (e.trait === 'JUNIOR') salary = 25;
-      return sum + salary;
-    }, 0);
-    return baseBurn + employeeBurn;
-  });
+  const dailyBurn = useGameStore((state) => state.getStats().totalBurn);
+  const burnPerTick = dailyBurn / 60;
+  const activeEventLabel = activeEvents.length
+    ? activeEvents.map((event) => event.type).join(', ')
+    : 'None';
+  const inventoryLabel = inventory.length ? inventory.join(', ') : 'Empty';
 
   // 4. Floating Numbers Logic
   // Track a list (not a single slot) so rapid cash swings each get their own
@@ -231,8 +232,12 @@ function App() {
           </h2>
           <div className="kpi-grid">
             <div className="kpi-item">
-              <span className="kpi-label">Burn Rate</span>
-              <span className="kpi-value">{totalBurn} € / tick</span>
+              <span className="kpi-label">Burn / Day</span>
+              <span className="kpi-value">{dailyBurn} €</span>
+            </div>
+            <div className="kpi-item">
+              <span className="kpi-label">Burn / Tick</span>
+              <span className="kpi-value">{burnPerTick.toFixed(1)} €</span>
             </div>
             <div className="kpi-item">
               <span className="kpi-label">Mood</span>
@@ -249,6 +254,24 @@ function App() {
             <div className="kpi-item">
               <span className="kpi-label">Product Lvl</span>
               <span className="kpi-value">{productLevel}</span>
+            </div>
+            <div className="kpi-item">
+              <span className="kpi-label">Server</span>
+              <span className="kpi-value">{Math.round(serverHealth)}%</span>
+            </div>
+            <div className="kpi-item">
+              <span className="kpi-label">Marketing</span>
+              <span className="kpi-value">
+                {marketingMultiplier}x{marketingLeft > 0 ? ` · ${marketingLeft}t` : ''}
+              </span>
+            </div>
+            <div className="kpi-item kpi-wide">
+              <span className="kpi-label">Active Events</span>
+              <span className="kpi-value kpi-small-value">{activeEventLabel}</span>
+            </div>
+            <div className="kpi-item kpi-wide">
+              <span className="kpi-label">Inventory</span>
+              <span className="kpi-value kpi-small-value">{inventoryLabel}</span>
             </div>
           </div>
         </div>

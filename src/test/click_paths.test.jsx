@@ -35,6 +35,16 @@ describe('App Click Paths', () => {
         day: 1,
         tick: 0,
         ceoPersona: 'TestCEO',
+        officeLevel: 1,
+        mood: 100,
+        productivity: 10,
+        technicalDebt: 0,
+        productLevel: 1,
+        serverHealth: 100,
+        marketingMultiplier: 1,
+        marketingLeft: 0,
+        inventory: [],
+        activeEvents: [],
       });
     });
   });
@@ -80,6 +90,9 @@ describe('App Click Paths', () => {
           amount: 500,
           action: 'HIRE_WORKER',
           parameters: { count: 1, role: 'dev' },
+          expected_effects:
+            'Adds employees and increases payroll; support helps resolve operational events.',
+          risk_assessment: 'MEDIUM',
         },
       });
     });
@@ -88,6 +101,8 @@ describe('App Click Paths', () => {
 
     // Use regex to match text even if it has quotes
     expect(screen.getByText(/Hire Someone/)).toBeInTheDocument();
+    expect(screen.getByText(/Adds employees and increases payroll/)).toBeInTheDocument();
+    expect(screen.getByText(/MEDIUM/)).toBeInTheDocument();
 
     // Click Confirm
     const confirmButton = screen.getByRole('button', { name: /Execute Decision/i });
@@ -99,5 +114,33 @@ describe('App Click Paths', () => {
     expect(state.employees.length).toBe(1);
     expect(state.workers).toBe(1); // UI helper stays in sync with employees
     expect(state.cash).toBe(500); // 1000 - 500
+  });
+
+  it('should show game-flow KPIs with correct burn units and operations context', () => {
+    act(() => {
+      useGameStore.setState({
+        employees: [{ id: 'dev-1', role: 'dev', trait: 'NORMAL' }],
+        workers: 1,
+        officeLevel: 1,
+        serverHealth: 88,
+        marketingMultiplier: 2,
+        marketingLeft: 12,
+        inventory: ['firewall'],
+        activeEvents: [
+          { type: 'RANSOMWARE', timeLeft: 20, severity: 'HIGH', description: 'alert' },
+        ],
+      });
+    });
+
+    render(<App />);
+
+    expect(screen.getByText('Burn / Day')).toBeInTheDocument();
+    expect(screen.getByText('150 €')).toBeInTheDocument();
+    expect(screen.getByText('Burn / Tick')).toBeInTheDocument();
+    expect(screen.getByText('2.5 €')).toBeInTheDocument();
+    expect(screen.getByText('RANSOMWARE')).toBeInTheDocument();
+    expect(screen.getByText('firewall')).toBeInTheDocument();
+    expect(screen.getByText('88%')).toBeInTheDocument();
+    expect(screen.getByText('2x · 12t')).toBeInTheDocument();
   });
 });

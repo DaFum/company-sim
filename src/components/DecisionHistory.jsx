@@ -33,6 +33,12 @@ export const DecisionHistory = () => {
           </div>
           <div className="history-title">"{decision.decision_title}"</div>
           <div className="history-reason">"{decision.reasoning}"</div>
+          {decision.expected_effects && (
+            <div className="history-effects">Expected: {decision.expected_effects}</div>
+          )}
+          {decision.risk_assessment && (
+            <div className="history-risk">Risk: {decision.risk_assessment}</div>
+          )}
           {!decision.vetoed && decision.amount && (
             <div className="history-cost">Cost: {decision.amount} €</div>
           )}

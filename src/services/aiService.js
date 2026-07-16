@@ -58,7 +58,7 @@ export const callAI = async (
       const client = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
       const response = await client.chat.completions.create(
         {
-          model: 'gpt-4o-mini',
+          model: model === 'openai' ? 'gpt-4o-mini' : model,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: JSON.stringify(gameState) },

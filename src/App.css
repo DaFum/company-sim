@@ -950,6 +950,39 @@ body {
 .popup-cost.neutral {
   color: var(--ink-dim);
 }
+.popup-risk,
+.popup-expected {
+  text-align: left;
+  border: 1px solid var(--line-soft);
+  border-left-width: 4px;
+  border-radius: 4px 14px 14px 4px;
+  background: var(--bg-1);
+  box-shadow: 6px 6px 0 var(--line-soft);
+  cursor: crosshair;
+  padding: 13px 16px 13px 18px;
+  margin: 0 0 14px 6px;
+  color: var(--ink-dim);
+  line-height: 1.45;
+}
+.popup-risk strong,
+.popup-expected strong {
+  color: var(--ink);
+}
+.popup-expected {
+  border-left-color: var(--accent-cyan);
+}
+.risk-high {
+  color: var(--accent-red);
+  border-left-color: var(--accent-red);
+}
+.risk-medium {
+  color: var(--accent-amber);
+  border-left-color: var(--accent-amber);
+}
+.risk-low {
+  color: var(--accent-green);
+  border-left-color: var(--accent-green);
+}
 .popup-actions {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(118px, 0.65fr);
@@ -1243,10 +1276,16 @@ body {
   margin-bottom: 6px;
   line-height: 1.3;
 }
+.history-effects,
+.history-risk,
 .history-cost {
   color: var(--ink-faint);
   font-family: var(--font-mono);
   font-size: 0.9em;
+}
+.history-effects,
+.history-risk {
+  margin-bottom: 4px;
 }
 
 /* ============================================================
@@ -1281,6 +1320,15 @@ body {
   font-size: 1.1em;
   font-weight: bold;
   color: var(--ink);
+}
+.kpi-wide {
+  grid-column: span 2;
+}
+.kpi-small-value {
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 /* ============================================================
