@@ -1,3 +1,26 @@
+# AI Startup Simulator
+
+A React + Vite + Phaser startup simulation game driven by a browser-side AI director.
+
+## AI provider and key safety
+
+The simulator supports Pollinations auth and bring-your-own OpenAI keys. OpenAI keys are stored in `sessionStorage` and used directly from the browser, so use a restricted or temporary key rather than a long-lived production secret.
+
+The player-facing UI is English. The AI system prompt may remain German by design when prompt tuning benefits from that wording; user-visible errors and onboarding copy should stay English.
+
+## Development commands
+
+- `npm run dev` — start the Vite dev server.
+- `npm run lint` — run ESLint.
+- `npm run test:run` — run the Vitest suite once.
+- `npm run build` — create a production build.
+
+## Debug console
+
+Eruda is available only in development builds. Start the dev server and add `?eruda=true` to the URL when mobile debugging is needed.
+
+---
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

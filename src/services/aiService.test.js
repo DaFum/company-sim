@@ -34,6 +34,25 @@ describe('aiService', () => {
   });
 
   describe('callAI', () => {
+    it('should return a fallback decision for a missing API key when suppressErrors is true', async () => {
+      const result = await callAI('', 'system-prompt', {}, true, 'pollinations');
+
+      expect(result).toEqual({
+        action: 'NONE',
+        parameters: {},
+        reasoning: 'No API key provided.',
+        risk_assessment: 'LOW',
+      });
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('should throw for a missing API key when suppressErrors is false', async () => {
+      await expect(callAI('', 'system-prompt', {}, false, 'pollinations')).rejects.toThrow(
+        'No API key provided.'
+      );
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
     it('should handle JSON parse errors and return a fallback decision when suppressErrors is true', async () => {
       // Mock fetch for pollinations to return invalid JSON
       global.fetch.mockResolvedValueOnce({

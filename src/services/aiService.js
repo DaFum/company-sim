@@ -25,7 +25,15 @@ export const callAI = async (
   provider = 'openai',
   model = 'openai'
 ) => {
-  if (!apiKey) throw new Error('Kein API Key vorhanden.');
+  if (!apiKey) {
+    if (!suppressErrors) throw new Error('No API key provided.');
+    return {
+      action: 'NONE',
+      parameters: {},
+      reasoning: 'No API key provided.',
+      risk_assessment: 'LOW',
+    };
+  }
 
   const abortController = new AbortController();
   const timeoutId = setTimeout(() => abortController.abort(), 15000); // 15-second timeout
@@ -70,7 +78,7 @@ export const callAI = async (
       content = response.choices[0].message.content;
     }
 
-    if (!content) throw new Error('Leere Antwort von der KI.');
+    if (!content) throw new Error('Empty AI response.');
 
     // Parse JSON
     const jsonMatch = content.match(/\{[\s\S]*\}/);

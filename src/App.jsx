@@ -38,10 +38,7 @@ const FloatingNumber = ({ id, value, x, y, onComplete }) => {
 };
 
 function App() {
-  // 1. Den Loop starten
   useGameLoop();
-
-  // 2. Den AI Director starten
   useAiDirector();
   const lastDecision = useGameStore((state) => state.pendingDecision);
   const confirmDecision = useGameStore((state) => state.applyPendingDecision);
@@ -54,7 +51,6 @@ function App() {
     return () => clearTimers();
   }, [clearTimers]);
 
-  // 3. Daten aus dem Store holen.
   // Individual selectors so App only re-renders when a value it actually shows
   // changes — not on every unrelated store mutation (logs, mood, events, …).
   const cash = useGameStore((state) => state.cash);
@@ -105,11 +101,10 @@ function App() {
     Math.round(serverHealth * 0.55 + productivity * 2 + (roster?.support || 0) * 8)
   );
 
-  // 4. Floating Numbers Logic
   // Track a list (not a single slot) so rapid cash swings each get their own
   // number instead of clobbering the previous one.
   const [floaters, setFloaters] = useState([]);
-  // Use Ref for tracking previous value to avoid render loops/dependency issues
+  // Track the previous cash value without triggering render loops.
   const prevCashRef = useRef(cash);
   // Monotonic id so stacked floaters never collide (unlike Date.now()).
   const floaterIdRef = useRef(0);
@@ -125,7 +120,6 @@ function App() {
       setFloaters((list) => [...list, { id, value: Math.round(delta), x: randomX, y: randomY }]);
     }
 
-    // Update ref AFTER check
     prevCashRef.current = cash;
   }, [cash]);
 
