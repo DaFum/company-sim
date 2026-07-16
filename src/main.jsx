@@ -20,7 +20,9 @@ const loadEruda = () => {
   }
 };
 
-loadEruda();
+if (import.meta.env.DEV) {
+  loadEruda();
+}
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

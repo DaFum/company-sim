@@ -5,7 +5,6 @@ import { callAI, getAvailableModels } from '../services/aiService';
 export const ApiKeyModal = () => {
   const apiKey = useGameStore((state) => state.apiKey);
   const setApiKey = useGameStore((state) => state.setApiKey);
-  // const aiProvider = useGameStore((state) => state.aiProvider); // Unused
   const setAiProvider = useGameStore((state) => state.setAiProvider);
   const aiModel = useGameStore((state) => state.aiModel);
   const setAiModel = useGameStore((state) => state.setAiModel);
@@ -17,7 +16,7 @@ export const ApiKeyModal = () => {
   const [availableModels, setAvailableModels] = useState([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
 
-  // Auto-Detect Key from URL Hash (Pollinations Redirect)
+  // Detect the key returned by the Pollinations redirect.
   useEffect(() => {
     const hashParams = new URLSearchParams(window.location.hash.slice(1));
     const urlKey = hashParams.get('api_key');
@@ -27,23 +26,19 @@ export const ApiKeyModal = () => {
       setAiProvider('pollinations');
       setApiKey(urlKey);
 
-      // Cleanup URL
       window.history.replaceState(null, '', window.location.pathname);
     }
   }, [setAiProvider, setApiKey]);
 
-  // Load Models on Mount
-  useEffect(() => {
-    const loadModels = async () => {
-      setIsLoadingModels(true);
-      const models = await getAvailableModels();
-      setAvailableModels(models);
-      setIsLoadingModels(false);
-    };
-    loadModels();
-  }, []);
+  const loadPollinationsModels = async () => {
+    if (availableModels.length || isLoadingModels) return;
 
-  // If key is already present, do not show modal
+    setIsLoadingModels(true);
+    const models = await getAvailableModels();
+    setAvailableModels(models);
+    setIsLoadingModels(false);
+  };
+
   if (apiKey) return null;
 
   const handleSaveOpenAI = async () => {
@@ -59,7 +54,6 @@ export const ApiKeyModal = () => {
     const testState = {};
 
     try {
-      // Test OpenAI
       const result = await callAI(inputKey, testPrompt, testState, false, 'openai');
 
       if (result) {
@@ -76,7 +70,6 @@ export const ApiKeyModal = () => {
   };
 
   const handleConnectPollinations = () => {
-    // Redirect to Pollinations Auth
     const redirectUrl = encodeURIComponent(window.location.href);
     window.location.href = `https://enter.pollinations.ai/authorize?redirect_url=${redirectUrl}&permissions=profile&models=openai`;
   };
@@ -89,29 +82,38 @@ export const ApiKeyModal = () => {
           Choose your AI Provider to activate the simulation's "Brain".
         </p>
 
-        {/* OPTION 1: POLLINATIONS (FREE) */}
+        {/* Pollinations provider */}
         <div className="pollinations-section">
-          <button onClick={handleConnectPollinations} className="pollinations-button">
+          <button
+            onMouseEnter={loadPollinationsModels}
+            onFocus={loadPollinationsModels}
+            onClick={handleConnectPollinations}
+            className="pollinations-button"
+          >
             🌸 Connect with Pollinations (Free)
           </button>
 
-          {/* MODEL SELECTOR FOR POLLINATIONS */}
+          {/* Pollinations model selector */}
           <div className="model-selector">
             <label className="model-label">Choose a model:</label>
             <select
               value={aiModel}
+              onFocus={loadPollinationsModels}
+              onClick={loadPollinationsModels}
               onChange={(e) => setAiModel(e.target.value)}
               disabled={isLoadingModels}
               className="model-select"
             >
               {isLoadingModels ? (
                 <option>Loading models...</option>
-              ) : (
+              ) : availableModels.length ? (
                 availableModels.map((model) => (
                   <option key={model.name} value={model.name}>
                     {model.name} {model.description ? `- ${model.description}` : ''}
                   </option>
                 ))
+              ) : (
+                <option value={aiModel}>Focus to load models</option>
               )}
             </select>
           </div>
@@ -119,7 +121,7 @@ export const ApiKeyModal = () => {
           <small className="small-text">No costs. No registration.</small>
         </div>
 
-        {/* OPTION 2: OPENAI */}
+        {/* OpenAI provider */}
         <p className="openai-label">Or use your own OpenAI Key:</p>
 
         <input
@@ -140,7 +142,10 @@ export const ApiKeyModal = () => {
           {isValidating ? 'Checking...' : 'Save OpenAI Key'}
         </button>
 
-        <p className="storage-note">The Key is only stored in Session Storage.</p>
+        <p className="storage-note">
+          The key is stored in Session Storage and used directly from this browser. Use a restricted
+          or temporary key.
+        </p>
       </div>
     </div>
   );
