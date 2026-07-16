@@ -39,7 +39,17 @@ const resolveLatestEventHistoryEntry = (eventHistory, type, day, tick) => {
 };
 
 // Trait Generators
-const TRAITS = ['10x_ENGINEER', 'JUNIOR', 'TOXIC', 'NORMAL'];
+export const TRAITS = [
+  '10x_ENGINEER',
+  'JUNIOR',
+  'TOXIC',
+  'NORMAL',
+  'DESIGNER',
+  'GROWTH_HACKER',
+  'OPS_VETERAN',
+  'BURNT_OUT',
+  'MENTOR',
+];
 
 /**
  * Returns a random worker trait based on probabilities.
@@ -47,9 +57,14 @@ const TRAITS = ['10x_ENGINEER', 'JUNIOR', 'TOXIC', 'NORMAL'];
  */
 const getRandomTrait = () => {
   const roll = Math.random();
-  if (roll < 0.1) return '10x_ENGINEER';
-  if (roll < 0.3) return 'TOXIC';
-  if (roll < 0.5) return 'JUNIOR';
+  if (roll < 0.08) return '10x_ENGINEER';
+  if (roll < 0.18) return 'DESIGNER';
+  if (roll < 0.28) return 'GROWTH_HACKER';
+  if (roll < 0.38) return 'OPS_VETERAN';
+  if (roll < 0.5) return 'MENTOR';
+  if (roll < 0.62) return 'TOXIC';
+  if (roll < 0.76) return 'JUNIOR';
+  if (roll < 0.86) return 'BURNT_OUT';
   return 'NORMAL';
 };
 
@@ -121,12 +136,33 @@ const calculateEmployeeMetrics = (employees) => {
     if (e.trait === 'JUNIOR') {
       output = 0.5;
     }
+    if (e.trait === 'DESIGNER') {
+      output = e.role === 'dev' ? 1.25 : 1.1;
+      if (e.role === 'dev') debtAcc = Math.max(0, debtAcc - 0.03);
+    }
+    if (e.trait === 'GROWTH_HACKER') {
+      output = e.role === 'sales' ? 2.2 : 1.15;
+      moodDecay += 0.002;
+    }
+    if (e.trait === 'OPS_VETERAN') {
+      output = e.role === 'support' ? 1.8 : 1.05;
+      if (e.role === 'support') debtAcc = Math.max(0, debtAcc - 0.04);
+    }
+    if (e.trait === 'MENTOR') {
+      output = 1.15;
+      moodDecay -= 0.004;
+    }
+    if (e.trait === 'BURNT_OUT') {
+      output = 0.35;
+      moodDecay += 0.006;
+    }
     if (e.trait === 'TOXIC') {
       moodDecay += 0.01;
     } // Small tick decay
 
     if (e.role === 'dev') totalDevOutput += output;
     if (e.role === 'sales') totalSalesOutput += output;
+    if (e.role === 'support' && e.trait === 'OPS_VETERAN') moodDecay -= 0.003;
   });
 
   return { totalDevOutput, totalSalesOutput, debtAcc, moodDecay };
@@ -158,6 +194,8 @@ const CHAOS_EVENT_TABLE = [
   { type: 'MARKET_SHITSTORM', weight: 2 },
   { type: 'RANSOMWARE', weight: 1 },
   { type: 'COMPETITOR_CLONE', weight: 1 },
+  { type: 'VIRAL_SPIKE', weight: 1, canFire: (s) => s.productLevel >= 2 },
+  { type: 'TALENT_RAID', weight: 1, canFire: (s) => s.employees.length >= 4 },
 ];
 
 /**
@@ -336,6 +374,11 @@ export const useGameStore = create(
         let salary = 50;
         if (e.trait === '10x_ENGINEER') salary = 100;
         if (e.trait === 'JUNIOR') salary = 25;
+        if (e.trait === 'DESIGNER') salary = 70;
+        if (e.trait === 'GROWTH_HACKER') salary = 80;
+        if (e.trait === 'OPS_VETERAN') salary = 75;
+        if (e.trait === 'MENTOR') salary = 85;
+        if (e.trait === 'BURNT_OUT') salary = 35;
         totalBurn += salary;
       });
 
@@ -502,6 +545,12 @@ export const useGameStore = create(
       } else if (type === 'COMPETITOR_CLONE') {
         duration = 999;
         msg = '> NEWS: COMPETITOR CLONED OUR TECH.';
+      } else if (type === 'VIRAL_SPIKE') {
+        duration = 45;
+        msg = '> SIGNAL: PRODUCT WENT VIRAL. SERVERS UNDER BEAUTIFUL STRESS.';
+      } else if (type === 'TALENT_RAID') {
+        duration = 40;
+        msg = '> ALERT: RIVAL RECRUITERS CIRCLING THE TEAM.';
       }
 
       state.addTerminalLog(msg);
@@ -656,6 +705,8 @@ export const useGameStore = create(
         let isSick = false;
         let isShitstorm = false;
         let isCompetitor = false;
+        let isViral = false;
+        let isTalentRaid = false;
 
         // Support bonus: accelerates resolution of operational events, max 3
         const supportBonus = Math.min(state.roster.support || 0, 3);
@@ -664,7 +715,7 @@ export const useGameStore = create(
           if (e && e.timeLeft > 0) {
             let reduction = 1;
             // Only operational events are affected by support
-            if (['TECH_OUTAGE', 'HUMAN_SICK', 'MARKET_SHITSTORM'].includes(e.type)) {
+            if (['TECH_OUTAGE', 'HUMAN_SICK', 'MARKET_SHITSTORM', 'TALENT_RAID'].includes(e.type)) {
               reduction += supportBonus;
             }
             const updatedEvent = { ...e, timeLeft: e.timeLeft - reduction };
@@ -683,6 +734,12 @@ export const useGameStore = create(
                 break;
               case 'COMPETITOR_CLONE':
                 isCompetitor = true;
+                break;
+              case 'VIRAL_SPIKE':
+                isViral = true;
+                break;
+              case 'TALENT_RAID':
+                isTalentRaid = true;
                 break;
             }
           }
@@ -713,6 +770,7 @@ export const useGameStore = create(
 
         // A competitor cloning our tech steals market share until we PIVOT away.
         if (isCompetitor) demandFactor *= 0.7;
+        if (isViral) demandFactor *= 1.8;
 
         let finalProd = state.productivity;
         if (isTechOutage) finalProd = 0;
@@ -720,6 +778,7 @@ export const useGameStore = create(
 
         let finalMarket = state.marketingMultiplier;
         if (isShitstorm) finalMarket *= 0.5;
+        if (isTalentRaid) finalProd *= 0.88;
 
         // Calc Output via Employees
         const { totalDevOutput, totalSalesOutput, debtAcc, moodDecay } = calculateEmployeeMetrics(
@@ -752,7 +811,12 @@ export const useGameStore = create(
         // We'll update 'workers' count for UI.
 
         const finalCash = state.cash + netChange;
-        const finalMood = Math.max(0, state.mood - moodDecay);
+        const raidMoodDecay = isTalentRaid ? 0.015 : 0;
+        const viralMoodLift = isViral ? 0.01 : 0;
+        const finalMood = Math.min(
+          100,
+          Math.max(0, state.mood - moodDecay - raidMoodDecay + viralMoodLift)
+        );
         const finalTechnicalDebt = state.technicalDebt + totalDebtAcc;
 
         if (finalCash < -10000 || stats.count === 0) {
@@ -898,6 +962,9 @@ export const useGameStore = create(
           eventHistory: recentEventHistory,
           startOfDayCash: state.cash,
           productivity: state.isRefactoring ? 0 : baseProductivity,
+          serverStability: state.inventory.includes('war_room')
+            ? Math.max(state.serverStability, 1.1)
+            : state.serverStability,
           isRefactoring: false,
         };
       });

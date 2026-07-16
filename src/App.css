@@ -1337,3 +1337,92 @@ body {
 .history-board {
   flex: 1.5;
 }
+
+/* ---------- Portfolio board ---------- */
+.portfolio-board {
+  flex: 1.15;
+  overflow: hidden;
+}
+.portfolio-board::after {
+  content: '';
+  position: absolute;
+  inset: auto -35% -42% 18%;
+  height: 160px;
+  background: radial-gradient(circle, rgba(255, 176, 0, 0.2), transparent 64%);
+  pointer-events: none;
+}
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.portfolio-card {
+  position: relative;
+  min-height: 92px;
+  padding: 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.07), transparent 46%),
+    rgba(0, 0, 0, 0.32);
+  overflow: hidden;
+}
+.portfolio-card::before {
+  content: '';
+  position: absolute;
+  inset: -40% -20% auto auto;
+  width: 80px;
+  height: 80px;
+  border-radius: 999px;
+  background: currentcolor;
+  opacity: 0.12;
+  filter: blur(2px);
+}
+.portfolio-card span,
+.portfolio-card small {
+  display: block;
+  color: var(--ink-faint);
+  font-size: 0.56rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.portfolio-card strong {
+  display: block;
+  margin: 8px 0 3px;
+  font-family: var(--font-display);
+  font-size: 1.48rem;
+  color: currentcolor;
+}
+.portfolio-card-hot {
+  color: var(--accent-amber);
+}
+.portfolio-card-cyan {
+  color: var(--accent-cyan);
+}
+.portfolio-card-green {
+  color: var(--accent-green);
+}
+.roster-strip,
+.trait-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.roster-strip span,
+.trait-chip {
+  padding: 6px 9px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--ink-dim);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+}
+.roster-strip strong,
+.trait-chip strong {
+  color: var(--accent-amber);
+}
+.trait-chip {
+  border-color: rgba(0, 229, 255, 0.18);
+}

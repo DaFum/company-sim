@@ -173,6 +173,88 @@ describe('gameStore', () => {
     });
   });
 
+  describe('expanded strategic portfolio', () => {
+    beforeEach(() => {
+      useGameStore.setState({
+        cash: 50000,
+        employees: [
+          { id: 'd1', role: 'dev', trait: 'DESIGNER' },
+          { id: 's1', role: 'sales', trait: 'GROWTH_HACKER' },
+          { id: 'o1', role: 'support', trait: 'OPS_VETERAN' },
+        ],
+        roster: { dev: 1, sales: 1, support: 1 },
+        workers: 3,
+        pendingDecision: null,
+        activeEvents: [],
+        eventHistory: [],
+        terminalLogs: [],
+        mood: 70,
+        productAge: 80,
+        productLevel: 2,
+        technicalDebt: 40,
+        serverHealth: 42,
+        serverStability: 0.8,
+        marketingMultiplier: 1,
+        marketingLeft: 0,
+        inventory: [],
+        day: 1,
+        tick: 0,
+      });
+    });
+
+    it('should apply CUSTOMER_RESEARCH as a product-freshness action', () => {
+      useGameStore.getState().setPendingDecision({ action: 'CUSTOMER_RESEARCH', parameters: {} });
+
+      useGameStore.getState().applyPendingDecision();
+
+      const state = useGameStore.getState();
+      expect(state.cash).toBe(50000 - 1200);
+      expect(state.productAge).toBe(45);
+      expect(state.productLevel).toBe(2.5);
+      expect(state.mood).toBe(79);
+    });
+
+    it('should apply INCIDENT_DRILL and clear an outage', () => {
+      useGameStore.setState({
+        activeEvents: [
+          { type: 'TECH_OUTAGE', timeLeft: 10, severity: 'HIGH', description: 'outage' },
+        ],
+        eventHistory: [
+          {
+            type: 'TECH_OUTAGE',
+            startedAtDay: 1,
+            startedAtTick: 3,
+            resolvedAtDay: null,
+            resolvedAtTick: null,
+            resolution: null,
+          },
+        ],
+      });
+      useGameStore.getState().setPendingDecision({ action: 'INCIDENT_DRILL', parameters: {} });
+
+      useGameStore.getState().applyPendingDecision();
+
+      const state = useGameStore.getState();
+      expect(state.cash).toBe(50000 - 2500);
+      expect(state.serverHealth).toBe(100);
+      expect(state.serverStability).toBeCloseTo(0.95, 5);
+      expect(state.technicalDebt).toBe(25);
+      expect(state.activeEvents.some((event) => event.type === 'TECH_OUTAGE')).toBe(false);
+      expect(state.eventHistory[0].resolution).toBe('resolved');
+    });
+
+    it('should apply FUNDRAISE as a runway action with tradeoffs', () => {
+      useGameStore.getState().setPendingDecision({ action: 'FUNDRAISE', parameters: {} });
+
+      useGameStore.getState().applyPendingDecision();
+
+      const state = useGameStore.getState();
+      expect(state.cash).toBe(68000);
+      expect(state.mood).toBe(61);
+      expect(state.technicalDebt).toBe(45);
+    });
+  });
+
   describe('manual hireWorker (Debug)', () => {
     it('should recalculate roster correctly', () => {
       useGameStore.getState().hireWorker('sales');

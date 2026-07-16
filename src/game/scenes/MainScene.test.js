@@ -13,6 +13,9 @@ vi.mock('../../store/gameStore', () => ({
       activeEvents: [],
       officeLevel: 1,
       tick: 0,
+      inventory: [],
+      decisionHistory: [],
+      isRefactoring: false,
     })),
   },
 }));
@@ -721,6 +724,64 @@ describe('MainScene', () => {
 
       expect(mockSprite.setInteractive).toHaveBeenCalled();
       expect(mockSprite.on).toHaveBeenCalledWith('pointerdown', expect.any(Function));
+    });
+  });
+
+  describe('office upgrade assets', () => {
+    beforeEach(() => {
+      scene.setupGrid();
+      scene.create();
+      vi.spyOn(scene, 'createCodeBits').mockImplementation(() => {});
+    });
+
+    it('should add an office asset for a matching inventory item', () => {
+      const spawnSpy = vi.spyOn(scene, 'spawnObject');
+
+      scene.addOfficeAssetForInventory('firewall');
+
+      expect(spawnSpy).toHaveBeenCalledWith(5, 2, 'obj_firewall', undefined);
+      expect(scene.add.text).toHaveBeenCalledWith(176, 58, 'FIREWALL', expect.any(Object));
+      expect(scene.createCodeBits).toHaveBeenCalledWith(176, 68);
+    });
+
+    it('should not duplicate an already visible office asset', () => {
+      const spawnSpy = vi.spyOn(scene, 'spawnObject');
+
+      scene.addOfficeAssetForInventory('server_rack_v2');
+      scene.addOfficeAssetForInventory('server_rack_v2');
+
+      expect(spawnSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should sync all supported inventory visuals', () => {
+      const addSpy = vi.spyOn(scene, 'addOfficeAssetForInventory');
+
+      scene.syncInventoryVisuals(['war_room', 'brand_studio', 'wellness_pod']);
+
+      expect(addSpy).toHaveBeenCalledWith('war_room');
+      expect(addSpy).toHaveBeenCalledWith('brand_studio');
+      expect(addSpy).toHaveBeenCalledWith('wellness_pod');
+    });
+
+    it('should add an office asset for an executed CEO action', () => {
+      const spawnSpy = vi.spyOn(scene, 'spawnObject');
+
+      scene.addOfficeAssetForAction('CUSTOMER_RESEARCH');
+
+      expect(spawnSpy).toHaveBeenCalledWith(4, 14, 'obj_research_wall', undefined);
+      expect(scene.add.text).toHaveBeenCalledWith(144, 442, 'RESEARCH', expect.any(Object));
+    });
+
+    it('should sync non-vetoed CEO decision assets from history', () => {
+      const addSpy = vi.spyOn(scene, 'addOfficeAssetForAction');
+
+      scene.syncDecisionOfficeAssets([
+        { action: 'FUNDRAISE', vetoed: false },
+        { action: 'INCIDENT_DRILL', vetoed: true },
+      ]);
+
+      expect(addSpy).toHaveBeenCalledWith('FUNDRAISE');
+      expect(addSpy).not.toHaveBeenCalledWith('INCIDENT_DRILL');
     });
   });
 
