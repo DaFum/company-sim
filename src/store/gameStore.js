@@ -138,7 +138,7 @@ const calculateEmployeeMetrics = (employees) => {
     }
     if (e.trait === 'DESIGNER') {
       output = e.role === 'dev' ? 1.25 : 1.1;
-      if (e.role === 'dev') debtAcc = Math.max(0, debtAcc - 0.03);
+      if (e.role === 'dev') debtAcc -= 0.03;
     }
     if (e.trait === 'GROWTH_HACKER') {
       output = e.role === 'sales' ? 2.2 : 1.15;
@@ -146,7 +146,7 @@ const calculateEmployeeMetrics = (employees) => {
     }
     if (e.trait === 'OPS_VETERAN') {
       output = e.role === 'support' ? 1.8 : 1.05;
-      if (e.role === 'support') debtAcc = Math.max(0, debtAcc - 0.04);
+      if (e.role === 'support') debtAcc -= 0.04;
     }
     if (e.trait === 'MENTOR') {
       output = 1.15;
@@ -165,7 +165,7 @@ const calculateEmployeeMetrics = (employees) => {
     if (e.role === 'support' && e.trait === 'OPS_VETERAN') moodDecay -= 0.003;
   });
 
-  return { totalDevOutput, totalSalesOutput, debtAcc, moodDecay };
+  return { totalDevOutput, totalSalesOutput, debtAcc: Math.max(0, debtAcc), moodDecay };
 };
 
 /**

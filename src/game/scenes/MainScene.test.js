@@ -772,6 +772,22 @@ describe('MainScene', () => {
       expect(scene.add.text).toHaveBeenCalledWith(144, 442, 'RESEARCH', expect.any(Object));
     });
 
+    it('should clear stale office asset keys when the scene is created again', () => {
+      scene._officeAssetKeys.add('inventory:firewall');
+
+      scene.create();
+
+      expect(scene._officeAssetKeys.has('inventory:firewall')).toBe(false);
+    });
+
+    it('should place marketing push next to the brand studio instead of on top of it', () => {
+      const spawnSpy = vi.spyOn(scene, 'spawnObject');
+
+      scene.addOfficeAssetForAction('MARKETING_PUSH');
+
+      expect(spawnSpy).toHaveBeenCalledWith(21, 7, 'obj_brand_studio', undefined);
+    });
+
     it('should sync non-vetoed CEO decision assets from history', () => {
       const addSpy = vi.spyOn(scene, 'addOfficeAssetForAction');
 

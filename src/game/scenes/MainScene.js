@@ -60,6 +60,7 @@ export default class MainScene extends Phaser.Scene {
    * Initializes the scene, sets up groups, grid, inputs, and subscriptions.
    */
   create() {
+    this._officeAssetKeys.clear();
     this.soundManager = new SoundManager(this);
 
     // 0) Animations (Must be before spawnObjects)
@@ -1211,7 +1212,7 @@ export default class MainScene extends Phaser.Scene {
       FUNDRAISE: { x: 15, y: 4, texture: 'obj_investor_plaque', label: 'TERM SHEET' },
       CUSTOMER_RESEARCH: { x: 4, y: 14, texture: 'obj_research_wall', label: 'RESEARCH' },
       INCIDENT_DRILL: { x: 6, y: 4, texture: 'obj_incident_kit', label: 'DRILL KIT' },
-      MARKETING_PUSH: { x: 20, y: 7, texture: 'obj_brand_studio', label: 'CAMPAIGN' },
+      MARKETING_PUSH: { x: 21, y: 7, texture: 'obj_brand_studio', label: 'CAMPAIGN' },
     };
     this.addOfficeAsset(`action:${action}`, assetMap[action]);
   }

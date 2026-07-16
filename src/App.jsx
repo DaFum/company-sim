@@ -329,7 +329,7 @@ function App() {
             {topTraits.length ? (
               topTraits.map(([trait, count]) => (
                 <span key={trait} className="trait-chip">
-                  {trait.replaceAll('_', ' ')} <strong>{count}</strong>
+                  {trait.replace(/_/g, ' ')} <strong>{count}</strong>
                 </span>
               ))
             ) : (
