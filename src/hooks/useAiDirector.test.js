@@ -166,6 +166,28 @@ describe('useAiDirector', () => {
     expect(useGameStore.setState).toHaveBeenCalledWith({ isAiThinking: false });
   });
 
+  it('should ignore non-string AI risk values and fall back to the action risk', async () => {
+    currentState.tick = 60;
+    useGameStore.__setMockState(currentState);
+
+    callAI.mockResolvedValueOnce({
+      action: 'HIRE_WORKER',
+      parameters: { count: 1, role: 'dev' },
+      reasoning: 'Need capacity.',
+      risk_assessment: { level: 'HIGH' },
+    });
+
+    renderHook(() => useAiDirector());
+
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    expect(currentState.setPendingDecision).toHaveBeenCalledWith(
+      expect.objectContaining({ risk_assessment: 'MEDIUM' })
+    );
+  });
+
   it('should use fallback delay and decision when no API key is present', async () => {
     currentState.tick = 60;
     currentState.apiKey = ''; // No API key

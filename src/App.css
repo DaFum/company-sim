@@ -954,25 +954,34 @@ body {
 .popup-expected {
   text-align: left;
   border: 1px solid var(--line-soft);
-  background: rgba(0, 0, 0, 0.24);
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 10px;
+  border-left-width: 4px;
+  border-radius: 4px 14px 14px 4px;
+  background: var(--bg-1);
+  box-shadow: 6px 6px 0 var(--line-soft);
+  cursor: crosshair;
+  padding: 13px 16px 13px 18px;
+  margin: 0 0 14px 6px;
   color: var(--ink-dim);
-  line-height: 1.35;
+  line-height: 1.45;
 }
 .popup-risk strong,
 .popup-expected strong {
   color: var(--ink);
 }
+.popup-expected {
+  border-left-color: var(--accent-cyan);
+}
 .risk-high {
-  border-color: rgba(255, 77, 94, 0.38);
+  color: var(--accent-red);
+  border-left-color: var(--accent-red);
 }
 .risk-medium {
-  border-color: rgba(255, 176, 0, 0.35);
+  color: var(--accent-amber);
+  border-left-color: var(--accent-amber);
 }
 .risk-low {
-  border-color: rgba(0, 255, 156, 0.24);
+  color: var(--accent-green);
+  border-left-color: var(--accent-green);
 }
 .popup-actions {
   display: grid;

@@ -34,13 +34,14 @@ const formatDecision = (action, params, reason, riskAssessment) => {
   let title = `Action: ${action}`;
   let amount = 0;
   let expectedEffects = '';
-  let actionRisk = riskAssessment || 'LOW';
+  const safeRiskAssessment = typeof riskAssessment === 'string' ? riskAssessment : null;
+  let actionRisk = safeRiskAssessment || 'LOW';
 
   if (def) {
     title = def.title(safeParams);
     amount = def.calculateCost(safeParams);
     expectedEffects = def.effects;
-    actionRisk = riskAssessment || def.risk || 'LOW';
+    actionRisk = safeRiskAssessment || def.risk || 'LOW';
   }
 
   return {
