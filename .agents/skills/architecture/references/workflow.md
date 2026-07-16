@@ -34,3 +34,12 @@ Before leaving architectural work:
 - Confirm callers and tests still agree on the contract.
 - Hand off to `implementation` for code edits and `quality` for contract verification.
 - Hand off to `documentation` only when the boundary is durable and non-obvious.
+
+## AI Validation Examples
+
+For AI/API boundary work, consider these concrete validation shapes:
+
+- Validate malformed model output at the service boundary before UI, store, or Phaser code consumes it.
+- Normalize missing fields into an explicit fallback shape when callers already expect resilience.
+- Keep response schema checks close to the AI service unless multiple real call sites need a shared helper now.
+- Test valid output, malformed output, missing required fields, and fallback/error behavior as observable service behavior.

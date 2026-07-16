@@ -54,3 +54,11 @@ Do not load every skill by default. Load the router, then only the dedicated ski
 ## Stop Conditions
 
 Stop and surface the issue when context is inaccessible, instructions conflict, validation cannot honestly run, or the smallest safe implementation requires an unmade product decision.
+
+## Combined Edge-Case Routes
+
+Use these explicit routes when a request combines multiple risks:
+
+- **Ambiguous flaky game-loop bug**: `thinking` → `plan-writing` → `frontend-phaser` → `quality` → `plan-execution`; add `performance` if frame pacing or timing is implicated, then `release` only after repository changes.
+- **Architecture-sensitive feature to ship**: `thinking` → `plan-writing` → `architecture` → `implementation` → `quality` → `release`.
+- **Read-only analysis or forward test**: `thinking` or task-specific skill → `quality` for evidence; report findings without `release` unless files changed.

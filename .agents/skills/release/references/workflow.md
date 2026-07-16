@@ -36,3 +36,12 @@ Before creating PR metadata:
 - Confirm commit history has the new work committed.
 - Include checks actually run; do not say tests were skipped if they passed.
 - Keep reviewer notes focused on risks, limitations, or follow-ups.
+
+## No-Change Handling
+
+If no repository files changed:
+
+- Do not commit.
+- Do not create PR metadata.
+- Report the checks run and the reason no release action was needed.
+- If a forward test discovered recommendations but no patch was requested or needed, summarize them as findings.

@@ -34,3 +34,7 @@ When reporting execution progress, use:
 - **Changed**: any plan adjustment and why it still meets the goal.
 - **Verified**: exact checks run.
 - **Blocked**: only if the same blocker prevents meaningful next action.
+
+## Forward-Test Execution
+
+For simulated or read-only forward tests, `plan-execution` may be used to describe the intended execution-progress shape without editing files. Clearly label the result as simulated and do not claim implementation completion.

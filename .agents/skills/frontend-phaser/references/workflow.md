@@ -32,3 +32,12 @@ Before leaving Phaser frontend work:
 - Confirm any visual change has a user-visible reason.
 - Hand off to `performance` when work runs every frame or affects asset/loading cost.
 - Hand off to `product-design` when animation feel, readability, or player feedback changed.
+
+## Animation Safety Rules
+
+For Phaser animation changes:
+
+- Respect reduced-motion or low-motion settings when the app exposes them; otherwise provide a low-motion fallback such as a brief tint, glow, or static marker.
+- Define how repeated triggers behave: coalesce, replace, queue with a small cap, or ignore while active.
+- Clean up tweens, timers, particles, and temporary display objects on completion and scene shutdown.
+- Avoid new texture or particle assets unless existing primitives cannot deliver the intended feedback.

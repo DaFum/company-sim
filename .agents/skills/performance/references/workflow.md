@@ -28,3 +28,13 @@ Before accepting a performance change:
 - Avoid caching unless invalidation is obvious.
 - Keep readability unless the measured bottleneck justifies complexity.
 - Hand off to `quality` for regression checks and `frontend-phaser` when frame pacing or scene behavior changed.
+
+## Frame and Effect Budgets
+
+For Phaser visual effects, start with these conservative budgets unless local evidence suggests otherwise:
+
+- Target smooth 60 FPS behavior, so avoid adding work that risks exceeding roughly 16.7ms per frame during normal play.
+- Prefer one-shot tweens/timelines over persistent `update()` work.
+- Cap particles, spawned graphics, alpha layers, and overdraw to the smallest visible effect.
+- Coalesce, replace, or drop repeated visual triggers instead of allowing unbounded effect stacks.
+- Profile or manually inspect repeated triggers before claiming the optimization is safe.

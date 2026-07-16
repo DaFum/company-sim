@@ -33,3 +33,24 @@ Before finishing documentation work:
 - Remove one-off task history unless it belongs in `memory.md`.
 - Keep commands, paths, and file names exact.
 - Hand off to `quality` for format/validation checks and `release` for final reporting.
+
+## Target Examples
+
+Use examples to separate similar documentation targets:
+
+- `memory.md`: durable observation, such as “Generated Phaser asset setup is easy to miss when debugging scene tests.”
+- `AGENTS.md`: durable operating rule, such as “When editing `src/game`, run the scene regression command before committing.”
+- Skill file: repeatable procedure, such as “Future Phaser animation work should inspect scene lifecycle, reduced motion, and frame pacing before editing.”
+
+## Skill-File Decision Test
+
+Update a skill file only when all are true:
+
+1. The lesson changes a repeatable workflow, not just one task outcome.
+2. Future agents need procedural steps rather than a passive note.
+3. The guidance applies across multiple likely future tasks.
+4. The selected skill is the narrowest appropriate place for the instruction.
+
+## Read-Only Documentation Handling
+
+For read-only analysis, forward tests, or documentation triage without file edits, report the target-selection reasoning and validation evidence instead of invoking release or PR flow.

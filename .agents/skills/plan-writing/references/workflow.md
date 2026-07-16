@@ -36,3 +36,7 @@ A plan is not ready if:
 - The scope boundary is missing.
 - It bundles unrelated outcomes into one step.
 - It skips a necessary specialist skill from `skill-router`.
+
+## Bug Reproduction Plans
+
+For bug plans, especially flaky bugs, include a reproduction step before implementation. If reproduction may be impossible, include an explicit stop/report step rather than assuming a fix can be proven.

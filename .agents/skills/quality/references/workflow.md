@@ -30,3 +30,12 @@ A validation report should include:
 - Pass/fail/warning status.
 - What behavior the check proves.
 - Any known gap that remains unverified.
+
+## Flaky Bug Reproduction Policy
+
+For flaky bugs without reproduction steps:
+
+- Try to reproduce with existing targeted checks before editing.
+- Prefer repeated targeted runs, deterministic timers, or the closest existing regression test.
+- Do not claim a fix without a failing-before/passing-after signal or clearly documented diagnostic evidence.
+- If no honest reproduction is possible, report inspected paths, commands run, likely suspects, and missing information.
