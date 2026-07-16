@@ -1,14 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { callAI, getAvailableModels } from './aiService';
 
-const { mockCreate } = vi.hoisted(() => {
-  return { mockCreate: vi.fn() };
+const { mockCreate, mockConstructor } = vi.hoisted(() => {
+  return {
+    mockCreate: vi.fn(),
+    mockConstructor: vi.fn(),
+  };
 });
 
 vi.mock('openai', () => {
   return {
     default: class OpenAI {
-      constructor() {
+      constructor(...args) {
+        mockConstructor(...args);
         this.chat = {
           completions: {
             create: mockCreate,
@@ -23,7 +27,8 @@ describe('aiService', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
     vi.clearAllMocks();
-    mockCreate.mockClear();
+    mockCreate.mockReset();
+    mockConstructor.mockReset();
   });
 
   afterEach(() => {
@@ -158,6 +163,10 @@ describe('aiService', () => {
 
         const result = await callAI('dummy-key', 'system-prompt', { day: 1 }, true, 'openai');
 
+        expect(mockConstructor).toHaveBeenCalledWith({
+          apiKey: 'dummy-key',
+          dangerouslyAllowBrowser: true,
+        });
         expect(mockCreate).toHaveBeenCalledTimes(1);
         const args = mockCreate.mock.calls[0][0];
         expect(args.model).toBe('gpt-4o-mini');
