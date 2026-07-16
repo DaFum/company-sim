@@ -46,6 +46,37 @@ describe('aiService', () => {
       expect(consoleSpy).toHaveBeenCalled();
     });
 
+    it('should return default models if response is not ok', async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+      });
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const models = await getAvailableModels();
+      expect(models).toHaveLength(4);
+      expect(models[0].name).toBe('openai');
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Could not fetch Pollinations models:',
+        expect.any(Error)
+      );
+    });
+
+    it('should return default models if response.json fails', async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => {
+          throw new Error('Parse error');
+        },
+      });
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const models = await getAvailableModels();
+      expect(models).toHaveLength(4);
+      expect(models[0].name).toBe('openai');
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Could not fetch Pollinations models:',
+        expect.any(Error)
+      );
+    });
+
     it('should return fetched models if fetch succeeds', async () => {
       const mockModels = [{ name: 'test-model', description: 'Test Model' }];
       global.fetch.mockResolvedValueOnce({
