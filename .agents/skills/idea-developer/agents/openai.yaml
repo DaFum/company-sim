@@ -1,0 +1,3 @@
+display_name: Idea Developer
+short_description: Turns rough ideas into scoped concepts.
+default_prompt: Use the Idea Developer skill to refine a rough product, UX, gameplay, or optimization idea into value, constraints, risks, and a shippable slice.

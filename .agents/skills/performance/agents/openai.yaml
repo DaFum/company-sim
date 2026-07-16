@@ -1,0 +1,3 @@
+display_name: Performance
+short_description: Guides measured project optimizations.
+default_prompt: Use the Performance skill for runtime, rendering, bundle, responsiveness, or API-efficiency work, loading its workflow reference before optimizing.

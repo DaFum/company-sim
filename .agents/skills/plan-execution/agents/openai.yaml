@@ -1,0 +1,3 @@
+display_name: Plan Execution
+short_description: Executes plans without scope drift.
+default_prompt: Use the Plan Execution skill to carry out a project plan step-by-step, verifying each step and keeping the diff surgical.

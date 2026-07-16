@@ -1,0 +1,3 @@
+display_name: Skill Gap Creator
+short_description: Creates skills when no existing skill fits.
+default_prompt: Use the Skill Gap Creator when the router has no suitable skill, then decide whether to create a new skill or extend an existing one.

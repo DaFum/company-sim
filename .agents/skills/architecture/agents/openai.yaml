@@ -1,0 +1,3 @@
+display_name: Architecture
+short_description: Guides state, service, hook, and scene decisions.
+default_prompt: Use the Architecture skill for a project boundary or flow change, loading its workflow reference before editing contracts, state, services, hooks, or scenes.
