@@ -116,6 +116,23 @@ describe('App Click Paths', () => {
     expect(state.cash).toBe(500); // 1000 - 500
   });
 
+  it('should render portfolio fallbacks when roster or employees are unavailable', () => {
+    act(() => {
+      useGameStore.setState({
+        employees: undefined,
+        roster: undefined,
+      });
+    });
+
+    render(<App />);
+
+    expect(screen.getByText('Simulation Portfolio')).toBeInTheDocument();
+    expect(screen.getByText('NO CREW')).toBeInTheDocument();
+    expect(screen.getByText('DEV')).toBeInTheDocument();
+    expect(screen.getByText('SALES')).toBeInTheDocument();
+    expect(screen.getByText('SUPPORT')).toBeInTheDocument();
+  });
+
   it('should show game-flow KPIs with correct burn units and operations context', () => {
     act(() => {
       useGameStore.setState({

@@ -91,7 +91,7 @@ function App() {
     ? activeEvents.map((event) => event.type).join(', ')
     : 'None';
   const inventoryLabel = inventory.length ? inventory.join(', ') : 'Empty';
-  const traitCounts = employees.reduce((counts, employee) => {
+  const traitCounts = (employees || []).reduce((counts, employee) => {
     counts[employee.trait] = (counts[employee.trait] || 0) + 1;
     return counts;
   }, {});
@@ -102,7 +102,7 @@ function App() {
   const productHeat = Math.min(100, Math.round(productLevel * 14 + marketingMultiplier * 12));
   const opsReadiness = Math.min(
     100,
-    Math.round(serverHealth * 0.55 + productivity * 2 + roster.support * 8)
+    Math.round(serverHealth * 0.55 + productivity * 2 + (roster?.support || 0) * 8)
   );
 
   // 4. Floating Numbers Logic
@@ -316,13 +316,13 @@ function App() {
           </div>
           <div className="roster-strip" aria-label="Team roles">
             <span>
-              DEV <strong>{roster.dev}</strong>
+              DEV <strong>{roster?.dev || 0}</strong>
             </span>
             <span>
-              SALES <strong>{roster.sales}</strong>
+              SALES <strong>{roster?.sales || 0}</strong>
             </span>
             <span>
-              SUPPORT <strong>{roster.support}</strong>
+              SUPPORT <strong>{roster?.support || 0}</strong>
             </span>
           </div>
           <div className="trait-cloud" aria-label="Employee traits">
