@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { CSS_PALETTE, ROLE_LIGHTS, ROLE_PARTICLES } from '../palette.js';
 
 const STATE = {
   IDLE: 'IDLE',
@@ -45,21 +46,25 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     this.shadow = scene.add
       .image(x, y + 10, 'shadow_blob')
       .setDepth(this.depth - 1)
-      .setAlpha(0.5);
+      .setAlpha(0.45);
 
     // --- PUSH THE LIMITS: DYNAMIC LIGHTING ---
     // Every worker emits light. Color based on role.
-    const lightColor = role === 'dev' ? 0x0088ff : role === 'sales' ? 0x00ff00 : 0xff0000;
+    const lightColor = ROLE_LIGHTS[role] || ROLE_LIGHTS.support;
+    this.baseLightRadius = 72;
+    this.lightJitterAmplitude = 6;
 
     // PointLight: extremely fast rendered "fake" lights
     // Only created if WebGL is available to avoid issues
     if (scene.game.renderer.type === Phaser.WEBGL) {
-      this.light = scene.add.pointlight(x, y, lightColor, 60, 0.3).setDepth(this.depth - 1);
+      this.light = scene.add
+        .pointlight(x, y, lightColor, this.baseLightRadius, 0.35)
+        .setDepth(this.depth - 1);
       // NOTE: Update logic moved to preUpdate to avoid event listener leaks
     }
 
     // Particle Emitter (One-time creation)
-    const particleColor = role === 'dev' ? [0x00ff00, 0x004400] : [0xffff00, 0xffaa00];
+    const particleColor = ROLE_PARTICLES[role] || ROLE_PARTICLES.support;
     this.particleEmitter = this.scene.add.particles(0, 0, 'particle_pixel', {
       speed: { min: 50, max: 100 },
       angle: { min: 220, max: 320 },
@@ -88,8 +93,8 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     this.statusIcon = this.scene.add
       .text(0, 0, '', {
         fontSize: '14px',
-        fontFamily: 'Arial',
-        stroke: '#000',
+        fontFamily: 'Courier New',
+        stroke: CSS_PALETTE.OUTLINE_DARK,
         strokeThickness: 2,
       })
       .setOrigin(0.5)
@@ -174,13 +179,13 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     if (this.light) {
       this.light.setPosition(this.x, this.y);
       // Pulsing effect
-      const jitter = Math.sin(time * 0.005) * 5;
-      this.light.radius = 60 + jitter;
+      const jitter = Math.sin(time * 0.005) * this.lightJitterAmplitude;
+      this.light.radius = this.baseLightRadius + jitter;
     }
 
     // Sync Shadow Position
     if (this.shadow) {
-      this.shadow.setPosition(this.x, this.y + 12);
+      this.shadow.setPosition(this.x, this.y + 13);
       this.shadow.setDepth(this.depth - 1); // Keep shadow under worker
     }
   }
@@ -464,7 +469,7 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
       .text(this.x, this.y, text, {
         fontSize: '12px',
         color,
-        stroke: '#000',
+        stroke: CSS_PALETTE.OUTLINE_DARK,
         strokeThickness: 2,
       })
       .setOrigin(0.5);
