@@ -10,18 +10,25 @@ describe('prompts', () => {
       expect(typeof prompt).toBe('string');
       expect(prompt).toContain('Du bist die KI-CEO');
       expect(prompt).toContain('PERSÖNLICHKEIT:');
+      expect(prompt).toContain('{{PERSONA}}');
       expect(prompt).toContain('FINANZ-TREND:');
       expect(prompt).toContain('CONTEXT:');
       expect(prompt).toContain('AKTIONEN');
 
       // Expected action list
+      expect(prompt).toContain('"action": "NONE"');
       expect(prompt).toContain('"action": "HIRE_WORKER"');
       expect(prompt).toContain('"action": "FIRE_WORKER"');
       expect(prompt).toContain('"action": "BUY_UPGRADE"');
+      expect(prompt).toContain('"action": "MARKETING_PUSH"');
+      expect(prompt).toContain('"action": "PIVOT"');
+      expect(prompt).toContain('"action": "REFACTOR"');
 
       // Output format check
       expect(prompt).toContain('OUTPUT FORMAT (JSON ONLY):');
       expect(prompt).toContain('"action": "ACTION_NAME"');
+      expect(prompt).toContain('"reasoning"');
+      expect(prompt).toContain('"risk_assessment"');
     });
   });
 });

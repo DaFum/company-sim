@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { callAI, getAvailableModels } from './aiService';
 
 // Mock fetch globally
@@ -9,12 +9,18 @@ describe('aiService', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   describe('getAvailableModels', () => {
     it('should return default models if fetch fails', async () => {
       global.fetch.mockRejectedValueOnce(new Error('Network error'));
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const models = await getAvailableModels();
       expect(models).toHaveLength(4);
       expect(models[0].name).toBe('openai');
+      expect(consoleSpy).toHaveBeenCalled();
     });
 
     it('should return fetched models if fetch succeeds', async () => {
@@ -55,7 +61,6 @@ describe('aiService', () => {
         risk_assessment: 'LOW',
       });
       expect(consoleSpy).toHaveBeenCalled();
-      consoleSpy.mockRestore();
     });
 
     it('should throw an error for JSON parse failure when suppressErrors is false', async () => {
@@ -75,12 +80,11 @@ describe('aiService', () => {
 
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      await expect(
-        callAI('dummy-key', 'system-prompt', {}, false, 'pollinations')
-      ).rejects.toThrow(SyntaxError);
+      await expect(callAI('dummy-key', 'system-prompt', {}, false, 'pollinations')).rejects.toThrow(
+        SyntaxError
+      );
 
       expect(consoleSpy).toHaveBeenCalled();
-      consoleSpy.mockRestore();
     });
   });
 });
