@@ -94,12 +94,14 @@ export const ApiKeyModal = () => {
           </button>
 
           {/* Pollinations model selector */}
-          <div className="model-selector">
+          <div
+            className="model-selector"
+            onMouseEnter={loadPollinationsModels}
+            onFocusCapture={loadPollinationsModels}
+          >
             <label className="model-label">Choose a model:</label>
             <select
               value={aiModel}
-              onFocus={loadPollinationsModels}
-              onClick={loadPollinationsModels}
               onChange={(e) => setAiModel(e.target.value)}
               disabled={isLoadingModels}
               className="model-select"
