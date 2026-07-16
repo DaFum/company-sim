@@ -224,6 +224,33 @@ describe('useAiDirector', () => {
     expect(callAI).toHaveBeenCalledTimes(1);
   });
 
+  it('should not re-trigger for the same day after the first tick 60 decision completes', async () => {
+    currentState.tick = 60;
+    useGameStore.__setMockState(currentState);
+
+    callAI.mockResolvedValueOnce({
+      action: 'PIVOT',
+      parameters: {},
+      reasoning: 'Change direction.',
+    });
+
+    const { rerender } = renderHook(() => useAiDirector());
+
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    currentState.aiModel = 'mistral';
+    useGameStore.__setMockState(currentState);
+    rerender();
+
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    expect(callAI).toHaveBeenCalledTimes(1);
+  });
+
   it('should handle errors from callAI gracefully', async () => {
     currentState.tick = 60;
     useGameStore.__setMockState(currentState);

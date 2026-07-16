@@ -63,16 +63,19 @@ export const useAiDirector = () => {
   const apiKey = useGameStore((state) => state.apiKey);
   const aiProvider = useGameStore((state) => state.aiProvider);
   const aiModel = useGameStore((state) => state.aiModel);
+  const day = useGameStore((state) => state.day);
   const addTerminalLog = useGameStore((state) => state.addTerminalLog);
   const setPendingDecision = useGameStore((state) => state.setPendingDecision);
 
   // Use ref to prevent double-firing
   const processingRef = useRef(false);
+  const lastProcessedDayRef = useRef(-1);
 
   useEffect(() => {
     const timers = [];
     // TRIGGER AT TICK 60
-    if (tick === 60 && !processingRef.current) {
+    if (tick === 60 && !processingRef.current && lastProcessedDayRef.current !== day) {
+      lastProcessedDayRef.current = day;
       processingRef.current = true;
       useGameStore.setState({ isAiThinking: true });
 
@@ -172,5 +175,5 @@ export const useAiDirector = () => {
       runAiLoop();
     }
     return () => timers.forEach((t) => clearTimeout(t));
-  }, [tick, apiKey, addTerminalLog, aiProvider, aiModel, setPendingDecision]);
+  }, [tick, day, apiKey, addTerminalLog, aiProvider, aiModel, setPendingDecision]);
 };

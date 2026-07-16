@@ -83,16 +83,7 @@ function App() {
   const inventory = useGameStore((state) => state.inventory);
   const activeEvents = useGameStore((state) => state.activeEvents);
   const gameState = useGameStore((state) => state.gameState);
-  const dailyBurn = useGameStore((state) => {
-    const baseBurn = state.officeLevel * 100;
-    const employeeBurn = state.employees.reduce((sum, e) => {
-      let salary = 50;
-      if (e.trait === '10x_ENGINEER') salary = 100;
-      if (e.trait === 'JUNIOR') salary = 25;
-      return sum + salary;
-    }, 0);
-    return baseBurn + employeeBurn;
-  });
+  const dailyBurn = useGameStore((state) => state.getStats().totalBurn);
   const burnPerTick = dailyBurn / 60;
   const activeEventLabel = activeEvents.length
     ? activeEvents.map((event) => event.type).join(', ')
