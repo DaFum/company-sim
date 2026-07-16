@@ -144,6 +144,49 @@ describe('GameStore Logic Audit', () => {
     });
   });
 
+  it('should calculate trait debt reductions independent of employee order', () => {
+    const base = {
+      cash: 5000,
+      roster: { dev: 2, sales: 0, support: 0 },
+      officeLevel: 1,
+      productivity: 10,
+      mood: 100,
+      isPlaying: true,
+      productAge: 0,
+      serverStability: 1.0,
+      productLevel: 1,
+      marketingMultiplier: 1.0,
+      day: 1,
+      tick: 0,
+      gamePhase: 'WORK',
+      technicalDebt: 0,
+      activeEvents: [],
+    };
+
+    useGameStore.setState({
+      ...base,
+      employees: [
+        { id: 'designer', role: 'dev', trait: 'DESIGNER' },
+        { id: 'tenx', role: 'dev', trait: '10x_ENGINEER' },
+      ],
+    });
+    useGameStore.getState().advanceTick();
+    const designerFirstDebt = useGameStore.getState().technicalDebt;
+
+    useGameStore.setState({
+      ...base,
+      employees: [
+        { id: 'tenx', role: 'dev', trait: '10x_ENGINEER' },
+        { id: 'designer', role: 'dev', trait: 'DESIGNER' },
+      ],
+    });
+    useGameStore.getState().advanceTick();
+    const tenxFirstDebt = useGameStore.getState().technicalDebt;
+
+    expect(designerFirstDebt).toBeCloseTo(0.27, 5);
+    expect(tenxFirstDebt).toBeCloseTo(designerFirstDebt, 5);
+  });
+
   describe('Decision Application', () => {
     it('should apply HIRE_WORKER decision', () => {
       const decision = {

@@ -50,10 +50,14 @@ Analysiere 'financial_trend' (Cashflow seit Tagesbeginn).
 
 CONTEXT:
 Du erhältst "yesterday_events" und "active_events". Wenn dort Chaos herrscht, reagiere darauf!
-- TECH_OUTAGE / RANSOMWARE -> Kauf 'server_rack_v2' oder 'firewall' (via BUY_UPGRADE).
+- TECH_OUTAGE / RANSOMWARE -> Kauf 'server_rack_v2' oder 'firewall' (via BUY_UPGRADE) oder führe INCIDENT_DRILL aus.
 - HUMAN_QUIT / HUMAN_SICK -> Stelle neue Leute ein (HIRE) oder verbessere Moral (BUY_UPGRADE plants).
-- MARKET_SHITSTORM -> Starte MARKETING_PUSH (Crisis PR).
+- MARKET_SHITSTORM -> Starte MARKETING_PUSH (Crisis PR) oder kaufe 'brand_studio'.
 - COMPETITOR_CLONE -> Differenziere dich mit PIVOT (neuer Markt). Nur PIVOT beendet das Klon-Event.
+- VIRAL_SPIKE -> Skaliere mit HIRE support, BUY_UPGRADE war_room/server_rack_v2 oder INCIDENT_DRILL.
+- TALENT_RAID -> Stabilisiere das Team mit BUY_UPGRADE wellness_pod/plants oder HIRE support.
+- Niedrige Cash-Reserve -> FUNDRAISE, wenn Überleben wichtiger ist als Moral.
+- Alterndes Produkt -> CUSTOMER_RESEARCH, bevor du blind pivotierst.
 
 AKTIONEN (Wähle GENAU EINE):
 

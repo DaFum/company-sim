@@ -232,6 +232,96 @@ export default class PreloadScene extends Phaser.Scene {
       g.lineStyle(2, 0xaa5500, 0.5);
       g.strokeCircle(32, 32, 20);
     });
+
+    // CEO ACTION / UPGRADE PROPS
+    this.genSpriteWithNormal('obj_firewall', 32, 32, (g) => {
+      g.fillStyle(0x10131d, 1);
+      g.fillRect(5, 5, 22, 22);
+      g.lineStyle(2, 0x00e5ff, 1);
+      g.strokeRect(5, 5, 22, 22);
+      g.fillStyle(0x00e5ff, 1);
+      g.fillRect(10, 11, 12, 3);
+      g.fillRect(10, 18, 12, 3);
+    });
+
+    this.genSpriteWithNormal('obj_server_v2', 32, 32, (g) => {
+      g.fillStyle(0x111111, 1);
+      g.fillRect(4, 2, 24, 28);
+      g.lineStyle(2, 0x00ff9c, 1);
+      g.strokeRect(4, 2, 24, 28);
+      g.fillStyle(0x00ff9c, 1);
+      for (let y = 7; y <= 23; y += 4) g.fillRect(8, y, 16, 2);
+    });
+
+    this.genSpriteWithNormal('obj_war_room', 64, 32, (g) => {
+      g.fillStyle(0x1a1f2e, 1);
+      g.fillRoundedRect(2, 4, 60, 24, 3);
+      g.lineStyle(2, 0xffb000, 1);
+      g.strokeRoundedRect(2, 4, 60, 24, 3);
+      g.fillStyle(0xff4d5e, 1);
+      g.fillRect(10, 10, 10, 8);
+      g.fillStyle(0x00e5ff, 1);
+      g.fillRect(27, 8, 10, 12);
+      g.fillStyle(0x00ff9c, 1);
+      g.fillRect(44, 13, 10, 6);
+    });
+
+    this.genSpriteWithNormal('obj_brand_studio', 32, 32, (g) => {
+      g.fillStyle(0xffb000, 1);
+      g.fillCircle(16, 16, 12);
+      g.fillStyle(0x10131d, 1);
+      g.fillCircle(16, 16, 7);
+      g.fillStyle(0xffffff, 1);
+      g.fillRect(15, 4, 2, 24);
+      g.fillRect(4, 15, 24, 2);
+    });
+
+    this.genSpriteWithNormal('obj_wellness_pod', 32, 32, (g) => {
+      g.fillStyle(0x88d8c0, 1);
+      g.fillRoundedRect(5, 8, 22, 17, 8);
+      g.lineStyle(2, 0xffffff, 0.8);
+      g.strokeRoundedRect(5, 8, 22, 17, 8);
+      g.fillStyle(0x37946e, 1);
+      g.fillCircle(12, 14, 3);
+      g.fillCircle(20, 18, 4);
+    });
+
+    this.genSpriteWithNormal('obj_investor_plaque', 32, 32, (g) => {
+      g.fillStyle(0x2d2414, 1);
+      g.fillRoundedRect(4, 7, 24, 18, 2);
+      g.lineStyle(2, 0xffb000, 1);
+      g.strokeRoundedRect(4, 7, 24, 18, 2);
+      g.fillStyle(0xfff1b8, 1);
+      g.fillRect(9, 12, 14, 2);
+      g.fillRect(9, 17, 10, 2);
+    });
+
+    this.genSpriteWithNormal('obj_research_wall', 32, 32, (g) => {
+      g.fillStyle(0xf5f0d8, 1);
+      g.fillRect(3, 4, 26, 22);
+      g.lineStyle(1, 0x10131d, 0.6);
+      g.strokeRect(3, 4, 26, 22);
+      g.fillStyle(0xff4d5e, 1);
+      g.fillCircle(9, 10, 2);
+      g.fillStyle(0x00e5ff, 1);
+      g.fillCircle(20, 13, 2);
+      g.lineStyle(1, 0x10131d, 0.7);
+      g.beginPath();
+      g.moveTo(9, 10);
+      g.lineTo(20, 13);
+      g.lineTo(14, 21);
+      g.strokePath();
+    });
+
+    this.genSpriteWithNormal('obj_incident_kit', 32, 32, (g) => {
+      g.fillStyle(0xff4d5e, 1);
+      g.fillRoundedRect(6, 9, 20, 16, 2);
+      g.fillStyle(0xffffff, 1);
+      g.fillRect(14, 11, 4, 12);
+      g.fillRect(10, 15, 12, 4);
+      g.fillStyle(0x10131d, 1);
+      g.fillRect(12, 6, 8, 4);
+    });
   }
 
   createHighQualityAssets() {

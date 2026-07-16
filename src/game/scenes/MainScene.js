@@ -53,12 +53,14 @@ export default class MainScene extends Phaser.Scene {
     this._maxPathCalculationsPerTick = 4;
 
     this._chaosTweens = [];
+    this._officeAssetKeys = new Set();
   }
 
   /**
    * Initializes the scene, sets up groups, grid, inputs, and subscriptions.
    */
   create() {
+    this._officeAssetKeys.clear();
     this.soundManager = new SoundManager(this);
 
     // 0) Animations (Must be before spawnObjects)
@@ -178,6 +180,13 @@ export default class MainScene extends Phaser.Scene {
         )
       );
 
+      this.unsubscribers.push(
+        store.subscribe(
+          (state) => state.decisionHistory,
+          (history) => this.syncDecisionOfficeAssets(history)
+        )
+      );
+
       // 5) Initial Sync
       const state = store.getState();
       if (state) {
@@ -187,6 +196,7 @@ export default class MainScene extends Phaser.Scene {
         this.syncChaosVisuals(state.activeEvents);
         this.syncRefactorVisuals(state.isRefactoring);
         this.syncInventoryVisuals(state.inventory);
+        this.syncDecisionOfficeAssets(state.decisionHistory);
       }
     } else {
       console.warn('[MainScene] Store unavailable.');
@@ -896,6 +906,8 @@ export default class MainScene extends Phaser.Scene {
         obj.postFX.addShadow(0, 0, 0.1, 0.5, 0x000000, 2, 0.8);
       }
     }
+
+    return obj;
   }
 
   // --- WORKERS ---
@@ -1150,21 +1162,78 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
+  addOfficeAsset(key, asset) {
+    if (!asset || this._officeAssetKeys.has(key)) return;
+
+    const obj = this.spawnObject(asset.x, asset.y, asset.texture, asset.animated);
+    obj.officeAssetKey = key;
+    obj.setDepth(obj.y + 1);
+
+    const label = this.add
+      .text(obj.x, obj.y - 22, asset.label, {
+        fontSize: '8px',
+        color: '#10131d',
+        backgroundColor: '#ffb000',
+        padding: { x: 3, y: 1 },
+      })
+      .setOrigin(0.5)
+      .setDepth(obj.y + 2);
+    label.isOfficeAssetLabel = true;
+    label.officeAssetKey = key;
+    this.objectGroup.add(label);
+
+    this._officeAssetKeys.add(key);
+    this.createCodeBits(obj.x, obj.y - 12);
+  }
+
+  /**
+   * Adds an earned office asset when the CEO buys the matching upgrade.
+   * @param {string} item - Inventory item id.
+   */
+  addOfficeAssetForInventory(item) {
+    const assetMap = {
+      firewall: { x: 5, y: 2, texture: 'obj_firewall', label: 'FIREWALL' },
+      server_rack_v2: { x: 5, y: 3, texture: 'obj_server_v2', label: 'SERVER V2' },
+      plants: { x: 14, y: 14, texture: 'obj_plant', label: 'GREENERY' },
+      coffee_machine: { x: 22, y: 17, texture: 'obj_coffee_anim', label: 'COFFEE', animated: true },
+      war_room: { x: 17, y: 6, texture: 'obj_war_room', label: 'WAR ROOM' },
+      brand_studio: { x: 20, y: 7, texture: 'obj_brand_studio', label: 'BRAND LAB' },
+      wellness_pod: { x: 9, y: 16, texture: 'obj_wellness_pod', label: 'WELLNESS' },
+    };
+    this.addOfficeAsset(`inventory:${item}`, assetMap[item]);
+  }
+
+  /**
+   * Adds a visible trace when the CEO executes a matching strategic action.
+   * @param {string} action - Decision action id.
+   */
+  addOfficeAssetForAction(action) {
+    const assetMap = {
+      FUNDRAISE: { x: 15, y: 4, texture: 'obj_investor_plaque', label: 'TERM SHEET' },
+      CUSTOMER_RESEARCH: { x: 4, y: 14, texture: 'obj_research_wall', label: 'RESEARCH' },
+      INCIDENT_DRILL: { x: 6, y: 4, texture: 'obj_incident_kit', label: 'DRILL KIT' },
+      MARKETING_PUSH: { x: 21, y: 7, texture: 'obj_brand_studio', label: 'CAMPAIGN' },
+    };
+    this.addOfficeAsset(`action:${action}`, assetMap[action]);
+  }
+
   /**
    * Triggers visual effects for newly acquired inventory items.
    * @param {string[]} inventory - The player's inventory list.
    */
   syncInventoryVisuals(inventory) {
     if (!inventory) return;
-    if (inventory.includes('firewall')) {
-      // Small visual indicator or protective shield around server (can be expanded later)
-    }
-    if (inventory.includes('server_rack_v2')) {
-      // Additional server rack prop spawned (can be expanded later)
-    }
-    if (inventory.includes('plants')) {
-      // The map already has plants, but we could spawn additional dynamic ones here.
-    }
+    inventory.forEach((item) => this.addOfficeAssetForInventory(item));
+  }
+
+  /**
+   * Triggers visual effects for executed CEO decisions.
+   * @param {Object[]} history - Decision history entries.
+   */
+  syncDecisionOfficeAssets(history = []) {
+    history
+      .filter((entry) => !entry.vetoed)
+      .forEach((entry) => this.addOfficeAssetForAction(entry.action));
   }
 
   /**
