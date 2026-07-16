@@ -26,6 +26,7 @@ Before any repository action, complete this gate:
 | Tests, linting, bug reproduction, regression prevention | `quality` |
 | Runtime smoothness, build size, rendering, responsiveness, API efficiency | `performance` |
 | README, memory, architecture notes, scoped `AGENTS.md`, skill docs | `documentation` |
+| No existing skill fits, repeated missing workflow, skill creation fallback | `skill-gap-creator` |
 | Git status, commit hygiene, pull request body, release-readiness | `release` |
 
 ## Combination Patterns
@@ -37,6 +38,7 @@ Use multiple skills only when each one changes the work:
 - **UX/game-feel work**: `idea-developer` → `product-design` → `frontend-phaser` when Phaser changes are needed.
 - **Architecture-sensitive work**: `thinking` → `architecture` → `implementation` → `quality`.
 - **Docs-only work**: `documentation` → `quality` for validation → `release`.
+- **No matching skill**: `thinking` → `skill-gap-creator`; create a new skill only if the gap is durable and cannot be cleanly handled by an existing skill.
 
 ## Minimal Loading Rule
 
