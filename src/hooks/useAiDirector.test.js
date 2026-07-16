@@ -290,6 +290,15 @@ describe('useAiDirector', () => {
     });
 
     expect(currentState.addTerminalLog).toHaveBeenCalledWith('> ERROR: AI CONNECTION FAILED.');
+    expect(currentState.setPendingDecision).toHaveBeenCalledWith({
+      action: 'NONE',
+      parameters: {},
+      reasoning: 'AI connection failed. Defaulting to no action.',
+      decision_title: 'No Action',
+      amount: 0,
+      expected_effects: 'Skips execution without changing company metrics.',
+      risk_assessment: 'LOW',
+    });
     expect(useGameStore.setState).toHaveBeenCalledWith({ isAiThinking: false });
 
     consoleErrorSpy.mockRestore();
