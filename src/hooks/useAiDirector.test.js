@@ -42,21 +42,36 @@ describe('useAiDirector', () => {
       tick: 0,
       apiKey: 'test-key',
       aiProvider: 'openai',
+      aiModel: 'gpt-4.1-mini',
       addTerminalLog: vi.fn(),
       setPendingDecision: vi.fn(),
       cash: 10000,
       employees: [],
       productAge: 10,
       workers: 5,
-      roster: { Dev: 5 },
+      roster: { dev: 5, sales: 0, support: 0 },
       day: 1,
       mood: 100,
       isAiThinking: false,
       inventory: [],
       eventHistory: [],
       activeEvents: [],
-      getStats: vi.fn().mockReturnValue({ totalBurn: 250 }),
+      gamePhase: 'CRUNCH',
+      officeLevel: 2,
+      startOfDayCash: 9500,
+      getStats: vi.fn().mockReturnValue({
+        totalBurn: 250,
+        count: 5,
+        roster: { dev: 5, sales: 0, support: 0 },
+      }),
       technicalDebt: 20,
+      productLevel: 1,
+      productivity: 10,
+      marketingMultiplier: 1,
+      marketingLeft: 0,
+      serverHealth: 100,
+      serverStability: 1,
+      lastRevenue: 12,
     };
 
     useGameStore.__setMockState(currentState);
@@ -119,8 +134,23 @@ describe('useAiDirector', () => {
       expect.any(String), // systemPrompt
       expect.any(Object), // fullState
       true, // is JSON
-      'openai' // provider
+      'openai', // provider
+      'gpt-4.1-mini' // model
     );
+
+    const aiContext = callAI.mock.calls[0][2];
+    expect(aiContext).toMatchObject({
+      cash: 10000,
+      burn_rate: 250,
+      burn_per_tick: 250 / 60,
+      financial_trend: 500,
+      tick: 60,
+      game_phase: 'CRUNCH',
+      office_level: 2,
+      roster: { dev: 5, sales: 0, support: 0 },
+      revenue_per_tick: 12,
+      available_actions: expect.arrayContaining(['HIRE_WORKER', 'BUY_UPGRADE', 'REFACTOR']),
+    });
 
     expect(currentState.setPendingDecision).toHaveBeenCalledWith({
       action: 'HIRE_WORKER',
@@ -128,7 +158,9 @@ describe('useAiDirector', () => {
       reasoning: 'Need more developers to increase productivity.',
       decision_title: 'Hire 2 dev(s)',
       amount: 1000, // 2 * 500
-      risk_assessment: 'LOW',
+      expected_effects:
+        'Adds employees and increases payroll; support helps resolve operational events.',
+      risk_assessment: 'MEDIUM',
     });
 
     expect(useGameStore.setState).toHaveBeenCalledWith({ isAiThinking: false });
@@ -160,6 +192,7 @@ describe('useAiDirector', () => {
       reasoning: 'No API Key found. Playing safe.',
       decision_title: 'No Action',
       amount: 0,
+      expected_effects: 'Skips execution without changing company metrics.',
       risk_assessment: 'LOW',
     });
 

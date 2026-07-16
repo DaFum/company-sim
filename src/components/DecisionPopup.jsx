@@ -4,6 +4,7 @@ const POPUP_TEXT = {
   TITLE: 'The CEO has decided',
   COST: 'Cost:',
   EXPECTED: 'Expected:',
+  RISK: 'Risk:',
   CONFIRM: 'Execute Decision',
   VETO: 'Veto Decision',
 };
@@ -24,6 +25,12 @@ export const DecisionPopup = ({ decision, onConfirm, onVeto }) => {
         <div className={`popup-cost ${decision.amount > 0 ? 'expensive' : 'neutral'}`}>
           {POPUP_TEXT.COST} {decision.amount} €
         </div>
+
+        {decision.risk_assessment && (
+          <div className={`popup-risk risk-${decision.risk_assessment.toLowerCase()}`}>
+            <strong>{POPUP_TEXT.RISK}</strong> {decision.risk_assessment}
+          </div>
+        )}
 
         {decision.expected_effects && (
           <div className="popup-expected">

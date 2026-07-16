@@ -950,6 +950,30 @@ body {
 .popup-cost.neutral {
   color: var(--ink-dim);
 }
+.popup-risk,
+.popup-expected {
+  text-align: left;
+  border: 1px solid var(--line-soft);
+  background: rgba(0, 0, 0, 0.24);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  color: var(--ink-dim);
+  line-height: 1.35;
+}
+.popup-risk strong,
+.popup-expected strong {
+  color: var(--ink);
+}
+.risk-high {
+  border-color: rgba(255, 77, 94, 0.38);
+}
+.risk-medium {
+  border-color: rgba(255, 176, 0, 0.35);
+}
+.risk-low {
+  border-color: rgba(0, 255, 156, 0.24);
+}
 .popup-actions {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(118px, 0.65fr);
@@ -1243,10 +1267,16 @@ body {
   margin-bottom: 6px;
   line-height: 1.3;
 }
+.history-effects,
+.history-risk,
 .history-cost {
   color: var(--ink-faint);
   font-family: var(--font-mono);
   font-size: 0.9em;
+}
+.history-effects,
+.history-risk {
+  margin-bottom: 4px;
 }
 
 /* ============================================================
@@ -1281,6 +1311,15 @@ body {
   font-size: 1.1em;
   font-weight: bold;
   color: var(--ink);
+}
+.kpi-wide {
+  grid-column: span 2;
+}
+.kpi-small-value {
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 /* ============================================================

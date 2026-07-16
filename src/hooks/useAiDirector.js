@@ -33,10 +33,14 @@ const formatDecision = (action, params, reason, riskAssessment) => {
 
   let title = `Action: ${action}`;
   let amount = 0;
+  let expectedEffects = '';
+  let actionRisk = riskAssessment || 'LOW';
 
   if (def) {
     title = def.title(safeParams);
     amount = def.calculateCost(safeParams);
+    expectedEffects = def.effects;
+    actionRisk = riskAssessment || def.risk || 'LOW';
   }
 
   return {
@@ -45,7 +49,8 @@ const formatDecision = (action, params, reason, riskAssessment) => {
     reasoning: reason,
     decision_title: title,
     amount,
-    risk_assessment: riskAssessment || 'LOW',
+    expected_effects: expectedEffects,
+    risk_assessment: actionRisk,
   };
 };
 
@@ -57,6 +62,7 @@ export const useAiDirector = () => {
   const tick = useGameStore((state) => state.tick);
   const apiKey = useGameStore((state) => state.apiKey);
   const aiProvider = useGameStore((state) => state.aiProvider);
+  const aiModel = useGameStore((state) => state.aiModel);
   const addTerminalLog = useGameStore((state) => state.addTerminalLog);
   const setPendingDecision = useGameStore((state) => state.setPendingDecision);
 
@@ -100,17 +106,21 @@ export const useAiDirector = () => {
           const fullState = {
             cash: state.cash,
             burn_rate: stats.totalBurn,
+            tick: state.tick,
+            game_phase: state.gamePhase,
             financial_trend: financialTrend,
             product_age: state.productAge,
             workers: stats.count,
+            office_level: state.officeLevel,
             roster: stats.roster,
             employee_traits: traitSummary,
             day: state.day,
             mood: state.mood,
             technical_debt: state.technicalDebt,
+            burn_per_tick: stats.totalBurn / 60,
             productivity: state.productivity,
             product_level: state.productLevel,
-            revenue_per_tick: state.lastRevenue || 0, // Ensure gameStore has this or default to 0
+            revenue_per_tick: state.lastRevenue || 0,
             marketing_multiplier: state.marketingMultiplier,
             marketing_ticks_remaining: state.marketingLeft,
             is_refactoring: state.isRefactoring,
@@ -119,12 +129,13 @@ export const useAiDirector = () => {
             yesterday_events: state.eventHistory || [],
             active_events: state.activeEvents || [],
             inventory: state.inventory,
+            available_actions: Object.keys(ACTION_DEFINITIONS),
           };
 
           // 2. Call API (or Mock)
           let result;
           if (apiKey) {
-            result = await callAI(apiKey, systemPrompt, fullState, true, aiProvider);
+            result = await callAI(apiKey, systemPrompt, fullState, true, aiProvider, aiModel);
           } else {
             await new Promise((r) => setTimeout(r, 2000));
             result = {
@@ -161,5 +172,5 @@ export const useAiDirector = () => {
       runAiLoop();
     }
     return () => timers.forEach((t) => clearTimeout(t));
-  }, [tick, apiKey, addTerminalLog, aiProvider, setPendingDecision]);
+  }, [tick, apiKey, addTerminalLog, aiProvider, aiModel, setPendingDecision]);
 };
