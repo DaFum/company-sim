@@ -1,0 +1,3 @@
+display_name: Plan Writing
+short_description: Creates scoped, verifiable work plans.
+default_prompt: Use the Plan Writing skill to turn a project request into assumptions, scoped steps, success criteria, and exact verification checks.

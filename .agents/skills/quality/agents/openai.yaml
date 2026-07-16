@@ -1,0 +1,3 @@
+display_name: Quality
+short_description: Guides tests, linting, and validation strategy.
+default_prompt: Use the Quality skill to choose and run checks for a project change, loading its workflow reference before writing tests or reporting validation.

@@ -1,0 +1,3 @@
+display_name: Skill Router
+short_description: Routes repo work to focused workflow skills.
+default_prompt: Use the Skill Router to choose the right dedicated project workflow skill before changing, validating, documenting, committing, or preparing a PR.

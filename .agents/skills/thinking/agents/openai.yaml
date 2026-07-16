@@ -1,0 +1,3 @@
+display_name: Thinking
+short_description: Frames assumptions, risks, and tradeoffs.
+default_prompt: Use the Thinking skill to resolve ambiguity, state assumptions, compare tradeoffs, and choose the simplest safe path for project work.

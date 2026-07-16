@@ -1,0 +1,3 @@
+display_name: Implementation
+short_description: Guides surgical code and config edits.
+default_prompt: Use the Implementation skill for code, dependency, script, or configuration work, loading its workflow reference before editing.
