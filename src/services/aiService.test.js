@@ -1,10 +1,34 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { callAI, getAvailableModels } from './aiService';
 
+const { mockCreate, mockConstructor } = vi.hoisted(() => {
+  return {
+    mockCreate: vi.fn(),
+    mockConstructor: vi.fn(),
+  };
+});
+
+vi.mock('openai', () => {
+  return {
+    default: class OpenAI {
+      constructor(...args) {
+        mockConstructor(...args);
+        this.chat = {
+          completions: {
+            create: mockCreate,
+          },
+        };
+      }
+    },
+  };
+});
+
 describe('aiService', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
     vi.clearAllMocks();
+    mockCreate.mockReset();
+    mockConstructor.mockReset();
   });
 
   afterEach(() => {
@@ -123,6 +147,131 @@ describe('aiService', () => {
 
       const requestBody = JSON.parse(global.fetch.mock.calls[0][1].body);
       expect(requestBody.model).toBe('mistral');
+    });
+
+    describe('openai provider', () => {
+      it('should successfully call OpenAI and return parsed JSON', async () => {
+        mockCreate.mockResolvedValueOnce({
+          choices: [
+            {
+              message: {
+                content: '{"action":"HIRE","parameters":{},"reasoning":"need help"}',
+              },
+            },
+          ],
+        });
+
+        const result = await callAI('dummy-key', 'system-prompt', { day: 1 }, true, 'openai');
+
+        expect(mockConstructor).toHaveBeenCalledWith({
+          apiKey: 'dummy-key',
+          dangerouslyAllowBrowser: true,
+        });
+        expect(mockCreate).toHaveBeenCalledTimes(1);
+        const args = mockCreate.mock.calls[0][0];
+        expect(args.model).toBe('gpt-4o-mini');
+        expect(args.messages).toEqual([
+          { role: 'system', content: 'system-prompt' },
+          { role: 'user', content: JSON.stringify({ day: 1 }) },
+        ]);
+        expect(args.response_format).toEqual({ type: 'json_object' });
+
+        expect(result).toEqual({
+          action: 'HIRE',
+          parameters: {},
+          reasoning: 'need help',
+        });
+      });
+
+      it('should pass gpt-4o-mini to OpenAI if model is openai', async () => {
+        mockCreate.mockResolvedValueOnce({
+          choices: [
+            {
+              message: {
+                content: '{"action":"NONE"}',
+              },
+            },
+          ],
+        });
+
+        await callAI('dummy-key', 'system-prompt', {}, true, 'openai', 'openai');
+
+        expect(mockCreate.mock.calls[0][0].model).toBe('gpt-4o-mini');
+      });
+
+      it('should pass the selected model to OpenAI if model is not openai', async () => {
+        mockCreate.mockResolvedValueOnce({
+          choices: [
+            {
+              message: {
+                content: '{"action":"NONE"}',
+              },
+            },
+          ],
+        });
+
+        await callAI('dummy-key', 'system-prompt', {}, true, 'openai', 'gpt-4o');
+
+        expect(mockCreate.mock.calls[0][0].model).toBe('gpt-4o');
+      });
+
+      it('should handle empty AI response from OpenAI when suppressErrors is true', async () => {
+        mockCreate.mockResolvedValueOnce({
+          choices: [
+            {
+              message: {
+                content: '',
+              },
+            },
+          ],
+        });
+
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const result = await callAI('dummy-key', 'system-prompt', {}, true, 'openai');
+
+        expect(result).toEqual({
+          action: 'NONE',
+          parameters: {},
+          reasoning: 'AI Connection Failed. Playing it safe.',
+          risk_assessment: 'LOW',
+        });
+        expect(consoleSpy).toHaveBeenCalled();
+      });
+
+      it('should throw Error for missing action field in response when suppressErrors is false', async () => {
+        mockCreate.mockResolvedValueOnce({
+          choices: [
+            {
+              message: {
+                content: '{"reasoning":"I forgot the action"}',
+              },
+            },
+          ],
+        });
+
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        await expect(callAI('dummy-key', 'system-prompt', {}, false, 'openai')).rejects.toThrow(
+          "Missing 'action' field"
+        );
+        expect(consoleSpy).toHaveBeenCalled();
+      });
+
+      it('should handle AbortError and return timeout fallback decision', async () => {
+        const abortError = new Error('The operation was aborted');
+        abortError.name = 'AbortError';
+        mockCreate.mockRejectedValueOnce(abortError);
+
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const result = await callAI('dummy-key', 'system-prompt', {}, true, 'openai');
+
+        expect(result).toEqual({
+          action: 'NONE',
+          parameters: {},
+          reasoning: 'AI Connection Timeout. Playing it safe.',
+          risk_assessment: 'LOW',
+        });
+        expect(consoleSpy).toHaveBeenCalled();
+      });
     });
   });
 });
