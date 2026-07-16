@@ -27,7 +27,7 @@ import { ACTION_DEFINITIONS } from '../store/actionRegistry';
  * @param {string} reason - The AI's reasoning.
  * @returns {Decision} Formatted decision object.
  */
-const formatDecision = (action, params, reason, riskAssessment) => {
+export const formatDecision = (action, params, reason, riskAssessment) => {
   const safeParams = params && typeof params === 'object' ? params : {};
   const def = Object.hasOwn(ACTION_DEFINITIONS, action) ? ACTION_DEFINITIONS[action] : null;
 
