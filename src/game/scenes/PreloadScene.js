@@ -10,6 +10,9 @@ const PALETTE = {
   HAIR: 0x45283c,
   METAL: 0x9fadbc,
   PLANT: 0x37946e,
+  GLASS: 0x9be7ff,
+  AMBER: 0xffb000,
+  FLOOR_DARK: 0x1b2430,
 };
 
 const POP_WAV_B64 =
@@ -133,14 +136,22 @@ export default class PreloadScene extends Phaser.Scene {
 
     // DESK
     this.genSpriteWithNormal('obj_desk', 32, 32, (g) => {
-      g.fillStyle(0x8b5a2b, 1);
-      g.fillRect(2, 12, 28, 14);
-      g.fillStyle(0x333333, 1);
-      g.fillRect(6, 6, 12, 8); // Screen
-      g.fillStyle(0x111111, 1);
-      g.fillRect(10, 14, 4, 2); // Stand
-      g.fillStyle(0xffffff, 1);
+      g.fillStyle(0x1f2838, 1);
+      g.fillRect(2, 11, 28, 15);
+      g.fillStyle(0x2f3d52, 1);
+      g.fillRect(3, 10, 26, 3);
+      g.lineStyle(1, 0x0b1018, 0.8);
+      g.strokeRect(2, 11, 28, 15);
+      g.fillStyle(0x111824, 1);
+      g.fillRect(6, 5, 13, 9); // Screen casing
+      g.fillStyle(PALETTE.GLASS, 0.95);
+      g.fillRect(8, 7, 9, 5); // Screen glow
+      g.fillStyle(0x0b1018, 1);
+      g.fillRect(11, 14, 4, 2); // Stand
+      g.fillStyle(0xfff1b8, 1);
       g.fillRect(22, 14, 6, 4); // Papers
+      g.fillStyle(PALETTE.AMBER, 1);
+      g.fillRect(4, 24, 24, 2); // Warm desk edge
     });
 
     // VENDING MACHINE
@@ -161,17 +172,17 @@ export default class PreloadScene extends Phaser.Scene {
 
     // CHAIR (Office)
     this.genSpriteWithNormal('obj_chair', 32, 32, (g) => {
-      // Base
-      g.fillStyle(0x333333, 1);
-      g.fillRect(10, 20, 12, 10); // Legs/Base
-      // Seat
-      g.fillStyle(0x4444cc, 1);
+      g.fillStyle(0x0b1018, 1);
+      g.fillRect(15, 20, 2, 10); // Stem
+      g.fillRect(10, 28, 12, 2); // Base
+      g.fillStyle(0x32415a, 1);
       g.fillRect(8, 16, 16, 8);
-      // Backrest
-      g.fillStyle(0x3333aa, 1);
-      g.fillRect(8, 4, 16, 12);
-      g.lineStyle(1, 0x000000, 0.5);
-      g.strokeRect(8, 4, 16, 12);
+      g.fillStyle(0x435a7a, 1);
+      g.fillRect(9, 5, 14, 11);
+      g.fillStyle(PALETTE.AMBER, 0.8);
+      g.fillRect(9, 15, 14, 2);
+      g.lineStyle(1, 0x0b1018, 0.6);
+      g.strokeRect(9, 5, 14, 11);
     });
 
     // CABINET
@@ -339,21 +350,29 @@ export default class PreloadScene extends Phaser.Scene {
 
     // Helper function for consistent character base
     const drawCharBase = (g, shirtColor) => {
-      g.lineStyle(2, PALETTE.OUTLINE, 1); // Bold outline for readability
+      g.fillStyle(0x000000, 0.2);
+      g.fillEllipse(16, 29, 18, 5);
+      g.fillStyle(shirtColor, 0.28);
+      g.fillCircle(16, 16, 14); // Role halo for readability on busy floors
+      g.lineStyle(2, PALETTE.OUTLINE, 1);
 
-      // Body
+      g.fillStyle(0x10131d, 1);
+      g.fillRect(7, 18, 18, 12);
+      g.strokeRect(7, 18, 18, 12);
       g.fillStyle(shirtColor, 1);
-      g.fillRect(8, 18, 16, 12);
-      g.strokeRect(8, 18, 16, 12);
+      g.fillRect(9, 19, 14, 9);
+      g.fillStyle(0xffffff, 0.35);
+      g.fillRect(10, 20, 5, 2);
 
-      // Head
       g.fillStyle(PALETTE.SKIN, 1);
       g.fillRect(10, 6, 12, 12);
       g.strokeRect(10, 6, 12, 12);
-
-      // Hair (Top)
-      g.fillStyle(PALETTE.HAIR, 1);
-      g.fillRect(10, 6, 12, 4);
+      g.fillStyle(0x2d1b2f, 1);
+      g.fillRect(10, 5, 12, 4);
+      g.fillRect(9, 8, 3, 4);
+      g.fillStyle(PALETTE.OUTLINE, 1);
+      g.fillRect(13, 12, 2, 2);
+      g.fillRect(19, 12, 2, 2);
     };
 
     // --- WORKER: DEV ---
@@ -565,9 +584,9 @@ export default class PreloadScene extends Phaser.Scene {
       });
     };
 
-    createFloor('floor_1', 0x999999, 0x888888);
-    createFloor('floor_2', 0xdcb484, 0x8b5a2b); // keeping old colors roughly? no user snippet implies floor_1 style
-    createFloor('floor_3', 0x223344, 0x446688);
+    createFloor('floor_1', PALETTE.FLOOR_DARK, 0x263448);
+    createFloor('floor_2', 0x5d4631, 0x7a5b3e);
+    createFloor('floor_3', 0x172738, 0x254b64);
   }
 
   /**
