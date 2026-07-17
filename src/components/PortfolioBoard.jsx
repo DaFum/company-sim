@@ -10,7 +10,7 @@ export function PortfolioBoard() {
   const roster = useGameStore((state) => state.roster);
   const employees = useGameStore((state) => state.employees);
 
-  const dailyBurn = useGameStore((state) => state.getStats().totalBurn);
+  const dailyBurn = React.useMemo(() => useGameStore.getState().getStats().totalBurn, [roster]);
 
   const topTraits = React.useMemo(() => {
     const traitCounts = (employees || []).reduce((counts, employee) => {
