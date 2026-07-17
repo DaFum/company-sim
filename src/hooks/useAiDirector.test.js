@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { useAiDirector } from './useAiDirector';
+import { useAiDirector, formatDecision } from './useAiDirector';
 import { useGameStore } from '../store/gameStore';
 import { callAI } from '../services/aiService';
 
@@ -302,5 +302,54 @@ describe('useAiDirector', () => {
     expect(useGameStore.setState).toHaveBeenCalledWith({ isAiThinking: false });
 
     consoleErrorSpy.mockRestore();
+  });
+});
+
+describe('formatDecision', () => {
+  it('formats a known action (HIRE_WORKER) correctly', () => {
+    const decision = formatDecision('HIRE_WORKER', { count: 2, role: 'dev' }, 'Need devs', 'MEDIUM');
+    expect(decision).toMatchObject({
+      action: 'HIRE_WORKER',
+      parameters: { count: 2, role: 'dev' },
+      reasoning: 'Need devs',
+      decision_title: 'Hire 2 dev(s)',
+      amount: 1000,
+      expected_effects: 'Adds employees and increases payroll; support helps resolve operational events.',
+      risk_assessment: 'MEDIUM',
+    });
+  });
+
+  it('handles missing parameters gracefully for known actions', () => {
+    const decision = formatDecision('HIRE_WORKER', null, 'Need capacity');
+    expect(decision).toMatchObject({
+      action: 'HIRE_WORKER',
+      parameters: {},
+      decision_title: 'Hire 1 dev(s)', // Default parseWorkerParams fallback
+      amount: 500,
+      risk_assessment: 'MEDIUM', // Action definition default
+    });
+  });
+
+  it('handles unknown actions gracefully', () => {
+    const decision = formatDecision('MAGIC_WAND', { power: 'max' }, 'Try magic', 'HIGH');
+    expect(decision).toMatchObject({
+      action: 'MAGIC_WAND',
+      parameters: { power: 'max' },
+      reasoning: 'Try magic',
+      decision_title: 'Action: MAGIC_WAND',
+      amount: 0,
+      expected_effects: '',
+      risk_assessment: 'HIGH',
+    });
+  });
+
+  it('falls back to LOW risk for unknown actions if no risk assessment provided', () => {
+    const decision = formatDecision('UNKNOWN_THING', null, 'Testing');
+    expect(decision.risk_assessment).toBe('LOW');
+  });
+
+  it('ignores invalid risk assessment types and uses action default', () => {
+    const decision = formatDecision('HIRE_WORKER', {}, 'Testing', { level: 'HIGH' });
+    expect(decision.risk_assessment).toBe('MEDIUM'); // Default for HIRE_WORKER
   });
 });
