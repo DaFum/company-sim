@@ -69,6 +69,19 @@ describe('aiService', () => {
       const models = await getAvailableModels();
       expect(models).toEqual(mockModels);
     });
+
+    it('should fallback to default models if fetch returns !ok', async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+      });
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const models = await getAvailableModels();
+      expect(models).toHaveLength(4);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Could not fetch Pollinations models:',
+        expect.any(Error)
+      );
+    });
   });
 
   describe('callAI', () => {
@@ -88,6 +101,15 @@ describe('aiService', () => {
       await expect(callAI('', 'system-prompt', {}, false, 'pollinations')).rejects.toThrow(
         'No API key provided.'
       );
+
+      await expect(callAI(null, 'system-prompt', {}, false, 'pollinations')).rejects.toThrow(
+        'No API key provided.'
+      );
+
+      await expect(callAI(undefined, 'system-prompt', {}, false, 'pollinations')).rejects.toThrow(
+        'No API key provided.'
+      );
+
       expect(global.fetch).not.toHaveBeenCalled();
     });
 
@@ -116,6 +138,36 @@ describe('aiService', () => {
         reasoning: 'AI Connection Failed. Playing it safe.',
         risk_assessment: 'LOW',
       });
+      expect(consoleSpy).toHaveBeenCalled();
+    });
+
+    it('should return a fallback decision when pollinations fetch returns !ok and suppressErrors is true', async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: 'Internal Server Error',
+      });
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const result = await callAI('dummy-key', 'system-prompt', {}, true, 'pollinations');
+
+      expect(result).toEqual({
+        action: 'NONE',
+        parameters: {},
+        reasoning: 'AI Connection Failed. Playing it safe.',
+        risk_assessment: 'LOW',
+      });
+      expect(consoleSpy).toHaveBeenCalled();
+    });
+
+    it('should throw an error when pollinations fetch returns !ok and suppressErrors is false', async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: 'Internal Server Error',
+      });
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await expect(callAI('dummy-key', 'system-prompt', {}, false, 'pollinations')).rejects.toThrow(
+        'Pollinations API Error: Internal Server Error'
+      );
       expect(consoleSpy).toHaveBeenCalled();
     });
 
