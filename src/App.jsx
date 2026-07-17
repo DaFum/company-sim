@@ -55,12 +55,11 @@ function App() {
     return () => clearTimers();
   }, [clearTimers]);
 
-  // Keep these selectors as they are needed at the App level
+  // Individual selectors so App only re-renders when a value it actually shows
+  // changes — not on every unrelated store mutation (logs, mood, events, …).
   const cash = useGameStore((state) => state.cash);
   const gameState = useGameStore((state) => state.gameState);
 
-  // Track a list (not a single slot) so rapid cash swings each get their own
-  // number instead of clobbering the previous one.
   const [floaters, setFloaters] = useState([]);
   // Track the previous cash value without triggering render loops.
   const prevCashRef = useRef(cash);
