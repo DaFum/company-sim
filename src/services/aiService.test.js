@@ -56,8 +56,9 @@ describe('aiService', () => {
       expect(models[0].name).toBe('openai');
       expect(consoleSpy).toHaveBeenCalledWith(
         'Could not fetch Pollinations models:',
-        expect.objectContaining({ message: 'Failed to fetch models' })
+        expect.any(Error)
       );
+      expect(consoleSpy.mock.calls[0][1].message).toBe('Failed to fetch models');
     });
 
     it('should return fetched models if fetch succeeds', async () => {
@@ -79,8 +80,9 @@ describe('aiService', () => {
       expect(models).toHaveLength(4);
       expect(consoleSpy).toHaveBeenCalledWith(
         'Could not fetch Pollinations models:',
-        expect.objectContaining({ message: 'Failed to fetch models' })
+        expect.any(Error)
       );
+      expect(consoleSpy.mock.calls[0][1].message).toBe('Failed to fetch models');
     });
   });
 
@@ -157,7 +159,10 @@ describe('aiService', () => {
       });
       expect(consoleSpy).toHaveBeenCalledWith(
         'AI Service Error:',
-        expect.objectContaining({ message: 'Pollinations API Error: Internal Server Error' })
+        expect.any(Error)
+      );
+      expect(consoleSpy.mock.calls[0][1].message).toBe(
+        'Pollinations API Error: Internal Server Error'
       );
     });
 
@@ -173,7 +178,10 @@ describe('aiService', () => {
       );
       expect(consoleSpy).toHaveBeenCalledWith(
         'AI Service Error:',
-        expect.objectContaining({ message: 'Pollinations API Error: Internal Server Error' })
+        expect.any(Error)
+      );
+      expect(consoleSpy.mock.calls[0][1].message).toBe(
+        'Pollinations API Error: Internal Server Error'
       );
     });
 
