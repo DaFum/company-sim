@@ -12,8 +12,12 @@ export function KpiBoard() {
   const inventory = useGameStore((state) => state.inventory);
   const activeEvents = useGameStore((state) => state.activeEvents);
 
-  const roster = useGameStore((state) => state.roster);
-  const dailyBurn = React.useMemo(() => useGameStore.getState().getStats().totalBurn, [roster]);
+  const employees = useGameStore((state) => state.employees);
+  const officeLevel = useGameStore((state) => state.officeLevel);
+  const dailyBurn = React.useMemo(
+    () => useGameStore.getState().getStats().totalBurn,
+    [employees, officeLevel]
+  );
   const burnPerTick = dailyBurn / 60;
 
   const activeEventLabel = React.useMemo(() => {
