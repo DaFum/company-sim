@@ -58,6 +58,7 @@ describe('aiService', () => {
         'Could not fetch Pollinations models:',
         expect.any(Error)
       );
+      expect(consoleSpy.mock.calls[0][1].message).toBe('Failed to fetch models');
     });
 
     it('should return fetched models if fetch succeeds', async () => {
@@ -81,6 +82,7 @@ describe('aiService', () => {
         'Could not fetch Pollinations models:',
         expect.any(Error)
       );
+      expect(consoleSpy.mock.calls[0][1].message).toBe('Failed to fetch models');
     });
   });
 
@@ -155,7 +157,13 @@ describe('aiService', () => {
         reasoning: 'AI Connection Failed. Playing it safe.',
         risk_assessment: 'LOW',
       });
-      expect(consoleSpy).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'AI Service Error:',
+        expect.any(Error)
+      );
+      expect(consoleSpy.mock.calls[0][1].message).toBe(
+        'Pollinations API Error: Internal Server Error'
+      );
     });
 
     it('should throw an error when pollinations fetch returns !ok and suppressErrors is false', async () => {
@@ -168,7 +176,13 @@ describe('aiService', () => {
       await expect(callAI('dummy-key', 'system-prompt', {}, false, 'pollinations')).rejects.toThrow(
         'Pollinations API Error: Internal Server Error'
       );
-      expect(consoleSpy).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'AI Service Error:',
+        expect.any(Error)
+      );
+      expect(consoleSpy.mock.calls[0][1].message).toBe(
+        'Pollinations API Error: Internal Server Error'
+      );
     });
 
     it('should throw an error for JSON parse failure when suppressErrors is false', async () => {
