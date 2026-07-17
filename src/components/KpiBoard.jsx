@@ -15,10 +15,13 @@ export function KpiBoard() {
   const dailyBurn = useGameStore((state) => state.getStats().totalBurn);
   const burnPerTick = dailyBurn / 60;
 
-  const activeEventLabel = activeEvents.length
-    ? activeEvents.map((event) => event.type).join(', ')
-    : 'None';
-  const inventoryLabel = inventory.length ? inventory.join(', ') : 'Empty';
+  const activeEventLabel = React.useMemo(() => {
+    return activeEvents?.length ? activeEvents.map((event) => event.type).join(', ') : 'None';
+  }, [activeEvents]);
+
+  const inventoryLabel = React.useMemo(() => {
+    return inventory?.length ? inventory.join(', ') : 'Empty';
+  }, [inventory]);
 
   return (
     <div className="panel kpi-board reveal" style={{ '--reveal-delay': '0.10s' }}>

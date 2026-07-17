@@ -12,13 +12,15 @@ export function PortfolioBoard() {
 
   const dailyBurn = useGameStore((state) => state.getStats().totalBurn);
 
-  const traitCounts = (employees || []).reduce((counts, employee) => {
-    counts[employee.trait] = (counts[employee.trait] || 0) + 1;
-    return counts;
-  }, {});
-  const topTraits = Object.entries(traitCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 6);
+  const topTraits = React.useMemo(() => {
+    const traitCounts = (employees || []).reduce((counts, employee) => {
+      counts[employee.trait] = (counts[employee.trait] || 0) + 1;
+      return counts;
+    }, {});
+    return Object.entries(traitCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6);
+  }, [employees]);
   const runwayDays = dailyBurn > 0 ? Math.max(0, Math.floor(cash / dailyBurn)) : 999;
   const productHeat = Math.min(100, Math.round(productLevel * 14 + marketingMultiplier * 12));
   const opsReadiness = Math.min(

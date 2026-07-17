@@ -36,7 +36,7 @@ export function Controls() {
 
       <div className="control-group">
         <button
-          onClick={hireWorker}
+          onClick={() => hireWorker()}
           disabled={gamePhase === 'CRUNCH'}
           className="action-button action-hire"
         >
@@ -44,7 +44,7 @@ export function Controls() {
         </button>
         <button
           type="button"
-          onClick={fireWorker}
+          onClick={() => fireWorker()}
           disabled={gamePhase === 'CRUNCH'}
           className="action-button action-fire"
         >
