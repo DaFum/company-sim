@@ -157,10 +157,7 @@ describe('aiService', () => {
         reasoning: 'AI Connection Failed. Playing it safe.',
         risk_assessment: 'LOW',
       });
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'AI Service Error:',
-        expect.any(Error)
-      );
+      expect(consoleSpy).toHaveBeenCalledWith('AI Service Error:', expect.any(Error));
       expect(consoleSpy.mock.calls[0][1].message).toBe(
         'Pollinations API Error: Internal Server Error'
       );
@@ -176,10 +173,7 @@ describe('aiService', () => {
       await expect(callAI('dummy-key', 'system-prompt', {}, false, 'pollinations')).rejects.toThrow(
         'Pollinations API Error: Internal Server Error'
       );
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'AI Service Error:',
-        expect.any(Error)
-      );
+      expect(consoleSpy).toHaveBeenCalledWith('AI Service Error:', expect.any(Error));
       expect(consoleSpy.mock.calls[0][1].message).toBe(
         'Pollinations API Error: Internal Server Error'
       );
