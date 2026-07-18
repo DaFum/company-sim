@@ -125,7 +125,7 @@ export default class MainScene extends Phaser.Scene {
       { x: 12, y: 15 },
     ];
     this.chatSpots = [
-      { x: 19, y: 16 },
+      { x: 18, y: 16 },
       { x: 20, y: 16 },
     ];
     this.spawnObjects();
@@ -769,7 +769,7 @@ export default class MainScene extends Phaser.Scene {
    * @param {number} x - Target grid X.
    * @param {number} y - Target grid Y.
    */
-  requestMove(worker, x, y) {
+  requestMove(worker, x, y, navigationToken) {
     const startX = Math.floor(worker.x / this.tileSize);
     const startY = Math.floor(worker.y / this.tileSize);
     const endX = Phaser.Math.Clamp(x, 0, this.cols - 1);
@@ -779,7 +779,7 @@ export default class MainScene extends Phaser.Scene {
 
     this.easystar.findPath(startX, startY, endX, endY, (path) => {
       this._pendingPathRequests = Math.max(0, this._pendingPathRequests - 1);
-      if (path && path.length) worker.startPath(path);
+      if (path && path.length) worker.startPath(path, navigationToken);
     });
   }
 
@@ -965,7 +965,12 @@ export default class MainScene extends Phaser.Scene {
 
     if (!options.walkable) {
       const tiles = options.tiles || [[x, y]];
-      for (const [gx, gy] of tiles) this.blockers.push({ x: gx, y: gy });
+      for (const [gx, gy] of tiles) {
+        this.blockers.push({ x: gx, y: gy });
+        if (this._grid?.[gy]?.[gx] !== undefined) this._grid[gy][gx] = 1;
+      }
+      this.easystar?.setGrid(this._grid);
+      this.easystar?.setAcceptableTiles([0]);
     }
 
     // FX Polish (WebGL Only)

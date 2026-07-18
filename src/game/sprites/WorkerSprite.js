@@ -75,6 +75,8 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     this.movementIntent = null;
     this.desk = null;
     this._footprintTimer = 0;
+    this._navigationToken = 0;
+    this._isNavigationPending = false;
 
     // Pathfinding Cache
     this.path = [];
@@ -264,6 +266,7 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
    */
   updateIdle(delta) {
     this.energy = Math.max(0, this.energy - delta * 0.005);
+    if (this._isNavigationPending) return;
     if (this.stateTimer <= 0) {
       this.decideNextAction();
     }
@@ -419,7 +422,10 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
    * Starts moving along a path.
    * @param {PathNode[]} path - Array of path nodes {x, y}.
    */
-  startPath(path) {
+  startPath(path, navigationToken) {
+    if (navigationToken !== undefined && navigationToken !== this._navigationToken) return;
+    this._isNavigationPending = false;
+
     if (path && path.length > 0) {
       this.path = path;
       this.currentState = STATE.MOVING;
@@ -562,7 +568,9 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
    */
   goTo(gx, gy, intent) {
     this.movementIntent = intent;
-    this.scene?.requestMove?.(this, gx, gy);
+    this._isNavigationPending = true;
+    this._navigationToken += 1;
+    this.scene?.requestMove?.(this, gx, gy, this._navigationToken);
   }
 
   /**
@@ -570,7 +578,11 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
    */
   endMeeting() {
     if (this.currentState === STATE.MEETING || this.movementIntent === 'MEETING') {
+      this._navigationToken += 1;
+      this._isNavigationPending = false;
       this.movementIntent = null;
+      this.path = [];
+      this.body?.reset?.(this.x, this.y);
       this.currentState = STATE.IDLE;
       this.stateTimer = 500;
     }
@@ -620,6 +632,6 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
   moveToRandomPoint() {
     const gridX = Phaser.Math.Between(1, 23);
     const gridY = Phaser.Math.Between(1, 18);
-    this.scene.requestMove(this, gridX, gridY);
+    this.goTo(gridX, gridY, null);
   }
 }

@@ -383,6 +383,14 @@ describe('MainScene', () => {
       expect(mockWorker.startPath).toHaveBeenCalled();
     });
 
+    it('should pass the navigation token to worker.startPath', async () => {
+      scene.requestMove(mockWorker, 10, 10, 7);
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(mockWorker.startPath).toHaveBeenCalledWith(expect.any(Array), 7);
+    });
+
     it('should decrement pending requests when path is found', async () => {
       scene.requestMove(mockWorker, 10, 10);
 
@@ -731,6 +739,15 @@ describe('MainScene', () => {
       expect(mockSprite.setInteractive).toHaveBeenCalled();
       expect(mockSprite.on).toHaveBeenCalledWith('pointerdown', expect.any(Function));
     });
+    it('should update the active grid when registering a blocker', () => {
+      scene._grid[4][6] = 0;
+      scene.easystar.setGrid.mockClear();
+
+      scene.spawnObject(6, 4, 'obj_cabinet');
+
+      expect(scene._grid[4][6]).toBe(1);
+      expect(scene.easystar.setGrid).toHaveBeenCalledWith(scene._grid);
+    });
   });
 
   describe('office upgrade assets', () => {
@@ -764,6 +781,12 @@ describe('MainScene', () => {
 
       expect(scene._grid[2][5]).toBe(1);
       expect(scene.easystar.setGrid).toHaveBeenCalled();
+    });
+
+    it('should keep both chat spots walkable after objects are spawned', () => {
+      scene.chatSpots.forEach((spot) => {
+        expect(scene._grid[spot.y][spot.x]).toBe(0);
+      });
     });
 
     it('should sync all supported inventory visuals', () => {
