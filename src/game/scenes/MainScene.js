@@ -925,10 +925,11 @@ export default class MainScene extends Phaser.Scene {
    * @param {number} x - Grid X.
    * @param {number} y - Grid Y.
    * @param {string} texture - Texture key.
-   * @param {boolean|Object} [opts=false] - Whether animated, or { animated, walkable, tiles }.
+   * @param {boolean|Object} [opts={}] - Whether animated, or { animated, walkable, tiles }.
    */
-  spawnObject(x, y, texture, opts = false) {
-    const isAnimated = opts === true || opts.animated;
+  spawnObject(x, y, texture, opts = {}) {
+    const options = typeof opts === 'boolean' ? { animated: opts } : opts || {};
+    const isAnimated = options.animated;
     let obj;
     if (isAnimated) {
       obj = this.add.sprite(
@@ -962,8 +963,8 @@ export default class MainScene extends Phaser.Scene {
 
     this.objectGroup.add(obj);
 
-    if (!opts.walkable) {
-      const tiles = opts.tiles || [[x, y]];
+    if (!options.walkable) {
+      const tiles = options.tiles || [[x, y]];
       for (const [gx, gy] of tiles) this.blockers.push({ x: gx, y: gy });
     }
 

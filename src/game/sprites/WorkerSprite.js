@@ -279,7 +279,7 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     this._footprintTimer += delta;
     if (this._footprintTimer > 250) {
       this._footprintTimer = 0;
-      this.scene.addFootprint(this.x, this.y + 12);
+      this.scene?.addFootprint?.(this.x, this.y + 12);
     }
 
     this.followPath();
@@ -562,7 +562,7 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
    */
   goTo(gx, gy, intent) {
     this.movementIntent = intent;
-    this.scene.requestMove(this, gx, gy);
+    this.scene?.requestMove?.(this, gx, gy);
   }
 
   /**
@@ -586,13 +586,13 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
       this.movementIntent !== 'FETCH_COFFEE'
     ) {
       this.showFeedback('☕');
-      const coffeeTile = this.scene.coffeeTile || { x: 23, y: 16 };
+      const coffeeTile = this.scene?.coffeeTile || { x: 23, y: 16 };
       this.goTo(coffeeTile.x, coffeeTile.y, 'FETCH_COFFEE');
       return;
     }
 
     if (this.energy < 55 && Phaser.Math.RND.frac() < 0.25) {
-      const spot = this.scene.getBreakSpot?.();
+      const spot = this.scene?.getBreakSpot?.();
       if (spot) {
         this.goTo(spot.x, spot.y, 'BREAK');
         return;
@@ -600,7 +600,8 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     }
 
     if (Phaser.Math.RND.frac() > 0.35) {
-      const desk = this.scene.claimDesk?.(this);
+      this.releaseDesk();
+      const desk = this.scene?.claimDesk?.(this);
       if (desk) {
         this.desk = desk;
         this.goTo(desk.chairGx, desk.chairGy, 'WORK');
