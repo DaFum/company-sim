@@ -307,14 +307,20 @@ describe('useAiDirector', () => {
 
 describe('formatDecision', () => {
   it('formats a known action (HIRE_WORKER) correctly', () => {
-    const decision = formatDecision('HIRE_WORKER', { count: 2, role: 'dev' }, 'Need devs', 'MEDIUM');
+    const decision = formatDecision(
+      'HIRE_WORKER',
+      { count: 2, role: 'dev' },
+      'Need devs',
+      'MEDIUM'
+    );
     expect(decision).toMatchObject({
       action: 'HIRE_WORKER',
       parameters: { count: 2, role: 'dev' },
       reasoning: 'Need devs',
       decision_title: 'Hire 2 dev(s)',
       amount: 1000,
-      expected_effects: 'Adds employees and increases payroll; support helps resolve operational events.',
+      expected_effects:
+        'Adds employees and increases payroll; support helps resolve operational events.',
       risk_assessment: 'MEDIUM',
     });
   });
