@@ -20,22 +20,20 @@ const getRandomPersona = () => PERSONAS[Math.floor(Math.random() * PERSONAS.leng
  * @returns {Object[]} Updated event history.
  */
 const resolveLatestEventHistoryEntry = (eventHistory, type, day, tick) => {
-  let resolvedLatest = false;
-  return [...eventHistory]
-    .reverse()
-    .map((entry) => {
-      if (!resolvedLatest && entry.type === type && entry.resolution === null) {
-        resolvedLatest = true;
-        return {
-          ...entry,
-          resolvedAtDay: day,
-          resolvedAtTick: tick,
-          resolution: 'resolved',
-        };
-      }
-      return entry;
-    })
-    .reverse();
+  for (let i = eventHistory.length - 1; i >= 0; i--) {
+    const entry = eventHistory[i];
+    if (entry.type === type && entry.resolution === null) {
+      const newHistory = [...eventHistory];
+      newHistory[i] = {
+        ...entry,
+        resolvedAtDay: day,
+        resolvedAtTick: tick,
+        resolution: 'resolved',
+      };
+      return newHistory;
+    }
+  }
+  return eventHistory;
 };
 
 // Trait Generators
