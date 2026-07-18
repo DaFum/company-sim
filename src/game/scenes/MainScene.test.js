@@ -323,7 +323,12 @@ describe('MainScene', () => {
       expect(scene._grid[19][24]).toBe(1); // Bottom Right
     });
 
-    it('should mark hardcoded obstacles', () => {
+    it('should mark registered furniture blockers', () => {
+      scene.blockers = [
+        { x: 2, y: 2 },
+        { x: 23, y: 2 },
+        { x: 2, y: 17 },
+      ];
       scene.applyObstaclesToGrid();
       expect(scene._grid[2][2]).toBe(1);
       expect(scene._grid[2][23]).toBe(1);
@@ -378,6 +383,14 @@ describe('MainScene', () => {
       expect(mockWorker.startPath).toHaveBeenCalled();
     });
 
+    it('should pass the navigation token to worker.startPath', async () => {
+      scene.requestMove(mockWorker, 10, 10, 7);
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(mockWorker.startPath).toHaveBeenCalledWith(expect.any(Array), 7);
+    });
+
     it('should decrement pending requests when path is found', async () => {
       scene.requestMove(mockWorker, 10, 10);
 
@@ -423,13 +436,14 @@ describe('MainScene', () => {
       expect(scene.easystar.calculate).toHaveBeenCalledTimes(scene._maxPathCalculationsPerTick);
     });
 
-    it('should update worker depths based on y position', () => {
+    it('should leave worker depth sorting to WorkerSprite preUpdate', () => {
       const mockWorker = { y: 100, setDepth: vi.fn() };
       scene.workersGroup.children.iterate = vi.fn((callback) => callback(mockWorker));
 
       scene.update();
 
-      expect(mockWorker.setDepth).toHaveBeenCalledWith(100);
+      expect(scene.workersGroup.children.iterate).not.toHaveBeenCalled();
+      expect(mockWorker.setDepth).not.toHaveBeenCalled();
     });
 
     it('should update visitor depths based on y position', () => {
@@ -639,7 +653,7 @@ describe('MainScene', () => {
 
     it('should spawn animated coffee machine', () => {
       scene.spawnObjects();
-      expect(scene.spawnObject).toHaveBeenCalledWith(23, 17, 'obj_coffee_anim', true);
+      expect(scene.spawnObject).toHaveBeenCalledWith(23, 17, 'obj_coffee_anim', { animated: true });
     });
 
     it('should spawn plant object', () => {
@@ -725,6 +739,15 @@ describe('MainScene', () => {
       expect(mockSprite.setInteractive).toHaveBeenCalled();
       expect(mockSprite.on).toHaveBeenCalledWith('pointerdown', expect.any(Function));
     });
+    it('should update the active grid when registering a blocker', () => {
+      scene._grid[4][6] = 0;
+      scene.easystar.setGrid.mockClear();
+
+      scene.spawnObject(6, 4, 'obj_cabinet');
+
+      expect(scene._grid[4][6]).toBe(1);
+      expect(scene.easystar.setGrid).toHaveBeenCalledWith(scene._grid);
+    });
   });
 
   describe('office upgrade assets', () => {
@@ -751,6 +774,19 @@ describe('MainScene', () => {
       scene.addOfficeAssetForInventory('server_rack_v2');
 
       expect(spawnSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should refresh the pathfinding grid after adding an office asset blocker', () => {
+      scene.addOfficeAssetForInventory('firewall');
+
+      expect(scene._grid[2][5]).toBe(1);
+      expect(scene.easystar.setGrid).toHaveBeenCalled();
+    });
+
+    it('should keep both chat spots walkable after objects are spawned', () => {
+      scene.chatSpots.forEach((spot) => {
+        expect(scene._grid[spot.y][spot.x]).toBe(0);
+      });
     });
 
     it('should sync all supported inventory visuals', () => {
