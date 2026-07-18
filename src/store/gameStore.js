@@ -661,9 +661,16 @@ export const useGameStore = create(
         }
 
         if (updates.activeEvents) {
-          const removedTypes = state.activeEvents
-            .filter((event) => !updates.activeEvents.some((updated) => updated.type === event.type))
-            .map((event) => event.type);
+          const updatedTypes = new Set();
+          for (let i = 0; i < updates.activeEvents.length; i++) {
+            updatedTypes.add(updates.activeEvents[i].type);
+          }
+          const removedTypes = [];
+          for (let i = 0; i < state.activeEvents.length; i++) {
+            if (!updatedTypes.has(state.activeEvents[i].type)) {
+              removedTypes.push(state.activeEvents[i].type);
+            }
+          }
 
           if (removedTypes.length > 0) {
             let currentHistory = updates.eventHistory || state.eventHistory;
