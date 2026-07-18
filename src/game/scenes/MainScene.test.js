@@ -759,6 +759,13 @@ describe('MainScene', () => {
       expect(spawnSpy).toHaveBeenCalledTimes(1);
     });
 
+    it('should refresh the pathfinding grid after adding an office asset blocker', () => {
+      scene.addOfficeAssetForInventory('firewall');
+
+      expect(scene._grid[2][5]).toBe(1);
+      expect(scene.easystar.setGrid).toHaveBeenCalled();
+    });
+
     it('should sync all supported inventory visuals', () => {
       const addSpy = vi.spyOn(scene, 'addOfficeAssetForInventory');
 

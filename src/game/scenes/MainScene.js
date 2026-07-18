@@ -1291,6 +1291,7 @@ export default class MainScene extends Phaser.Scene {
     this.objectGroup.add(label);
 
     this._officeAssetKeys.add(key);
+    this.applyObstaclesToGrid();
     this.createCodeBits(obj.x, obj.y - 12);
   }
 
