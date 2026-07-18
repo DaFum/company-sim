@@ -20,9 +20,10 @@ const getRandomPersona = () => PERSONAS[Math.floor(Math.random() * PERSONAS.leng
  * @returns {Object[]} Updated event history.
  */
 const resolveLatestEventHistoryEntry = (eventHistory, type, day, tick) => {
+  if (!Array.isArray(eventHistory)) return [];
   for (let i = eventHistory.length - 1; i >= 0; i--) {
     const entry = eventHistory[i];
-    if (entry.type === type && entry.resolution === null) {
+    if (entry && entry.type === type && entry.resolution === null) {
       const newHistory = [...eventHistory];
       newHistory[i] = {
         ...entry,
@@ -662,13 +663,15 @@ export const useGameStore = create(
 
         if (updates.activeEvents) {
           const updatedTypes = new Set();
-          for (let i = 0; i < updates.activeEvents.length; i++) {
-            updatedTypes.add(updates.activeEvents[i].type);
+          for (const event of updates.activeEvents) {
+            if (event?.type) {
+              updatedTypes.add(event.type);
+            }
           }
           const removedTypes = [];
-          for (let i = 0; i < state.activeEvents.length; i++) {
-            if (!updatedTypes.has(state.activeEvents[i].type)) {
-              removedTypes.push(state.activeEvents[i].type);
+          for (const event of state.activeEvents || []) {
+            if (event?.type && !updatedTypes.has(event.type)) {
+              removedTypes.push(event.type);
             }
           }
 

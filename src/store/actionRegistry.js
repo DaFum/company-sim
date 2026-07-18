@@ -96,10 +96,7 @@ export const ACTION_DEFINITIONS = {
         return { error: '> ERROR: CANNOT AFFORD SEVERANCE.' };
       }
 
-      const victimIds = new Set();
-      for (let i = 0; i < fireCount; i++) {
-        victimIds.add(candidates[i].id);
-      }
+      const victimIds = new Set(candidates.slice(0, fireCount).map((e) => e.id));
       newEmployees = newEmployees.filter((e) => !victimIds.has(e.id));
 
       updates.employees = newEmployees;
