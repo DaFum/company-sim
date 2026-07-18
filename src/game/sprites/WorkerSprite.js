@@ -1,11 +1,14 @@
 import Phaser from 'phaser';
-import { CSS_PALETTE, ROLE_LIGHTS, ROLE_PARTICLES } from '../palette.js';
+import { CSS_PALETTE, ROLE_LIGHTS } from '../palette.js';
 
 const STATE = {
   IDLE: 'IDLE',
   MOVING: 'MOVING',
   WORKING: 'WORKING',
   COFFEE: 'COFFEE',
+  MEETING: 'MEETING',
+  BREAK: 'BREAK',
+  CHAT: 'CHAT',
 };
 
 /**
@@ -56,37 +59,28 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
 
     // PointLight: extremely fast rendered "fake" lights
     // Only created if WebGL is available to avoid issues
-    if (scene.game.renderer.type === Phaser.WEBGL) {
+    this._hasLight = false;
+    if (scene.game.renderer.type === Phaser.WEBGL && scene.requestLight()) {
+      this._hasLight = true;
       this.light = scene.add
         .pointlight(x, y, lightColor, this.baseLightRadius, 0.35)
         .setDepth(this.depth - 1);
       // NOTE: Update logic moved to preUpdate to avoid event listener leaks
     }
 
-    // Particle Emitter (One-time creation)
-    const particleColor = ROLE_PARTICLES[role] || ROLE_PARTICLES.support;
-    this.particleEmitter = this.scene.add.particles(0, 0, 'particle_pixel', {
-      speed: { min: 50, max: 100 },
-      angle: { min: 220, max: 320 },
-      scale: { start: 0.6, end: 0 },
-      alpha: { start: 1, end: 0 },
-      gravityY: 100,
-      lifespan: 600,
-      quantity: 2,
-      tint: particleColor,
-      emitting: false,
-    });
-
     // State Machine
     this.currentState = STATE.IDLE;
     this.stateTimer = 0;
     this.energy = 100;
     this.movementIntent = null;
+    this.desk = null;
+    this._footprintTimer = 0;
 
     // Pathfinding Cache
     this.path = [];
     this.movementTarget = new Phaser.Math.Vector2();
     this._tempVec = new Phaser.Math.Vector2(); // Reusable vector
+    this._lastDepthY = -1;
 
     // Performance: Text Object Pooling
     // We create the text object once and hide it, instead of creating it constantly.
@@ -141,6 +135,10 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
    * @param {boolean} fromScene - Whether the destroy call came from the scene.
    */
   destroy(fromScene) {
+    if (this._hasLight) {
+      this.scene?.releaseLight?.();
+      this._hasLight = false;
+    }
     if (this.light) {
       this.light.destroy();
       this.light = null;
@@ -157,14 +155,21 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
       this.traitIcon.destroy();
       this.traitIcon = null;
     }
-    if (this.particleEmitter) {
-      this.particleEmitter.destroy();
-      this.particleEmitter = null;
-    }
     if (this.workTween) this.workTween.stop();
     if (this.feedbackTween) this.feedbackTween.stop();
+    this.releaseDesk();
 
     super.destroy(fromScene);
+  }
+
+  /**
+   * Releases the currently claimed desk, if any.
+   */
+  releaseDesk() {
+    if (this.desk) {
+      this.desk.claimedBy = null;
+      this.desk = null;
+    }
   }
 
   /**
@@ -174,6 +179,13 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
    */
   preUpdate(time, delta) {
     super.preUpdate(time, delta);
+
+    if (this.y !== this._lastDepthY) {
+      this._lastDepthY = this.y;
+      this.setDepth(this.y);
+      if (this.shadow) this.shadow.setDepth(this.y - 1);
+      if (this.light) this.light.setDepth(this.y - 1);
+    }
 
     // Sync Light Position
     if (this.light) {
@@ -186,7 +198,6 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     // Sync Shadow Position
     if (this.shadow) {
       this.shadow.setPosition(this.x, this.y + 13);
-      this.shadow.setDepth(this.depth - 1); // Keep shadow under worker
     }
   }
 
@@ -194,11 +205,8 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
    * Emits particles to simulate work activity.
    */
   spawnWorkParticles() {
-    if (!this.particleEmitter) return;
-
-    // Position emitter to current sprite position and explode
-    this.particleEmitter.setPosition(this.x, this.y - 10);
-    this.particleEmitter.explode(2);
+    const emitter = this.scene.roleEmitters?.[this.role];
+    if (emitter) emitter.explode(2, this.x, this.y - 10);
   }
 
   /**
@@ -234,6 +242,15 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
       case STATE.COFFEE:
         this.updateCoffee(delta);
         break;
+      case STATE.MEETING:
+        this.updateMeeting(delta);
+        break;
+      case STATE.CHAT:
+        this.updateChat(delta);
+        break;
+      case STATE.BREAK:
+        this.updateBreak(delta);
+        break;
       case STATE.IDLE:
       default:
         this.updateIdle(delta);
@@ -259,8 +276,9 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
   updateMoving(delta) {
     this.energy = Math.max(0, this.energy - delta * 0.005);
 
-    // Footprints (every 200ms)
-    if (this.scene.time.now % 200 < 20) {
+    this._footprintTimer += delta;
+    if (this._footprintTimer > 250) {
+      this._footprintTimer = 0;
       this.scene.addFootprint(this.x, this.y + 12);
     }
 
@@ -288,6 +306,43 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
     }
 
     // Animation is handled by TweenChain (startWorkSequence)
+  }
+
+  /**
+   * Updates the worker in MEETING state.
+   * @param {number} delta - Time delta.
+   */
+  updateMeeting(delta) {
+    this.energy = Math.max(0, this.energy - delta * 0.002);
+    if (Math.random() < 0.008) this.showFeedback('💬');
+    if (this.stateTimer <= 0) this.endMeeting();
+  }
+
+  /**
+   * Updates the worker in CHAT state.
+   * @param {number} delta - Time delta.
+   */
+  updateChat(delta) {
+    this.energy = Math.max(0, this.energy - delta * 0.002);
+    if (Math.random() < 0.015) this.showFeedback('💬');
+    if (this.stateTimer <= 0) {
+      this.energy = Math.min(100, this.energy + 10);
+      this.currentState = STATE.IDLE;
+      this.stateTimer = 800;
+    }
+  }
+
+  /**
+   * Updates the worker in BREAK state.
+   * @param {number} delta - Time delta.
+   */
+  updateBreak() {
+    if (Math.random() < 0.01) this.showFeedback('😴');
+    if (this.stateTimer <= 0) {
+      this.energy = Math.min(100, this.energy + 40);
+      this.currentState = STATE.IDLE;
+      this.stateTimer = 500;
+    }
   }
 
   /**
@@ -343,6 +398,7 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
   finishTask() {
     this.currentState = STATE.IDLE;
     this.showFeedback('$');
+    this.releaseDesk();
     this.stateTimer = 1500; // Longer pause for feedback animation
   }
 
@@ -355,6 +411,7 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
       this.energy = 100;
       this.currentState = STATE.IDLE;
       this.showFeedback('Refilled!');
+      this.stateTimer = 800;
     }
   }
 
@@ -368,6 +425,11 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
       this.currentState = STATE.MOVING;
       // Target the first point immediately
       this.nextPathPoint();
+    } else {
+      this.movementIntent = null;
+      this.releaseDesk();
+      this.currentState = STATE.IDLE;
+      this.stateTimer = 1000;
     }
   }
 
@@ -409,10 +471,25 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
   stopMovement() {
     this.body.reset(this.x, this.y); // Stops velocity immediately
 
-    if (this.movementIntent === 'FETCH_COFFEE') {
+    const intent = this.movementIntent;
+    this.movementIntent = null;
+
+    if (intent === 'FETCH_COFFEE') {
       this.currentState = STATE.COFFEE;
       this.stateTimer = 5000;
-      this.movementIntent = null;
+    } else if (intent === 'WORK') {
+      this.currentState = STATE.WORKING;
+      this.startWorkSequence();
+      this.showFeedback(this.role === 'dev' ? '101' : '$');
+    } else if (intent === 'MEETING') {
+      this.currentState = STATE.MEETING;
+      this.stateTimer = 30000;
+    } else if (intent === 'CHAT') {
+      this.currentState = STATE.CHAT;
+      this.stateTimer = 6000;
+    } else if (intent === 'BREAK') {
+      this.currentState = STATE.BREAK;
+      this.stateTimer = 7000;
     } else {
       this.currentState = STATE.IDLE;
       this.stateTimer = 1000;
@@ -430,6 +507,8 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
       '☕': '#ffffff',
       'Refilled!': '#ffffff',
       101: '#00ff00',
+      '💬': '#9be7ff',
+      '😴': '#aaaaff',
       default: '#00ff00',
     };
 
@@ -476,6 +555,28 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
+   * Sends the worker to a grid tile with an intent to resolve on arrival.
+   * @param {number} gx - Grid X.
+   * @param {number} gy - Grid Y.
+   * @param {string} intent - Movement intent.
+   */
+  goTo(gx, gy, intent) {
+    this.movementIntent = intent;
+    this.scene.requestMove(this, gx, gy);
+  }
+
+  /**
+   * Ends an active or pending meeting.
+   */
+  endMeeting() {
+    if (this.currentState === STATE.MEETING || this.movementIntent === 'MEETING') {
+      this.movementIntent = null;
+      this.currentState = STATE.IDLE;
+      this.stateTimer = 500;
+    }
+  }
+
+  /**
    * AI Logic to decide what to do next based on role and energy.
    */
   decideNextAction() {
@@ -484,29 +585,32 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
       this.currentState !== STATE.COFFEE &&
       this.movementIntent !== 'FETCH_COFFEE'
     ) {
-      this.movementIntent = 'FETCH_COFFEE';
       this.showFeedback('☕');
-      this.scene.requestMove(this, 23, 2);
+      const coffeeTile = this.scene.coffeeTile || { x: 23, y: 16 };
+      this.goTo(coffeeTile.x, coffeeTile.y, 'FETCH_COFFEE');
       return;
     }
 
-    if (this.role === 'dev') {
-      if (Phaser.Math.RND.frac() > 0.3) {
-        this.currentState = STATE.WORKING;
-        this.startWorkSequence();
-        this.showFeedback('101');
-      } else {
-        this.currentState = STATE.IDLE;
-        this.moveToRandomPoint();
+    if (this.energy < 55 && Phaser.Math.RND.frac() < 0.25) {
+      const spot = this.scene.getBreakSpot?.();
+      if (spot) {
+        this.goTo(spot.x, spot.y, 'BREAK');
+        return;
       }
-    } else if (this.role === 'sales') {
-      this.currentState = STATE.IDLE;
-      this.moveToRandomPoint();
-      if (Phaser.Math.RND.frac() > 0.8) this.showFeedback('$');
-    } else if (this.role === 'support') {
-      this.currentState = STATE.IDLE;
-      this.moveToRandomPoint();
     }
+
+    if (Phaser.Math.RND.frac() > 0.35) {
+      const desk = this.scene.claimDesk?.(this);
+      if (desk) {
+        this.desk = desk;
+        this.goTo(desk.chairGx, desk.chairGy, 'WORK');
+        return;
+      }
+    }
+
+    this.currentState = STATE.IDLE;
+    this.moveToRandomPoint();
+    if (this.role === 'sales' && Phaser.Math.RND.frac() > 0.8) this.showFeedback('$');
   }
 
   /**

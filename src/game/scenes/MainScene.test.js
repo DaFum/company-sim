@@ -323,7 +323,12 @@ describe('MainScene', () => {
       expect(scene._grid[19][24]).toBe(1); // Bottom Right
     });
 
-    it('should mark hardcoded obstacles', () => {
+    it('should mark registered furniture blockers', () => {
+      scene.blockers = [
+        { x: 2, y: 2 },
+        { x: 23, y: 2 },
+        { x: 2, y: 17 },
+      ];
       scene.applyObstaclesToGrid();
       expect(scene._grid[2][2]).toBe(1);
       expect(scene._grid[2][23]).toBe(1);
@@ -423,13 +428,14 @@ describe('MainScene', () => {
       expect(scene.easystar.calculate).toHaveBeenCalledTimes(scene._maxPathCalculationsPerTick);
     });
 
-    it('should update worker depths based on y position', () => {
+    it('should leave worker depth sorting to WorkerSprite preUpdate', () => {
       const mockWorker = { y: 100, setDepth: vi.fn() };
       scene.workersGroup.children.iterate = vi.fn((callback) => callback(mockWorker));
 
       scene.update();
 
-      expect(mockWorker.setDepth).toHaveBeenCalledWith(100);
+      expect(scene.workersGroup.children.iterate).not.toHaveBeenCalled();
+      expect(mockWorker.setDepth).not.toHaveBeenCalled();
     });
 
     it('should update visitor depths based on y position', () => {
@@ -639,7 +645,7 @@ describe('MainScene', () => {
 
     it('should spawn animated coffee machine', () => {
       scene.spawnObjects();
-      expect(scene.spawnObject).toHaveBeenCalledWith(23, 17, 'obj_coffee_anim', true);
+      expect(scene.spawnObject).toHaveBeenCalledWith(23, 17, 'obj_coffee_anim', { animated: true });
     });
 
     it('should spawn plant object', () => {

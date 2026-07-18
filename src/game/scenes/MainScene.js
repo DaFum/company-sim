@@ -3,10 +3,12 @@ import { useGameStore } from '../../store/gameStore';
 import EasyStar from 'easystarjs';
 import SoundManager from '../SoundManager';
 import WorkerSprite from '../sprites/WorkerSprite';
+import { ROLE_PARTICLES } from '../palette.js';
 
 const DRAG_FRICTION = 0.95;
 const ZOOM_SENSITIVITY = 0.002;
 const MIN_INERTIA_VELOCITY_SQ = 0.1;
+const LIGHT_BUDGET = 6;
 
 /**
  * @typedef {Object} Roster
@@ -54,6 +56,13 @@ export default class MainScene extends Phaser.Scene {
 
     this._chaosTweens = [];
     this._officeAssetKeys = new Set();
+    this._lightCount = 0;
+    this.blockers = [];
+    this.desks = [];
+    this.coffeeTile = { x: 23, y: 16 };
+    this.breakSpots = [];
+    this.chatSpots = [];
+    this.roleEmitters = {};
   }
 
   /**
@@ -61,6 +70,7 @@ export default class MainScene extends Phaser.Scene {
    */
   create() {
     this._officeAssetKeys.clear();
+    this._lightCount = 0;
     this.soundManager = new SoundManager(this);
 
     // 0) Animations (Must be before spawnObjects)
@@ -85,12 +95,39 @@ export default class MainScene extends Phaser.Scene {
     this.workersGroup = this.add.group({ runChildUpdate: true });
     this.visitorGroup = this.add.group({ runChildUpdate: true });
     this.overlayGroup = this.add.group();
+    this.roleEmitters = {};
+    for (const role of ['dev', 'sales', 'support']) {
+      this.roleEmitters[role] = this.add
+        .particles(0, 0, 'particle_pixel', {
+          speed: { min: 50, max: 100 },
+          angle: { min: 220, max: 320 },
+          scale: { start: 0.6, end: 0 },
+          alpha: { start: 1, end: 0 },
+          gravityY: 100,
+          lifespan: 600,
+          tint: ROLE_PARTICLES[role],
+          emitting: false,
+        })
+        .setDepth(95);
+    }
 
     // 2) Grid FIRST
     this.setupGrid();
 
     // 3) Initial Setup
     this.createFloor(1);
+    this.blockers = [];
+    this.desks = [];
+    this.coffeeTile = { x: 23, y: 16 };
+    this.breakSpots = [
+      { x: 11, y: 15 },
+      { x: 13, y: 15 },
+      { x: 12, y: 15 },
+    ];
+    this.chatSpots = [
+      { x: 19, y: 16 },
+      { x: 20, y: 16 },
+    ];
     this.spawnObjects();
     this.createWalls();
     this.applyObstaclesToGrid();
@@ -254,10 +291,7 @@ export default class MainScene extends Phaser.Scene {
       }
     }
 
-    // Depth Sorting
-    this.workersGroup?.children.iterate((child) => {
-      child.setDepth(child.y);
-    });
+    // Visitor depth still changes with tweened visitors; workers update depth only when their y changes.
     this.visitorGroup?.children.iterate((child) => {
       child.setDepth(child.y);
     });
@@ -269,6 +303,23 @@ export default class MainScene extends Phaser.Scene {
     // this.objectGroup.children.iterate((child) => child.setDepth(child.y));
 
     this.handleMobileControls();
+  }
+
+  /**
+   * Claims one of the capped worker point lights.
+   * @returns {boolean} Whether a light slot is available.
+   */
+  requestLight() {
+    if (this._lightCount >= LIGHT_BUDGET) return false;
+    this._lightCount += 1;
+    return true;
+  }
+
+  /**
+   * Releases a previously claimed worker point light.
+   */
+  releaseLight() {
+    this._lightCount = Math.max(0, this._lightCount - 1);
   }
 
   /**
@@ -659,13 +710,8 @@ export default class MainScene extends Phaser.Scene {
       this._grid[y][this.cols - 1] = 1;
     }
 
-    // 2. Hardcoded obstacles
-    const blocked = [
-      { x: 2, y: 2 },
-      { x: 23, y: 2 },
-      { x: 2, y: 17 },
-    ];
-    for (const b of blocked) {
+    // 2. Furniture registered by spawnObject
+    for (const b of this.blockers || []) {
       if (b.x >= 0 && b.x < this.cols && b.y >= 0 && b.y < this.rows) {
         this._grid[b.y][b.x] = 1;
       }
@@ -799,7 +845,15 @@ export default class MainScene extends Phaser.Scene {
     for (let row = 6; row <= 12; row += 3) {
       for (let col = 3; col <= 8; col += 2) {
         this.spawnObject(col, row, 'obj_desk');
-        this.spawnObject(col, row - 1, 'obj_chair');
+        this.spawnObject(col, row - 1, 'obj_chair', { walkable: true });
+        this.desks.push({
+          gx: col,
+          gy: row,
+          chairGx: col,
+          chairGy: row - 1,
+          zone: 'dev',
+          claimedBy: null,
+        });
       }
     }
     this.spawnObject(3, 14, 'obj_whiteboard');
@@ -812,7 +866,12 @@ export default class MainScene extends Phaser.Scene {
     // For simplicity, we used a 64px texture. spawnObject logic assumes 32px grid centers.
     // We'll spawn it at x=18, y=4. 18*32=576. +16=592.
     // 64px wide means it covers x=18 and x=19.
-    this.spawnObject(18, 4, 'obj_table_meeting');
+    this.spawnObject(18, 4, 'obj_table_meeting', {
+      tiles: [
+        [18, 4],
+        [19, 4],
+      ],
+    });
     // Adjust position if needed, or just let it overlap.
     // Since it's 64 wide, center is at +32. spawnObject puts center at tile center +16.
     // So visual x is (18*32)+16 = 592. Real width 64 -> left 560, right 624.
@@ -823,27 +882,35 @@ export default class MainScene extends Phaser.Scene {
     // Let's just place it and see.
 
     // Chairs around table
-    this.spawnObject(18, 3, 'obj_chair');
-    this.spawnObject(19, 3, 'obj_chair');
-    this.spawnObject(18, 5, 'obj_chair');
-    this.spawnObject(19, 5, 'obj_chair');
+    this.spawnObject(18, 3, 'obj_chair', { walkable: true });
+    this.spawnObject(19, 3, 'obj_chair', { walkable: true });
+    this.spawnObject(18, 5, 'obj_chair', { walkable: true });
+    this.spawnObject(19, 5, 'obj_chair', { walkable: true });
 
     // --- ZONE: SALES/SUPPORT (Bottom Right) ---
     for (let row = 10; row <= 16; row += 3) {
       for (let col = 16; col <= 21; col += 3) {
         this.spawnObject(col, row, 'obj_desk');
-        this.spawnObject(col, row - 1, 'obj_chair');
+        this.spawnObject(col, row - 1, 'obj_chair', { walkable: true });
+        this.desks.push({
+          gx: col,
+          gy: row,
+          chairGx: col,
+          chairGy: row - 1,
+          zone: 'sales',
+          claimedBy: null,
+        });
       }
     }
     this.spawnObject(22, 12, 'obj_cabinet');
     this.spawnObject(22, 13, 'obj_cabinet');
 
     // --- ZONE: LOUNGE (Bottom Left/Center) ---
-    this.spawnObject(12, 16, 'obj_rug'); // Decoration, walkable?
-    this.spawnObject(11, 16, 'obj_couch');
-    this.spawnObject(13, 16, 'obj_couch');
+    this.spawnObject(12, 16, 'obj_rug', { walkable: true });
+    this.spawnObject(11, 16, 'obj_couch', { walkable: true });
+    this.spawnObject(13, 16, 'obj_couch', { walkable: true });
 
-    this.spawnObject(23, 17, 'obj_coffee_anim', true);
+    this.spawnObject(23, 17, 'obj_coffee_anim', { animated: true });
     this.spawnObject(21, 17, 'obj_vending');
     this.spawnObject(19, 17, 'obj_watercooler');
 
@@ -858,9 +925,10 @@ export default class MainScene extends Phaser.Scene {
    * @param {number} x - Grid X.
    * @param {number} y - Grid Y.
    * @param {string} texture - Texture key.
-   * @param {boolean} [isAnimated=false] - Whether the object is an animated sprite.
+   * @param {boolean|Object} [opts=false] - Whether animated, or { animated, walkable, tiles }.
    */
-  spawnObject(x, y, texture, isAnimated = false) {
+  spawnObject(x, y, texture, opts = false) {
+    const isAnimated = opts === true || opts.animated;
     let obj;
     if (isAnimated) {
       obj = this.add.sprite(
@@ -893,6 +961,11 @@ export default class MainScene extends Phaser.Scene {
     obj.setDepth(obj.y);
 
     this.objectGroup.add(obj);
+
+    if (!opts.walkable) {
+      const tiles = opts.tiles || [[x, y]];
+      for (const [gx, gy] of tiles) this.blockers.push({ x: gx, y: gy });
+    }
 
     // FX Polish (WebGL Only)
     if (this.game.renderer.type === Phaser.WEBGL && obj.postFX) {
@@ -950,6 +1023,40 @@ export default class MainScene extends Phaser.Scene {
    */
   getWorkersByRole(role) {
     return this.workersGroup.getChildren().filter((w) => w.role === role);
+  }
+
+  /**
+   * Returns a random low-energy recovery spot.
+   */
+  getBreakSpot() {
+    return Phaser.Math.RND.pick(this.breakSpots);
+  }
+
+  /**
+   * Claims an available desk in the role-appropriate work zone.
+   * @param {WorkerSprite} worker - Worker requesting a desk.
+   * @returns {Object|null} Claimed desk metadata.
+   */
+  claimDesk(worker) {
+    const zone = worker.role === 'dev' ? 'dev' : 'sales';
+    const free = this.desks.filter((desk) => desk.zone === zone && !desk.claimedBy);
+    if (!free.length) return null;
+    const desk = Phaser.Math.RND.pick(free);
+    desk.claimedBy = worker.id;
+    return desk;
+  }
+
+  /**
+   * Starts a short watercooler chat for two idle workers.
+   */
+  startChat() {
+    const idleWorkers = this.workersGroup
+      .getChildren()
+      .filter((worker) => worker.currentState === 'IDLE');
+    if (idleWorkers.length < 2) return;
+    const [first, second] = Phaser.Utils.Array.Shuffle(idleWorkers).slice(0, 2);
+    first.goTo(this.chatSpots[0].x, this.chatSpots[0].y, 'CHAT');
+    second.goTo(this.chatSpots[1].x, this.chatSpots[1].y, 'CHAT');
   }
 
   /**
