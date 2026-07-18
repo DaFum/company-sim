@@ -661,7 +661,7 @@ export const useGameStore = create(
           updates.roster = calculateRoster(updates.employees);
         }
 
-        if (updates.activeEvents) {
+        if (Array.isArray(updates.activeEvents)) {
           const updatedTypes = new Set();
           for (const event of updates.activeEvents) {
             if (event?.type) {
