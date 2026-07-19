@@ -358,4 +358,13 @@ describe('formatDecision', () => {
     const decision = formatDecision('HIRE_WORKER', {}, 'Testing', { level: 'HIGH' });
     expect(decision.risk_assessment).toBe('MEDIUM'); // Default for HIRE_WORKER
   });
+  it('handles missing params argument gracefully', () => {
+    const decision = formatDecision('HIRE_WORKER', undefined, 'Need capacity');
+    expect(decision.parameters).toEqual({});
+  });
+
+  it('handles non-object params gracefully', () => {
+    const decision = formatDecision('HIRE_WORKER', 'invalid params', 'Need capacity');
+    expect(decision.parameters).toEqual({});
+  });
 });
