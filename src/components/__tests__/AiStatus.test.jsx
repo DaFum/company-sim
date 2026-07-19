@@ -22,6 +22,7 @@ vi.mock('../../store/gameStore', () => {
 describe('AiStatus', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useGameStore.__setMockState({});
   });
 
   afterEach(() => {
@@ -39,11 +40,7 @@ describe('AiStatus', () => {
     // In vitest/jsdom environment, hex codes might not be converted to rgb in inline styles
     // Also jsdom might strip or format the string slightly differently
     const backgroundColor = eye.style.backgroundColor;
-    expect(
-      backgroundColor === 'rgb(0, 204, 255)' ||
-        backgroundColor === '#00ccff' ||
-        backgroundColor === 'rgb(0,204,255)'
-    ).toBe(true);
+    expect(['rgb(0, 204, 255)', '#00ccff', 'rgb(0,204,255)']).toContain(backgroundColor);
   });
 
   it('renders correctly when AI is not thinking and mood is good', () => {
@@ -57,11 +54,7 @@ describe('AiStatus', () => {
     expect(eye.style.animation).toContain('none');
 
     const backgroundColor = eye.style.backgroundColor;
-    expect(
-      backgroundColor === 'rgb(0, 255, 0)' ||
-        backgroundColor === '#00ff00' ||
-        backgroundColor === 'rgb(0,255,0)'
-    ).toBe(true);
+    expect(['rgb(0, 255, 0)', '#00ff00', 'rgb(0,255,0)']).toContain(backgroundColor);
   });
 
   it('renders correctly when AI is not thinking and mood is low', () => {
@@ -72,10 +65,6 @@ describe('AiStatus', () => {
     const eye = container.querySelector('.ai-status-eye');
 
     const backgroundColor = eye.style.backgroundColor;
-    expect(
-      backgroundColor === 'rgb(255, 0, 0)' ||
-        backgroundColor === '#ff0000' ||
-        backgroundColor === 'rgb(255,0,0)'
-    ).toBe(true);
+    expect(['rgb(255, 0, 0)', '#ff0000', 'rgb(255,0,0)']).toContain(backgroundColor);
   });
 });

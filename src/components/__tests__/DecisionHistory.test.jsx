@@ -22,6 +22,7 @@ vi.mock('../../store/gameStore', () => {
 describe('DecisionHistory', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useGameStore.__setMockState({});
   });
 
   afterEach(() => {
@@ -79,5 +80,12 @@ describe('DecisionHistory', () => {
     expect(getByText('Expected: More cost')).toBeDefined();
     expect(getByText('Risk: LOW')).toBeDefined();
     expect(getByText('Cost: 500 €')).toBeDefined();
+
+    // Check vetoed item fields
+    expect(getByText('"Fire 1 dev"')).toBeDefined();
+    expect(getByText('"Too expensive"')).toBeDefined();
+    expect(getByText('Expected: Less cost')).toBeDefined();
+    expect(getByText('Risk: HIGH')).toBeDefined();
+    expect(container.querySelectorAll('.history-cost').length).toBe(1);
   });
 });
