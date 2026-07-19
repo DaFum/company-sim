@@ -149,13 +149,13 @@ export const ACTION_DEFINITIONS = {
       }
       if (item === 'wellness_pod') updates.mood = Math.min(100, state.mood + 25);
       if (item === 'server_rack_v2' || item === 'firewall') {
-        const eventsToFilter = item === 'server_rack_v2' ? 'TECH_OUTAGE' : 'RANSOMWARE';
+        const eventTypeToRemove = item === 'server_rack_v2' ? 'TECH_OUTAGE' : 'RANSOMWARE';
         if (item === 'server_rack_v2') {
           updates.serverStability = 1.0;
           updates.serverHealth = 100;
         }
-        updates.activeEvents = (updates.activeEvents || state.activeEvents).filter(
-          (e) => e.type !== eventsToFilter
+        updates.activeEvents = (updates.activeEvents || state.activeEvents || []).filter(
+          (e) => e && e.type !== eventTypeToRemove
         );
       }
       return {};

@@ -118,6 +118,9 @@ export const createEmployee = (role, id) => ({
  * @returns {EmployeeMetrics} Aggregated metrics.
  */
 const calculateEmployeeMetrics = (employees) => {
+  if (!Array.isArray(employees)) {
+    return { totalDevOutput: 0, totalSalesOutput: 0, debtAcc: 0, moodDecay: 0 };
+  }
   let totalDevOutput = 0;
   let totalSalesOutput = 0;
   let debtAcc = 0;
@@ -453,7 +456,7 @@ export const useGameStore = create(
      */
     clearTimers: () => {
       const state = get();
-      for (const t of state.timers) {
+      for (const t of state.timers || []) {
         clearTimeout(t);
       }
       set({ timers: [] });
