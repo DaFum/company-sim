@@ -123,7 +123,7 @@ const calculateEmployeeMetrics = (employees) => {
   let debtAcc = 0;
   let moodDecay = 0;
 
-  employees.forEach((e) => {
+  for (const e of employees) {
     let output = 1.0; // Base mod
     // Trait Modifiers
     if (e.trait === '10x_ENGINEER') {
@@ -164,7 +164,7 @@ const calculateEmployeeMetrics = (employees) => {
 
     if (e.role === 'dev') totalDevOutput += output;
     if (e.role === 'sales') totalSalesOutput += output;
-  });
+  }
 
   return { totalDevOutput, totalSalesOutput, debtAcc: Math.max(0, debtAcc), moodDecay };
 };
@@ -299,11 +299,11 @@ const rollChaosEvent = (state) => {
 function calculateRoster(employees) {
   const roster = { dev: 0, sales: 0, support: 0 };
   if (!Array.isArray(employees)) return roster;
-  employees.forEach((e) => {
+  for (const e of employees) {
     if (e && e.role && roster[e.role] !== undefined) {
       roster[e.role]++;
     }
-  });
+  }
   return roster;
 }
 
@@ -372,7 +372,7 @@ export const useGameStore = create(
 
       const employees = state.employees || [];
 
-      employees.forEach((e) => {
+      for (const e of employees) {
         // Trait Logic: Salary
         let salary = 50;
         if (e.trait === '10x_ENGINEER') salary = 100;
@@ -383,7 +383,7 @@ export const useGameStore = create(
         if (e.trait === 'MENTOR') salary = 85;
         if (e.trait === 'BURNT_OUT') salary = 35;
         totalBurn += salary;
-      });
+      }
 
       // Add base burn (rent etc)
       totalBurn += state.officeLevel * 100;
@@ -453,9 +453,9 @@ export const useGameStore = create(
      */
     clearTimers: () => {
       const state = get();
-      state.timers.forEach((t) => {
+      for (const t of state.timers) {
         clearTimeout(t);
-      });
+      }
       set({ timers: [] });
     },
 
@@ -678,14 +678,14 @@ export const useGameStore = create(
           if (removedTypes.length > 0) {
             let currentHistory = updates.eventHistory || state.eventHistory;
 
-            removedTypes.forEach((type) => {
+            for (const type of removedTypes) {
               currentHistory = resolveLatestEventHistoryEntry(
                 currentHistory,
                 type,
                 state.day,
                 state.tick
               );
-            });
+            }
 
             updates.eventHistory = currentHistory;
           }
