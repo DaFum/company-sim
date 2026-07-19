@@ -22,7 +22,9 @@ describe('actionRegistry - BUY_UPGRADE', () => {
   it('should apply valid upgrade if funds are sufficient', () => {
     const state = { inventory: [], cash: 5000, productivity: 10 };
     const updates = {};
-    const result = ACTION_DEFINITIONS.BUY_UPGRADE.apply(state, updates, { item_id: 'coffee_machine' });
+    const result = ACTION_DEFINITIONS.BUY_UPGRADE.apply(state, updates, {
+      item_id: 'coffee_machine',
+    });
     expect(result).toEqual({});
     expect(updates.cash).toBe(3000);
     expect(updates.inventory).toContain('coffee_machine');
@@ -48,7 +50,7 @@ describe('actionRegistry - BUY_UPGRADE', () => {
     const state = {
       inventory: [],
       cash: 5000,
-      activeEvents: [{ type: 'TECH_OUTAGE' }, { type: 'OTHER_EVENT' }]
+      activeEvents: [{ type: 'TECH_OUTAGE' }, { type: 'OTHER_EVENT' }],
     };
     const updates = {};
     ACTION_DEFINITIONS.BUY_UPGRADE.apply(state, updates, { item_id: 'server_rack_v2' });
