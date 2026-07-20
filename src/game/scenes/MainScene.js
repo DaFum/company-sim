@@ -504,38 +504,23 @@ export default class MainScene extends Phaser.Scene {
    * Sets up touch interactions for selecting workers.
    */
   setupTouchInteractions() {
-    // Tap on Worker with Drag Tolerance
-    this.input.on('gameobjectdown', (pointer, gameObject) => {
-      if (gameObject instanceof WorkerSprite) {
-        // We set a once-listener on pointerup for this specific event
-        // But gameobjectdown fires on start.
-        // Simpler: Check global pointer up or use InputPlugin features.
+    // Better: Global Pointer Up Check utilizing Native Phaser Interactivity
+    this.input.on('gameobjectup', (pointer, gameObject) => {
+      // Only if tap (< 10px movement)
+      if (pointer.getDistance() < 10 && gameObject instanceof WorkerSprite) {
+        this.showTooltip(
+          gameObject.x,
+          gameObject.y - 40,
+          `${gameObject.role.toUpperCase()}\nEnergy: ${Math.max(0, gameObject.energy).toFixed(0)}%`
+        );
       }
     });
 
-    // Better: Global Pointer Up Check
-    this.input.on('pointerup', (pointer) => {
-      // Only if tap (< 10px movement)
-      if (pointer.getDistance() < 10) {
-        // Check Collision
-        // Manually raycast or check under pointer
-        const worldPoint = pointer.positionToCamera(this.cameras.main);
-        const workers = this.workersGroup.getChildren();
-
-        // Simple AABB check
-        const clickedWorker = workers.find((w) =>
-          w.getBounds().contains(worldPoint.x, worldPoint.y)
-        );
-
-        if (clickedWorker) {
-          this.showTooltip(
-            clickedWorker.x,
-            clickedWorker.y - 40,
-            `${clickedWorker.role.toUpperCase()}\nEnergy: ${Math.max(0, clickedWorker.energy).toFixed(0)}%`
-          );
-        } else {
-          this.hideTooltip();
-        }
+    // Global check to hide tooltip if tapping empty space
+    this.input.on('pointerup', (pointer, currentlyOver) => {
+      // Only if tap (< 10px movement) and no objects were hit
+      if (pointer.getDistance() < 10 && currentlyOver.length === 0) {
+        this.hideTooltip();
       }
     });
   }
