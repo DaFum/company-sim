@@ -516,11 +516,14 @@ export default class MainScene extends Phaser.Scene {
       }
     });
 
-    // Global check to hide tooltip if tapping empty space
+    // Global check to hide tooltip if tapping empty space or non-worker objects
     this.input.on('pointerup', (pointer, currentlyOver) => {
-      // Only if tap (< 10px movement) and no objects were hit
-      if (pointer.getDistance() < 10 && currentlyOver.length === 0) {
-        this.hideTooltip();
+      // Only if tap (< 10px movement) and no workers were hit
+      if (pointer.getDistance() < 10) {
+        const hitWorker = currentlyOver?.some((obj) => obj instanceof WorkerSprite);
+        if (!hitWorker) {
+          this.hideTooltip();
+        }
       }
     });
   }
