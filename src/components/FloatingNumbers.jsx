@@ -40,9 +40,8 @@ export const FloatingNumbers = () => {
       floaterIdRef.current += 1;
       const id = floaterIdRef.current;
       setFloaters((list) => [...list, { id, value: Math.round(delta), x: randomX, y: randomY }]);
+      prevCashRef.current = cash;
     }
-
-    prevCashRef.current = cash;
   }, [cash]);
 
   // Stable callback so FloatingNumber's timer effect isn't reset on every tick.
