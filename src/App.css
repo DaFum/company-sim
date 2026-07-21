@@ -303,6 +303,7 @@ body {
 
 .dashboard {
   display: flex;
+  flex-wrap: wrap;
   gap: 18px;
   width: min(860px, 100%);
   margin-bottom: 22px;
@@ -310,7 +311,7 @@ body {
 
 /* ---------- Status board ---------- */
 .status-board {
-  flex: 1;
+  flex: 1 1 250px;
 }
 
 .status-row {
@@ -319,7 +320,7 @@ body {
   margin-bottom: 14px;
 }
 .stat-pill {
-  flex: 1;
+  flex: 1 1 250px;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -385,7 +386,7 @@ body {
 
 /* ---------- Controls ---------- */
 .controls {
-  flex: 1;
+  flex: 1 1 250px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -455,7 +456,7 @@ body {
 }
 
 .speed-button {
-  flex: 1;
+  flex: 1 1 250px;
   color: var(--accent-cyan);
 }
 .speed-button:hover:not(:disabled) {
@@ -464,7 +465,7 @@ body {
 }
 
 .action-button {
-  flex: 1;
+  flex: 1 1 250px;
 }
 .action-hire:hover:not(:disabled) {
   border-color: var(--accent-green);
@@ -1292,7 +1293,7 @@ body {
    KPI Board
    ============================================================ */
 .kpi-board {
-  flex: 1;
+  flex: 1 1 250px;
 }
 .kpi-grid {
   display: grid;
@@ -1335,12 +1336,12 @@ body {
    History Board
    ============================================================ */
 .history-board {
-  flex: 1.5;
+  flex: 1.5 1 300px;
 }
 
 /* ---------- Portfolio board ---------- */
 .portfolio-board {
-  flex: 1.15;
+  flex: 1.15 1 280px;
   overflow: hidden;
 }
 .portfolio-board::after {
