@@ -456,7 +456,7 @@ body {
 }
 
 .speed-button {
-  flex: 1 1 250px;
+  flex: 1;
   color: var(--accent-cyan);
 }
 .speed-button:hover:not(:disabled) {
@@ -465,7 +465,7 @@ body {
 }
 
 .action-button {
-  flex: 1 1 250px;
+  flex: 1;
 }
 .action-hire:hover:not(:disabled) {
   border-color: var(--accent-green);
@@ -1163,6 +1163,13 @@ body {
   .dashboard {
     flex-direction: column;
     width: 100%;
+  }
+  .status-board,
+  .kpi-board,
+  .portfolio-board,
+  .history-board,
+  .controls {
+    flex-basis: auto;
   }
   .status-board {
     font-size: 0.95em;
