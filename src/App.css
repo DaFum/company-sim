@@ -1151,55 +1151,6 @@ body {
 /* ============================================================
    Mobile
    ============================================================ */
-@media (max-width: 850px) {
-  .app-container {
-    padding: 16px 12px 40px;
-  }
-  .app-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 14px;
-  }
-  .dashboard {
-    flex-direction: column;
-    width: 100%;
-  }
-  .status-board,
-  .kpi-board,
-  .portfolio-board,
-  .history-board,
-  .controls {
-    flex-basis: auto;
-  }
-  .status-board {
-    font-size: 0.95em;
-  }
-  .game-canvas-container {
-    width: 100%;
-    aspect-ratio: 4/3;
-    padding: 6px;
-  }
-  #game-container {
-    width: 100% !important;
-    height: 100% !important;
-    margin: 0 !important;
-  }
-  #game-container canvas {
-    width: 100% !important;
-    height: 100% !important;
-  }
-  .terminal-container {
-    font-size: 0.85em;
-    min-height: 160px;
-  }
-  .control-group button {
-    min-height: 48px;
-  }
-}
-
-/* ============================================================
-   DecisionHistory
-   ============================================================ */
 .decision-history-empty {
   padding: 16px;
   text-align: center;
@@ -1433,4 +1384,49 @@ body {
 }
 .trait-chip {
   border-color: rgba(0, 229, 255, 0.18);
+}
+@media (max-width: 850px) {
+  .app-container {
+    padding: 16px 12px 40px;
+  }
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .dashboard {
+    flex-direction: column;
+    width: 100%;
+  }
+  .status-board,
+  .kpi-board,
+  .portfolio-board,
+  .history-board,
+  .controls {
+    flex-basis: auto;
+  }
+  .status-board {
+    font-size: 0.95em;
+  }
+  .game-canvas-container {
+    width: 100%;
+    aspect-ratio: 4/3;
+    padding: 6px;
+  }
+  #game-container {
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+  }
+  #game-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+  .terminal-container {
+    font-size: 0.85em;
+    min-height: 160px;
+  }
+  .control-group button {
+    min-height: 48px;
+  }
 }
