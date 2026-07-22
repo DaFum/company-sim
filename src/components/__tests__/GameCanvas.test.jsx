@@ -30,15 +30,19 @@ vi.mock('../../game/config', () => {
 });
 
 // A proper hook mock that allows triggering re-renders via useState
+// We must hoist React to use it inside the vi.mock factory safely in ESM
+const { mockedReact } = vi.hoisted(() => {
+  return { mockedReact: require('react') };
+});
+
 vi.mock('../../store/gameStore', () => {
   let mockState = { isMuted: false };
   let listeners = new Set();
 
   const useGameStoreMock = vi.fn((selector) => {
-    const React = require('react');
-    const [state, setState] = React.useState(mockState);
+    const [state, setState] = mockedReact.useState(mockState);
 
-    React.useEffect(() => {
+    mockedReact.useEffect(() => {
       const listener = (newState) => setState(newState);
       listeners.add(listener);
       return () => listeners.delete(listener);
