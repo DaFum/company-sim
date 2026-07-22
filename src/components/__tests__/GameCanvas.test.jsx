@@ -11,21 +11,21 @@ const { mockDestroy } = vi.hoisted(() => ({
 
 // Mock Phaser
 vi.mock('phaser', () => {
-  const GameMock = vi.fn().mockImplementation(function() {
+  const GameMock = vi.fn().mockImplementation(function () {
     this.destroy = mockDestroy;
     this.sound = { mute: false };
   });
   return {
     default: {
       Game: GameMock,
-    }
+    },
   };
 });
 
 // Mock gameConfig to prevent dependency issues
 vi.mock('../../game/config', () => {
   return {
-    gameConfig: { test: 'config' }
+    gameConfig: { test: 'config' },
   };
 });
 
@@ -76,7 +76,7 @@ describe('GameCanvas', () => {
   });
 
   it('syncs mute state from store to Phaser game', () => {
-    const { rerender } = render(<GameCanvas />);
+    render(<GameCanvas />);
     const gameInstance = Phaser.Game.mock.instances[0];
     expect(gameInstance.sound.mute).toBe(false);
 
