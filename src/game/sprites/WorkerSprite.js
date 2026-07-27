@@ -157,6 +157,10 @@ export default class WorkerSprite extends Phaser.Physics.Arcade.Sprite {
       this.traitIcon.destroy();
       this.traitIcon = null;
     }
+    if (this._glowFX) {
+      this.preFX?.remove(this._glowFX);
+      this._glowFX = null;
+    }
     if (this.workTween) this.workTween.stop();
     if (this.feedbackTween) this.feedbackTween.stop();
     this.releaseDesk();
