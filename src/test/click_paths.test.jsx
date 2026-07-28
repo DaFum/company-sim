@@ -53,7 +53,7 @@ describe('App Click Paths', () => {
     render(<App />);
 
     // Debugging: check what's rendered if this fails
-    // screen.debug();
+    screen.debug();
 
     const startButton = screen.getByRole('button', { name: /START/i });
     expect(startButton).toBeInTheDocument();
